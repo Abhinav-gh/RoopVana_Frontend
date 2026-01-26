@@ -1,0 +1,298 @@
+@import "@fontsource/playfair-display/400.css";
+@import "@fontsource/playfair-display/500.css";
+@import "@fontsource/playfair-display/600.css";
+@import "@fontsource/playfair-display/700.css";
+@import "@fontsource/dm-sans/400.css";
+@import "@fontsource/dm-sans/500.css";
+@import "@fontsource/dm-sans/600.css";
+@import "@fontsource/dm-sans/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Warm dark theme inspired by Indian luxury textiles */
+    --background: 20 15% 6%;
+    --foreground: 40 30% 95%;
+
+    --card: 20 12% 10%;
+    --card-foreground: 40 30% 95%;
+
+    --popover: 20 12% 10%;
+    --popover-foreground: 40 30% 95%;
+
+    /* Deep saffron/gold - primary */
+    --primary: 35 90% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Rich burgundy - secondary */
+    --secondary: 350 60% 25%;
+    --secondary-foreground: 40 30% 95%;
+
+    /* Muted warm tones */
+    --muted: 20 10% 15%;
+    --muted-foreground: 30 15% 60%;
+
+    /* Gold accent */
+    --accent: 45 85% 55%;
+    --accent-foreground: 20 15% 6%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 40 30% 95%;
+
+    --border: 30 15% 20%;
+    --input: 30 15% 18%;
+    --ring: 35 90% 50%;
+
+    --radius: 0.75rem;
+
+    /* Custom design tokens */
+    --gradient-hero: linear-gradient(135deg, hsl(35 90% 50% / 0.15) 0%, hsl(350 60% 25% / 0.15) 50%, hsl(45 85% 55% / 0.1) 100%);
+    --gradient-button: linear-gradient(135deg, hsl(35 90% 50%) 0%, hsl(40 85% 45%) 100%);
+    --gradient-button-hover: linear-gradient(135deg, hsl(38 92% 55%) 0%, hsl(42 88% 50%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(350 60% 25%) 0%, hsl(35 90% 50%) 100%);
+    --gradient-text: linear-gradient(135deg, hsl(40 30% 95%) 0%, hsl(35 90% 50%) 50%, hsl(45 85% 55%) 100%);
+    --gradient-border: linear-gradient(135deg, hsl(35 90% 50% / 0.5) 0%, hsl(45 85% 55% / 0.3) 100%);
+
+    --shadow-glow: 0 0 60px hsl(35 90% 50% / 0.2);
+    --shadow-card: 0 25px 50px -12px hsl(20 15% 3% / 0.5);
+    --shadow-button: 0 10px 40px hsl(35 90% 50% / 0.3);
+
+    /* Sidebar variables */
+    --sidebar-background: 20 12% 8%;
+    --sidebar-foreground: 40 30% 95%;
+    --sidebar-primary: 35 90% 50%;
+    --sidebar-primary-foreground: 20 15% 6%;
+    --sidebar-accent: 20 10% 15%;
+    --sidebar-accent-foreground: 40 30% 95%;
+    --sidebar-border: 30 15% 20%;
+    --sidebar-ring: 35 90% 50%;
+  }
+
+  .dark {
+    /* Same as root - dark theme by default */
+    --background: 20 15% 6%;
+    --foreground: 40 30% 95%;
+    --card: 20 12% 10%;
+    --card-foreground: 40 30% 95%;
+    --popover: 20 12% 10%;
+    --popover-foreground: 40 30% 95%;
+    --primary: 35 90% 50%;
+    --primary-foreground: 20 15% 6%;
+    --secondary: 350 60% 25%;
+    --secondary-foreground: 40 30% 95%;
+    --muted: 20 10% 15%;
+    --muted-foreground: 30 15% 60%;
+    --accent: 45 85% 55%;
+    --accent-foreground: 20 15% 6%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 40 30% 95%;
+    --border: 30 15% 20%;
+    --input: 30 15% 18%;
+    --ring: 35 90% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .gradient-text {
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .gradient-border {
+    position: relative;
+    background: hsl(var(--card));
+    border-radius: var(--radius);
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-border);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .glass-card {
+    background: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid hsl(var(--border) / 0.5);
+  }
+
+  .pattern-overlay {
+    background-image:
+      radial-gradient(circle at 20% 80%, hsl(35 90% 50% / 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, hsl(350 60% 25% / 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, hsl(45 85% 55% / 0.03) 0%, transparent 70%);
+  }
+
+  .shine-effect {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-effect::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg,
+        transparent 40%,
+        hsl(40 30% 95% / 0.1) 45%,
+        hsl(40 30% 95% / 0.2) 50%,
+        hsl(40 30% 95% / 0.1) 55%,
+        transparent 60%);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+  }
+
+  .shine-effect:hover::after {
+    transform: translateX(100%);
+  }
+
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes pulse-slow {
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px hsl(35 90% 50% / 0.2);
+  }
+
+  to {
+    box-shadow: 0 0 40px hsl(35 90% 50% / 0.4);
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
+
+/* Navigation Menu Backdrop - blocks clicks when dropdown is open */
+[data-radix-navigation-menu-viewport] {
+  position: relative;
+  z-index: 100;
+}
+
+/* Create a backdrop when navigation menu content is visible */
+.navigation-menu-backdrop {
+  display: none;
+}
+
+/* Style the NavigationMenuContent to be fully opaque */
+[data-radix-navigation-menu-viewport]>div {
+  background-color: #18181b !important;
+  z-index: 100;
+}
+
+/* Ensure NavigationMenu items are above the backdrop */
+nav[data-orientation="horizontal"] {
+  position: relative;
+  z-index: 101;
+}

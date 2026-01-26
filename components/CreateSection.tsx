@@ -1,0 +1,2628 @@
+// Updated CreateSection.tsx with real API integration
+// Replace the existing file at: frontend/src/components/CreateSection.tsx
+
+import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { Mic, MicOff, X } from "lucide-react";
+import { Button } from "./ui/button";
+import PromptInput from "./PromptInput";
+import ImagePreview from "./ImagePreview";
+import ImageToImageInput from "./ImageToImageInput";
+import apiClient from "@/services/api";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
+
+// Language detection helper
+const detectLanguage = (text: string): string | null => {
+  if (!text.trim()) return null;
+  
+  const patterns: { [key: string]: RegExp } = {
+    Hindi: /[\u0900-\u097F]/,
+    Tamil: /[\u0B80-\u0BFF]/,
+    Telugu: /[\u0C00-\u0C7F]/,
+    Punjabi: /[\u0A00-\u0A7F]/,
+    Bengali: /[\u0980-\u09FF]/,
+    Gujarati: /[\u0A80-\u0AFF]/,
+    Kannada: /[\u0C80-\u0CFF]/,
+    Malayalam: /[\u0D00-\u0D7F]/,
+    Marathi: /[\u0900-\u097F]/,
+  };
+
+  for (const [lang, pattern] of Object.entries(patterns)) {
+    if (pattern.test(text)) return lang;
+  }
+
+  return "English";
+};
+
+// Map detected language to language code
+const getLanguageCode = (detectedLang: string | null): string => {
+  const languageMap: { [key: string]: string } = {
+    'Hindi': 'hi-IN',
+    'Tamil': 'ta-IN',
+    'Telugu': 'te-IN',
+    'Punjabi': 'pa-IN',
+    'Bengali': 'bn-IN',
+    'Gujarati': 'gu-IN',
+    'Kannada': 'kn-IN',
+    'Malayalam': 'ml-IN',
+    'Marathi': 'mr-IN',
+    'English': 'en-IN',
+  };
+
+  return languageMap[detectedLang || 'English'] || 'en-IN';
+};
+
+// Style categories with their internal prompt enhancements
+interface StyleDefinition {
+  label: string;
+  prompt: string;
+  icon: string;
+  category: 'indian' | 'western' | 'asian' | 'fusion';
+}
+
+// ============ FEMALE STYLES ============
+const FEMALE_STYLES: { [key: string]: StyleDefinition } = {
+  // ===== INDIAN STYLES =====
+  traditional_saree: {
+    label: "Traditional Saree",
+    icon: "🥻",
+    category: "indian",
+    prompt: "Traditional Indian saree with classical draping, heritage patterns, elegant pallu, feminine silhouette",
+  },
+  kanjivaram: {
+    label: "Kanjivaram",
+    icon: "🎀",
+    category: "indian",
+    prompt: "South Indian Kanjivaram silk saree, rich gold zari work, temple borders, contrast pallu, lustrous mulberry silk",
+  },
+  banarasi: {
+    label: "Banarasi",
+    icon: "👑",
+    category: "indian",
+    prompt: "Varanasi Banarasi brocade saree, intricate gold and silver zari, Mughal-inspired motifs, luxurious silk",
+  },
+  paithani: {
+    label: "Paithani",
+    icon: "🦚",
+    category: "indian",
+    prompt: "Maharashtrian Paithani silk saree, peacock motifs, gold zari borders, rich jewel tones",
+  },
+  chanderi: {
+    label: "Chanderi",
+    icon: "🌙",
+    category: "indian",
+    prompt: "Chanderi saree, lightweight sheer texture, subtle gold zari borders, peacock motifs",
+  },
+  chikankari: {
+    label: "Chikankari",
+    icon: "🪡",
+    category: "indian",
+    prompt: "Lucknowi Chikankari embroidered suit, delicate white threadwork, shadow work, Mughal elegance",
+  },
+  phulkari: {
+    label: "Phulkari",
+    icon: "🌸",
+    category: "indian",
+    prompt: "Punjabi Phulkari embroidered suit, vibrant floral threadwork, bright colors, traditional dupatta",
+  },
+  lehenga: {
+    label: "Lehenga",
+    icon: "💃",
+    category: "indian",
+    prompt: "Bridal lehenga choli, heavy embroidery, flared skirt, matching dupatta, wedding grandeur",
+  },
+  anarkali: {
+    label: "Anarkali",
+    icon: "🌺",
+    category: "indian",
+    prompt: "Anarkali suit, floor-length flared kurta, fitted bodice, flowing silhouette, elegant churidar",
+  },
+  sharara: {
+    label: "Sharara",
+    icon: "👘",
+    category: "indian",
+    prompt: "Sharara suit, wide-leg flared pants, short kurta, traditional dupatta, festive elegance",
+  },
+  
+  // ===== WESTERN STYLES =====
+  modern_dress: {
+    label: "Modern Dress",
+    icon: "👗",
+    category: "western",
+    prompt: "Contemporary dress design, clean lines, elegant silhouette, modern feminine fashion",
+  },
+  bohemian: {
+    label: "Bohemian",
+    icon: "🌻",
+    category: "western",
+    prompt: "Boho style, flowing fabrics, earthy tones, layered textures, fringe details, free-spirited fashion",
+  },
+  minimalist: {
+    label: "Minimalist",
+    icon: "⬜",
+    category: "western",
+    prompt: "Clean minimalist fashion, neutral colors, simple silhouettes, understated elegance",
+  },
+  couture: {
+    label: "Haute Couture",
+    icon: "✨",
+    category: "western",
+    prompt: "High fashion couture, avant-garde silhouettes, dramatic details, luxury fabrics, runway-ready",
+  },
+  cottagecore: {
+    label: "Cottagecore",
+    icon: "🌿",
+    category: "western",
+    prompt: "Cottagecore dress, floral prints, puff sleeves, lace trim, romantic pastoral style",
+  },
+  evening_gown: {
+    label: "Evening Gown",
+    icon: "🎭",
+    category: "western",
+    prompt: "Elegant evening gown, floor-length, luxurious fabric, sophisticated design, formal occasion",
+  },
+  cocktail_dress: {
+    label: "Cocktail Dress",
+    icon: "🍸",
+    category: "western",
+    prompt: "Stylish cocktail dress, knee-length, party-ready, elegant yet fun, evening wear",
+  },
+  victorian: {
+    label: "Victorian",
+    icon: "🎩",
+    category: "western",
+    prompt: "Victorian era fashion, high collars, lace details, puffed sleeves, dark romantic aesthetic",
+  },
+  maxi_dress: {
+    label: "Maxi Dress",
+    icon: "👒",
+    category: "western",
+    prompt: "Flowing maxi dress, floor-length, summer style, comfortable elegance, vacation wear",
+  },
+  power_suit: {
+    label: "Power Suit",
+    icon: "💼",
+    category: "western",
+    prompt: "Feminine power suit, tailored blazer, professional elegance, boss lady fashion",
+  },
+  
+  // ===== ADDITIONAL INDIAN STYLES =====
+  patola: {
+    label: "Patola",
+    icon: "💎",
+    category: "indian",
+    prompt: "Gujarati Patola double ikat silk saree, geometric motifs, vibrant jewel tones, royal heritage",
+  },
+  bandhani: {
+    label: "Bandhani",
+    icon: "🔵",
+    category: "indian",
+    prompt: "Bandhani tie-dye saree, intricate dot patterns, vibrant colors, Rajasthani heritage",
+  },
+  zardozi: {
+    label: "Zardozi",
+    icon: "⭐",
+    category: "indian",
+    prompt: "Royal Zardozi embroidered outfit, gold metallic threadwork, Mughal court elegance",
+  },
+  kashmiri: {
+    label: "Kashmiri",
+    icon: "❄️",
+    category: "indian",
+    prompt: "Kashmiri embroidered suit, pashmina fabric, intricate paisley patterns, elegant warmth",
+  },
+  salwar_kameez: {
+    label: "Salwar Kameez",
+    icon: "👚",
+    category: "indian",
+    prompt: "Classic salwar kameez, comfortable traditional wear, elegant kurta with matching bottoms",
+  },
+  palazzo_suit: {
+    label: "Palazzo Suit",
+    icon: "🌷",
+    category: "indian",
+    prompt: "Palazzo suit, wide-leg palazzo pants, short kurta, modern traditional fusion",
+  },
+  party_wear: {
+    label: "Party Wear",
+    icon: "🎉",
+    category: "indian",
+    prompt: "Glamorous party wear, sequins and embellishments, festive occasion, celebration ready",
+  },
+  crop_top_set: {
+    label: "Crop Top Set",
+    icon: "✂️",
+    category: "indian",
+    prompt: "Modern crop top with lehenga skirt, contemporary ethnic wear, trendy fusion style",
+  },
+
+  // ===== FUSION STYLES =====
+  indo_western: {
+    label: "Indo-Western",
+    icon: "🌐",
+    category: "fusion",
+    prompt: "Indo-Western fusion, blend of Indian and Western elements, contemporary with traditional embellishments",
+  },
+  modern_saree: {
+    label: "Modern Saree",
+    icon: "⚡",
+    category: "fusion",
+    prompt: "Contemporary saree draping, pre-stitched style, modern blouse design, fusion fashion",
+  },
+};
+
+// ============ MALE STYLES ============
+const MALE_STYLES: { [key: string]: StyleDefinition } = {
+  // ===== INDIAN STYLES =====
+  sherwani: {
+    label: "Sherwani",
+    icon: "🤵",
+    category: "indian",
+    prompt: "Traditional sherwani, rich brocade fabric, intricate embroidery, regal wedding wear, Mughal elegance",
+  },
+  kurta_pajama: {
+    label: "Kurta Pajama",
+    icon: "👕",
+    category: "indian",
+    prompt: "Classic kurta pajama set, comfortable cotton or silk, traditional neckline, festive Indian menswear",
+  },
+  bandhgala: {
+    label: "Bandhgala",
+    icon: "🎖️",
+    category: "indian",
+    prompt: "Nehru jacket bandhgala suit, mandarin collar, structured fit, formal Indian menswear, royal aesthetic",
+  },
+  pathani: {
+    label: "Pathani Suit",
+    icon: "🧥",
+    category: "indian",
+    prompt: "Pathani suit, loose-fitting kurta with salwar, comfortable cotton, traditional Afghan-inspired menswear",
+  },
+  dhoti_kurta: {
+    label: "Dhoti Kurta",
+    icon: "🙏",
+    category: "indian",
+    prompt: "Traditional dhoti with kurta, draped lower garment, cultural authenticity, ceremonial menswear",
+  },
+  jodhpuri: {
+    label: "Jodhpuri Suit",
+    icon: "👑",
+    category: "indian",
+    prompt: "Jodhpuri suit, structured jacket, slim trousers, royal Rajasthani elegance, formal occasion",
+  },
+  angrakha: {
+    label: "Angrakha",
+    icon: "📿",
+    category: "indian",
+    prompt: "Angrakha style kurta, overlapping front panels, tie fastenings, traditional Mughal-era design",
+  },
+  achkan: {
+    label: "Achkan",
+    icon: "🎩",
+    category: "indian",
+    prompt: "Achkan coat, knee-length jacket, fitted silhouette, intricate buttons, royal Indian menswear",
+  },
+  
+  // ===== WESTERN STYLES =====
+  formal_suit: {
+    label: "Formal Suit",
+    icon: "👔",
+    category: "western",
+    prompt: "Classic formal suit, tailored fit, professional menswear, clean lines, sophisticated style",
+  },
+  casual: {
+    label: "Casual",
+    icon: "👕",
+    category: "western",
+    prompt: "Casual menswear, relaxed fit, comfortable fabrics, everyday style, modern aesthetic",
+  },
+  streetwear: {
+    label: "Streetwear",
+    icon: "🛹",
+    category: "western",
+    prompt: "Urban streetwear, oversized fits, graphic elements, sneaker culture, contemporary youth fashion",
+  },
+  minimalist: {
+    label: "Minimalist",
+    icon: "⬜",
+    category: "western",
+    prompt: "Minimalist menswear, neutral palette, clean silhouettes, understated elegance",
+  },
+  preppy: {
+    label: "Preppy",
+    icon: "🎓",
+    category: "western",
+    prompt: "Preppy style, polo shirts, chinos, loafers, Ivy League aesthetic, smart casual",
+  },
+  tuxedo: {
+    label: "Tuxedo",
+    icon: "🎀",
+    category: "western",
+    prompt: "Classic tuxedo, black tie formal, satin lapels, elegant evening wear, gala ready",
+  },
+  business_casual: {
+    label: "Business Casual",
+    icon: "💼",
+    category: "western",
+    prompt: "Business casual attire, smart trousers, button-down shirt, professional yet relaxed",
+  },
+  bomber_jacket: {
+    label: "Bomber Style",
+    icon: "🧥",
+    category: "western",
+    prompt: "Bomber jacket outfit, casual cool style, urban fashion, layered look",
+  },
+  grunge: {
+    label: "Grunge",
+    icon: "🎸",
+    category: "western",
+    prompt: "90s grunge style, distressed denim, flannel, edgy rebellious fashion",
+  },
+  athleisure: {
+    label: "Athleisure",
+    icon: "🏃",
+    category: "western",
+    prompt: "Athleisure wear, sporty casual, comfortable yet stylish, modern active fashion",
+  },
+  
+  // ===== ADDITIONAL INDIAN STYLES =====
+  lucknowi_kurta: {
+    label: "Lucknowi Kurta",
+    icon: "🪡",
+    category: "indian",
+    prompt: "Lucknowi chikankari kurta, delicate embroidery, elegant menswear, festive sophistication",
+  },
+  bundi_jacket: {
+    label: "Bundi Jacket",
+    icon: "🎽",
+    category: "indian",
+    prompt: "Bundi jacket with kurta, sleeveless Nehru jacket, Rajasthani royal style, festive wear",
+  },
+  zardozi_sherwani: {
+    label: "Zardozi Sherwani",
+    icon: "✨",
+    category: "indian",
+    prompt: "Zardozi embroidered sherwani, gold metallic work, royal wedding wear, Mughal grandeur",
+  },
+  royal_look: {
+    label: "Royal Look",
+    icon: "👑",
+    category: "indian",
+    prompt: "Royal Indian menswear, maharaja inspired, rich fabrics, regal accessories, heritage elegance",
+  },
+  wedding_groom: {
+    label: "Wedding Groom",
+    icon: "💒",
+    category: "indian",
+    prompt: "Indian groom wedding attire, heavy embellishments, coordinated outfit, dulha fashion",
+  },
+  sangeet_wear: {
+    label: "Sangeet Wear",
+    icon: "🎵",
+    category: "indian",
+    prompt: "Sangeet ceremony outfit, colorful festive wear, dance-ready, celebration fashion",
+  },
+
+  // ===== FUSION STYLES =====
+  indo_western: {
+    label: "Indo-Western",
+    icon: "🌐",
+    category: "fusion",
+    prompt: "Indo-Western fusion for men, contemporary silhouettes with traditional Indian embellishments",
+  },
+  modern_kurta: {
+    label: "Modern Kurta",
+    icon: "⚡",
+    category: "fusion",
+    prompt: "Contemporary kurta design, modern cuts, updated silhouettes, fusion of traditional and trendy",
+  },
+  ethnic_fusion: {
+    label: "Ethnic Fusion",
+    icon: "🎨",
+    category: "fusion",
+    prompt: "Ethnic fusion menswear, blend of cultures, global fashion meets Indian heritage",
+  },
+};
+
+// Keep a combined reference for backwards compatibility
+const STYLE_PROMPTS = { ...FEMALE_STYLES, ...MALE_STYLES };
+
+// Category labels and order
+const STYLE_CATEGORIES = {
+  indian: { label: "🇮🇳 Indian", order: 1 },
+  western: { label: "🌍 Western", order: 2 },
+  asian: { label: "🌏 Asian", order: 3 },
+  fusion: { label: "🔀 Fusion", order: 4 },
+};
+
+// Group styles by category
+const getStylesByCategory = (styles: typeof STYLE_PROMPTS) => {
+  const grouped: { [key: string]: { key: string; style: StyleDefinition }[] } = {};
+  Object.entries(styles).forEach(([key, style]) => {
+    if (!grouped[style.category]) grouped[style.category] = [];
+    grouped[style.category].push({ key, style });
+  });
+  return grouped;
+};
+
+// Gender-specific body type options
+const FEMALE_BODY_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  any: { label: "Any", icon: "✨", prompt: "" },
+  hourglass: { label: "Hourglass", icon: "⏳", prompt: "hourglass figure, balanced bust and hips, defined waist" },
+  pear: { label: "Pear", icon: "🍐", prompt: "pear shaped body, wider hips, narrower shoulders" },
+  apple: { label: "Apple", icon: "🍎", prompt: "apple shaped body, fuller midsection" },
+  athletic: { label: "Athletic", icon: "💪", prompt: "athletic feminine body, toned physique, fit build" },
+  petite: { label: "Petite", icon: "🌷", prompt: "petite body type, small frame, delicate feminine build" },
+  tall: { label: "Tall", icon: "📏", prompt: "tall feminine body, long legs, elegant silhouette" },
+  plus_size: { label: "Plus Size", icon: "🌸", prompt: "plus size feminine body, full figured, body positive" },
+};
+
+const MALE_BODY_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  any: { label: "Any", icon: "✨", prompt: "" },
+  athletic: { label: "Athletic", icon: "💪", prompt: "athletic male body, toned muscular physique" },
+  slim: { label: "Slim", icon: "🧍", prompt: "slim male body type, lean slender figure" },
+  muscular: { label: "Muscular", icon: "🏋️", prompt: "muscular male body, well-built, broad shoulders" },
+  average: { label: "Average", icon: "👤", prompt: "average male body type, regular build" },
+  tall: { label: "Tall", icon: "📏", prompt: "tall male body type, long limbs, commanding presence" },
+  stocky: { label: "Stocky", icon: "🧱", prompt: "stocky male body, broad sturdy build" },
+};
+
+// Keep for backwards compatibility
+const BODY_TYPE_OPTIONS = { ...FEMALE_BODY_TYPES, ...MALE_BODY_TYPES };
+
+// Sleeve length options for upper body
+const SLEEVE_LENGTH_OPTIONS: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  any: { label: "Any", icon: "👕", prompt: "" },
+  sleeveless: { label: "Sleeveless", icon: "🎽", prompt: "sleeveless, no sleeves, bare arms" },
+  short: { label: "Short", icon: "👕", prompt: "short sleeves, above elbow" },
+  elbow: { label: "Elbow", icon: "🥋", prompt: "elbow length sleeves, mid-arm" },
+  threequarter: { label: "3/4", icon: "🧥", prompt: "three-quarter sleeves, below elbow" },
+  full: { label: "Full", icon: "🧥", prompt: "full length sleeves, wrist length" },
+  bell: { label: "Bell", icon: "🛎️", prompt: "bell sleeves, flared wide sleeves" },
+  puff: { label: "Puff", icon: "🎈", prompt: "puff sleeves, voluminous gathered sleeves" },
+};
+
+// Female Footwear options
+const FEMALE_FOOTWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  any: { label: "Any", icon: "👟", prompt: "" },
+  heels: { label: "Heels", icon: "👠", prompt: "high heels, stilettos, elegant feminine footwear" },
+  flats: { label: "Flats", icon: "🥿", prompt: "ballet flats, comfortable feminine footwear" },
+  sandals: { label: "Sandals", icon: "👡", prompt: "strappy sandals, feminine open footwear" },
+  wedges: { label: "Wedges", icon: "👠", prompt: "wedge heels, platform wedges" },
+  pumps: { label: "Pumps", icon: "👠", prompt: "classic pumps, court shoes" },
+  boots: { label: "Boots", icon: "👢", prompt: "feminine boots, ankle or knee-high boots" },
+  juttis: { label: "Juttis", icon: "🥿", prompt: "traditional juttis, embroidered ethnic footwear" },
+  kolhapuri: { label: "Kolhapuri", icon: "👡", prompt: "Kolhapuri chappals, traditional leather sandals" },
+  sneakers: { label: "Sneakers", icon: "👟", prompt: "stylish sneakers, casual athletic shoes" },
+  mules: { label: "Mules", icon: "👡", prompt: "mules, backless slip-on shoes" },
+  barefoot: { label: "Barefoot", icon: "🦶", prompt: "barefoot, no footwear" },
+};
+
+// Male Footwear options
+const MALE_FOOTWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  any: { label: "Any", icon: "👟", prompt: "" },
+  oxfords: { label: "Oxfords", icon: "👞", prompt: "oxford shoes, formal lace-up shoes" },
+  loafers: { label: "Loafers", icon: "👞", prompt: "loafers, slip-on formal shoes" },
+  boots: { label: "Boots", icon: "🥾", prompt: "men's boots, ankle or high boots" },
+  sneakers: { label: "Sneakers", icon: "👟", prompt: "sneakers, casual athletic shoes" },
+  sandals: { label: "Sandals", icon: "🩴", prompt: "men's sandals, leather sandals" },
+  juttis: { label: "Juttis", icon: "🥿", prompt: "traditional juttis, Punjabi mojari, ethnic footwear" },
+  kolhapuri: { label: "Kolhapuri", icon: "👡", prompt: "Kolhapuri chappals, traditional leather sandals" },
+  brogues: { label: "Brogues", icon: "👞", prompt: "brogue shoes, perforated leather shoes" },
+  monks: { label: "Monk Straps", icon: "👞", prompt: "monk strap shoes, buckle closure formal shoes" },
+  derby: { label: "Derby", icon: "👞", prompt: "derby shoes, open lacing formal shoes" },
+  barefoot: { label: "Barefoot", icon: "🦶", prompt: "barefoot, no footwear" },
+};
+
+// Female Headwear options
+const FEMALE_HEADWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  none: { label: "None", icon: "❌", prompt: "" },
+  dupatta: { label: "Dupatta", icon: "🧣", prompt: "dupatta draped over head, traditional head covering" },
+  maangtika: { label: "Maang Tikka", icon: "💎", prompt: "maang tikka, forehead jewelry, bridal headpiece" },
+  tiara: { label: "Tiara", icon: "👑", prompt: "tiara, elegant crown headpiece" },
+  hair_accessories: { label: "Hair Pins", icon: "📍", prompt: "decorative hair pins, hair accessories" },
+  headband: { label: "Headband", icon: "👸", prompt: "elegant headband, hair band" },
+  floral: { label: "Floral Crown", icon: "🌸", prompt: "floral crown, flower headpiece" },
+  veil: { label: "Veil", icon: "👰", prompt: "bridal veil, sheer head covering" },
+  hat: { label: "Hat", icon: "👒", prompt: "elegant hat, sun hat" },
+  turban: { label: "Turban", icon: "🧕", prompt: "feminine turban, head wrap" },
+};
+
+// Male Headwear options
+const MALE_HEADWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  none: { label: "None", icon: "❌", prompt: "" },
+  turban: { label: "Turban", icon: "🧑‍🦰", prompt: "pagri, traditional turban, safa" },
+  topi: { label: "Topi", icon: "🎩", prompt: "traditional topi, Nehru cap" },
+  sehra: { label: "Sehra", icon: "👑", prompt: "sehra, groom's headdress with face veil" },
+  pagri: { label: "Pagri", icon: "👳", prompt: "pagri, Rajasthani turban, colorful headwear" },
+  safa: { label: "Safa", icon: "👳", prompt: "safa, wedding turban, ornate headpiece" },
+  fedora: { label: "Fedora", icon: "🎩", prompt: "fedora hat, stylish formal hat" },
+  cap: { label: "Cap", icon: "🧢", prompt: "modern cap, casual headwear" },
+  crown: { label: "Crown", icon: "👑", prompt: "royal crown, regal headpiece" },
+};
+
+// Keep for backwards compatibility
+const FOOTWEAR_OPTIONS = { ...FEMALE_FOOTWEAR, ...MALE_FOOTWEAR };
+
+// Color name detection from hex value
+const getColorNameFromHex = (hex: string): { name: string; prompt: string } => {
+  // Remove # if present
+  const cleanHex = hex.replace('#', '').toLowerCase();
+  
+  // Convert hex to RGB
+  const r = parseInt(cleanHex.substring(0, 2), 16);
+  const g = parseInt(cleanHex.substring(2, 4), 16);
+  const b = parseInt(cleanHex.substring(4, 6), 16);
+  
+  // Convert RGB to HSL for better color detection
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+  
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  const l = (max + min) / 2;
+  
+  let h = 0;
+  let s = 0;
+  
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case rNorm:
+        h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6;
+        break;
+      case gNorm:
+        h = ((bNorm - rNorm) / d + 2) / 6;
+        break;
+      case bNorm:
+        h = ((rNorm - gNorm) / d + 4) / 6;
+        break;
+    }
+  }
+  
+  h = Math.round(h * 360);
+  s = Math.round(s * 100);
+  const lPercent = Math.round(l * 100);
+  
+  // Determine color name based on HSL values
+  if (lPercent < 10) return { name: "Black", prompt: "black colored clothing, deep dark elegant" };
+  if (lPercent > 90) return { name: "White", prompt: "white colored clothing, pure cream ivory" };
+  if (s < 10) {
+    if (lPercent < 30) return { name: "Dark Gray", prompt: "dark gray colored clothing, charcoal" };
+    if (lPercent < 70) return { name: "Gray", prompt: "gray colored clothing, neutral tones" };
+    return { name: "Light Gray", prompt: "light gray colored clothing, silver tones" };
+  }
+  
+  // Color wheel detection
+  if (h < 15 || h >= 345) return { name: "Red", prompt: "red colored clothing, crimson scarlet" };
+  if (h < 30) return { name: "Orange-Red", prompt: "orange-red colored clothing, vermillion coral" };
+  if (h < 45) return { name: "Orange", prompt: "orange colored clothing, tangerine amber" };
+  if (h < 60) return { name: "Gold", prompt: "golden colored clothing, gold embellishments, warm metallic" };
+  if (h < 75) return { name: "Yellow", prompt: "yellow colored clothing, sunny bright" };
+  if (h < 105) return { name: "Lime", prompt: "lime green colored clothing, chartreuse, fresh" };
+  if (h < 135) return { name: "Green", prompt: "green colored clothing, emerald forest" };
+  if (h < 165) return { name: "Teal", prompt: "teal colored clothing, cyan turquoise" };
+  if (h < 195) return { name: "Cyan", prompt: "cyan colored clothing, aqua blue" };
+  if (h < 225) return { name: "Sky Blue", prompt: "sky blue colored clothing, light azure" };
+  if (h < 255) return { name: "Blue", prompt: "blue colored clothing, navy royal blue" };
+  if (h < 285) return { name: "Purple", prompt: "purple colored clothing, violet indigo" };
+  if (h < 315) return { name: "Magenta", prompt: "magenta colored clothing, fuchsia vibrant" };
+  if (h < 345) return { name: "Pink", prompt: "pink colored clothing, rose blush" };
+  
+  return { name: "Custom", prompt: `custom colored clothing with hex ${hex}` };
+};
+
+// Posture options
+const POSTURE_OPTIONS: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  standing: { label: "Standing", icon: "🧍", prompt: "standing pose, full body view" },
+  walking: { label: "Walking", icon: "🚶", prompt: "walking pose, mid-stride, natural movement" },
+  sitting: { label: "Sitting", icon: "🪑", prompt: "sitting pose, seated elegantly" },
+  side_view: { label: "Side", icon: "👤", prompt: "side profile view, lateral angle" },
+  back_view: { label: "Back", icon: "🔙", prompt: "back view showing outfit from behind" },
+};
+
+// Gender-specific person type options
+const FEMALE_PERSON_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  woman: {
+    label: "Woman",
+    icon: "👩",
+    prompt: "adult woman, feminine fashion, women's wear",
+  },
+  young_woman: {
+    label: "Young Woman",
+    icon: "👩‍🦱",
+    prompt: "young woman in her 20s, youthful feminine style, trendy fashion",
+  },
+  teen_girl: {
+    label: "Girl (Teen)",
+    icon: "👧",
+    prompt: "teenage girl, modest teen fashion, age-appropriate youthful style",
+  },
+  child_girl: {
+    label: "Girl (Child)",
+    icon: "🧒",
+    prompt: "young girl child, kids fashion, playful modest children's wear",
+  },
+  mature_woman: {
+    label: "Mature Woman",
+    icon: "👵",
+    prompt: "mature elegant woman, sophisticated fashion, timeless graceful style",
+  },
+};
+
+const MALE_PERSON_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  man: {
+    label: "Man",
+    icon: "👨",
+    prompt: "adult man, masculine fashion, men's wear",
+  },
+  young_man: {
+    label: "Young Man",
+    icon: "👨‍🦱",
+    prompt: "young man in his 20s, youthful masculine style, contemporary fashion",
+  },
+  teen_boy: {
+    label: "Boy (Teen)",
+    icon: "👦",
+    prompt: "teenage boy, modest teen fashion, age-appropriate youthful style",
+  },
+  child_boy: {
+    label: "Boy (Child)",
+    icon: "🧒",
+    prompt: "young boy child, kids fashion, playful modest children's wear",
+  },
+  mature_man: {
+    label: "Mature Man",
+    icon: "👴",
+    prompt: "mature distinguished man, classic sophisticated fashion, refined style",
+  },
+};
+
+// Simplified style categories for custom clothing mode (upper body)
+const UPPER_BODY_STYLES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  traditional: {
+    label: "Traditional",
+    icon: "🏛️",
+    prompt: "traditional ethnic upper wear, heritage patterns, classical motifs",
+  },
+  modern: {
+    label: "Modern",
+    icon: "✨",
+    prompt: "contemporary upper wear, clean lines, minimalist design",
+  },
+  casual: {
+    label: "Casual",
+    icon: "👕",
+    prompt: "casual relaxed upper wear, comfortable everyday style",
+  },
+  formal: {
+    label: "Formal",
+    icon: "👔",
+    prompt: "formal upper wear, professional elegant style, refined look",
+  },
+  festive: {
+    label: "Festive",
+    icon: "🎉",
+    prompt: "festive celebration upper wear, embellished, party style",
+  },
+  embroidered: {
+    label: "Embroidered",
+    icon: "🧵",
+    prompt: "embroidered upper wear, intricate threadwork, handcrafted details",
+  },
+};
+
+// Simplified style categories for custom clothing mode (lower body)
+const LOWER_BODY_STYLES: { [key: string]: { label: string; icon: string; prompt: string } } = {
+  traditional: {
+    label: "Traditional",
+    icon: "🏛️",
+    prompt: "traditional ethnic lower wear, heritage patterns, classical design",
+  },
+  modern: {
+    label: "Modern",
+    icon: "✨",
+    prompt: "contemporary lower wear, clean lines, sleek design",
+  },
+  casual: {
+    label: "Casual",
+    icon: "👖",
+    prompt: "casual relaxed lower wear, comfortable everyday pants/skirt",
+  },
+  formal: {
+    label: "Formal",
+    icon: "📋",
+    prompt: "formal lower wear, professional tailored style",
+  },
+  flowy: {
+    label: "Flowy",
+    icon: "💨",
+    prompt: "flowy draped lower wear, elegant movement, graceful silhouette",
+  },
+  fitted: {
+    label: "Fitted",
+    icon: "📐",
+    prompt: "fitted lower wear, streamlined silhouette, tailored fit",
+  },
+};
+
+// Outfit mode type
+type OutfitMode = 'full' | 'custom';
+
+// Frequent style usage tracking interface
+interface StyleUsageEntry {
+  styleKey: string;
+  count: number;
+  lastUsed: number;
+}
+
+// Generation mode types
+type GenerationMode = 'text' | 'image';
+
+// Generation history type
+interface GenerationHistoryItem {
+  id: string;
+  imageUrl: string;
+  prompt: string;
+  timestamp: number;
+}
+
+const CreateSection = () => {
+  const [prompt, setPrompt] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [lastPrompt, setLastPrompt] = useState("");
+  
+  // Primary gender selection
+  const [selectedGender, setSelectedGender] = useState<'female' | 'male'>('female');
+  
+  // Outfit mode: full outfit (single style) or custom (upper + lower)
+  const [outfitMode, setOutfitMode] = useState<OutfitMode>('full');
+  
+  // Style selections
+  const [selectedStyle, setSelectedStyle] = useState<string>("traditional_saree");
+  const [selectedUpperStyle, setSelectedUpperStyle] = useState<string>("traditional");
+  const [selectedLowerStyle, setSelectedLowerStyle] = useState<string>("traditional");
+  
+  // Other options
+  const [selectedBodyType, setSelectedBodyType] = useState<string>("any");
+  const [selectedPersonType, setSelectedPersonType] = useState<string>("woman");
+  const [selectedUpperColorHex, setSelectedUpperColorHex] = useState<string>(""); // Color for upper body
+  const [selectedLowerColorHex, setSelectedLowerColorHex] = useState<string>(""); // Color for lower body
+  const [selectedPosture, setSelectedPosture] = useState<string>("standing");
+  
+  // Custom prompts for upper/lower body in custom mode
+  const [customUpperPrompt, setCustomUpperPrompt] = useState<string>("");
+  const [customLowerPrompt, setCustomLowerPrompt] = useState<string>("");
+  const [customFootwearPrompt, setCustomFootwearPrompt] = useState<string>("");
+  
+  // Sleeve length and footwear options for custom mode
+  const [selectedSleeveLength, setSelectedSleeveLength] = useState<string>("any");
+  const [selectedFootwear, setSelectedFootwear] = useState<string>("any");
+  const [selectedFootwearColorHex, setSelectedFootwearColorHex] = useState<string>("");
+  
+  // Headwear options for custom mode
+  const [selectedHeadwear, setSelectedHeadwear] = useState<string>("none");
+  const [selectedHeadwearColorHex, setSelectedHeadwearColorHex] = useState<string>("");
+  const [customHeadwearPrompt, setCustomHeadwearPrompt] = useState<string>("");
+  
+  // Speech recognition for custom mode
+  const [isUpperListening, setIsUpperListening] = useState(false);
+  const [isLowerListening, setIsLowerListening] = useState(false);
+  const [isFootwearListening, setIsFootwearListening] = useState(false);
+  const [isHeadwearListening, setIsHeadwearListening] = useState(false);
+  const [voiceLang, setVoiceLang] = useState('en-IN');
+  const upperRecognitionRef = useRef<any>(null);
+  const lowerRecognitionRef = useRef<any>(null);
+  const footwearRecognitionRef = useRef<any>(null);
+  const headwearRecognitionRef = useRef<any>(null);
+  
+  const [generationMode, setGenerationMode] = useState<GenerationMode>('text');
+  
+  // Track if any dropdown is open (to show backdrop)
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
+  // Track if style panel is expanded (replaces NavigationMenu dropdown)
+  const [isStyleExpanded, setIsStyleExpanded] = useState(false);
+  
+  // Track if upper/lower style panels are expanded (for custom mode)
+  const [isUpperStyleExpanded, setIsUpperStyleExpanded] = useState(false);
+  const [isLowerStyleExpanded, setIsLowerStyleExpanded] = useState(false);
+  
+  // Style usage tracking for frequently used styles (LRU with frequency)
+  const [styleUsageHistory, setStyleUsageHistory] = useState<StyleUsageEntry[]>([]);
+  
+  // Advanced options state
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [customEnhancedPrompt, setCustomEnhancedPrompt] = useState<string | null>(null);
+  const [backendEnhancedPrompt, setBackendEnhancedPrompt] = useState<string | null>(null);
+  
+  // Generation history (max 5 items)
+  const [generationHistory, setGenerationHistory] = useState<GenerationHistoryItem[]>([]);
+  
+  // Custom styles state
+  const [customStyles, setCustomStyles] = useState<{ [key: string]: StyleDefinition }>({});
+  const [showAddStyle, setShowAddStyle] = useState(false);
+  const [newStyleName, setNewStyleName] = useState("");
+  const [newStylePrompt, setNewStylePrompt] = useState("");
+  
+  // Get person types based on selected gender
+  const personTypes = selectedGender === 'female' ? FEMALE_PERSON_TYPES : MALE_PERSON_TYPES;
+  
+  // Get body types based on selected gender
+  const bodyTypes = selectedGender === 'female' ? FEMALE_BODY_TYPES : MALE_BODY_TYPES;
+  
+  // Get styles based on selected gender
+  const genderStyles = selectedGender === 'female' ? FEMALE_STYLES : MALE_STYLES;
+  
+  // Combine gender-specific and custom styles
+  const allStyles: { [key: string]: StyleDefinition } = { ...genderStyles, ...customStyles };
+  
+  // Reset person type, body type, and style when gender changes
+  const handleGenderChange = (gender: 'female' | 'male') => {
+    setSelectedGender(gender);
+    // Set default person type for the selected gender
+    setSelectedPersonType(gender === 'female' ? 'woman' : 'man');
+    // Set default body type for the selected gender
+    setSelectedBodyType('any');
+    // Set default style for the selected gender
+    setSelectedStyle(gender === 'female' ? 'traditional_saree' : 'sherwani');
+  };
+  
+  // Handle adding custom style
+  const handleAddCustomStyle = () => {
+    if (!newStyleName.trim() || !newStylePrompt.trim()) {
+      toast.error("Please enter both style name and prompt");
+      return;
+    }
+    
+    const styleKey = newStyleName.toLowerCase().replace(/\s+/g, '_');
+    
+    if (allStyles[styleKey]) {
+      toast.error("A style with this name already exists");
+      return;
+    }
+    
+    setCustomStyles(prev => ({
+      ...prev,
+      [styleKey]: {
+        label: newStyleName,
+        icon: "🎨",
+        prompt: newStylePrompt,
+        category: "fusion" as const,
+      }
+    }));
+    
+    // Select the new style
+    setSelectedStyle(styleKey);
+    
+    // Reset and close form
+    setNewStyleName("");
+    setNewStylePrompt("");
+    setShowAddStyle(false);
+    
+    toast.success(`Style "${newStyleName}" added!`);
+  };
+
+  // Initialize speech recognition for custom mode
+  useEffect(() => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognitionAPI) {
+      // Upper body recognition
+      upperRecognitionRef.current = new SpeechRecognitionAPI();
+      upperRecognitionRef.current.continuous = true;
+      upperRecognitionRef.current.interimResults = true;
+      upperRecognitionRef.current.lang = voiceLang;
+      
+      upperRecognitionRef.current.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setCustomUpperPrompt(transcript);
+      };
+      
+      upperRecognitionRef.current.onerror = () => setIsUpperListening(false);
+      upperRecognitionRef.current.onend = () => setIsUpperListening(false);
+      
+      // Lower body recognition
+      lowerRecognitionRef.current = new SpeechRecognitionAPI();
+      lowerRecognitionRef.current.continuous = true;
+      lowerRecognitionRef.current.interimResults = true;
+      lowerRecognitionRef.current.lang = voiceLang;
+      
+      lowerRecognitionRef.current.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setCustomLowerPrompt(transcript);
+      };
+      
+      lowerRecognitionRef.current.onerror = () => setIsLowerListening(false);
+      lowerRecognitionRef.current.onend = () => setIsLowerListening(false);
+      
+      // Footwear recognition
+      footwearRecognitionRef.current = new SpeechRecognitionAPI();
+      footwearRecognitionRef.current.continuous = true;
+      footwearRecognitionRef.current.interimResults = true;
+      footwearRecognitionRef.current.lang = voiceLang;
+      
+      footwearRecognitionRef.current.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setCustomFootwearPrompt(transcript);
+      };
+      
+      footwearRecognitionRef.current.onerror = () => setIsFootwearListening(false);
+      footwearRecognitionRef.current.onend = () => setIsFootwearListening(false);
+      
+      // Headwear recognition
+      headwearRecognitionRef.current = new SpeechRecognitionAPI();
+      headwearRecognitionRef.current.continuous = true;
+      headwearRecognitionRef.current.interimResults = true;
+      headwearRecognitionRef.current.lang = voiceLang;
+      
+      headwearRecognitionRef.current.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setCustomHeadwearPrompt(transcript);
+      };
+      
+      headwearRecognitionRef.current.onerror = () => setIsHeadwearListening(false);
+      headwearRecognitionRef.current.onend = () => setIsHeadwearListening(false);
+    }
+    
+    return () => {
+      upperRecognitionRef.current?.stop();
+      lowerRecognitionRef.current?.stop();
+      footwearRecognitionRef.current?.stop();
+      headwearRecognitionRef.current?.stop();
+    };
+  }, [voiceLang]);
+  
+  const toggleUpperListening = () => {
+    if (!upperRecognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+    if (isUpperListening) {
+      upperRecognitionRef.current.stop();
+      setIsUpperListening(false);
+    } else {
+      // Stop lower if active
+      if (isLowerListening) {
+        lowerRecognitionRef.current?.stop();
+        setIsLowerListening(false);
+      }
+      upperRecognitionRef.current.start();
+      setIsUpperListening(true);
+    }
+  };
+  
+  const toggleLowerListening = () => {
+    if (!lowerRecognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+    if (isLowerListening) {
+      lowerRecognitionRef.current.stop();
+      setIsLowerListening(false);
+    } else {
+      // Stop upper if active
+      if (isUpperListening) {
+        upperRecognitionRef.current?.stop();
+        setIsUpperListening(false);
+      }
+      lowerRecognitionRef.current.start();
+      setIsLowerListening(true);
+    }
+  };
+  
+  const toggleFootwearListening = () => {
+    if (!footwearRecognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+    if (isFootwearListening) {
+      footwearRecognitionRef.current.stop();
+      setIsFootwearListening(false);
+    } else {
+      // Stop others if active
+      if (isUpperListening) {
+        upperRecognitionRef.current?.stop();
+        setIsUpperListening(false);
+      }
+      if (isLowerListening) {
+        lowerRecognitionRef.current?.stop();
+        setIsLowerListening(false);
+      }
+      footwearRecognitionRef.current.start();
+      setIsFootwearListening(true);
+    }
+  };
+  
+  const toggleHeadwearListening = () => {
+    if (!headwearRecognitionRef.current) {
+      toast.error("Speech recognition not supported in this browser");
+      return;
+    }
+    if (isHeadwearListening) {
+      headwearRecognitionRef.current.stop();
+      setIsHeadwearListening(false);
+    } else {
+      // Stop others if active
+      if (isUpperListening) {
+        upperRecognitionRef.current?.stop();
+        setIsUpperListening(false);
+      }
+      if (isLowerListening) {
+        lowerRecognitionRef.current?.stop();
+        setIsLowerListening(false);
+      }
+      if (isFootwearListening) {
+        footwearRecognitionRef.current?.stop();
+        setIsFootwearListening(false);
+      }
+      headwearRecognitionRef.current.start();
+      setIsHeadwearListening(true);
+    }
+  };
+
+  const detectedLanguage = detectLanguage(prompt);
+  
+  // Compute the enhanced prompt preview (user prompt first, then modifiers)
+  const computeEnhancedPrompt = () => {
+    const bodyTypeEnhancement = bodyTypes[selectedBodyType]?.prompt || "";
+    const personTypeEnhancement = personTypes[selectedPersonType]?.prompt || "";
+    const postureEnhancement = POSTURE_OPTIONS[selectedPosture]?.prompt || "";
+    
+    const parts = [];
+    
+    // For custom mode, use custom prompts; for full mode, use main prompt
+    if (outfitMode === 'custom') {
+      if (customUpperPrompt || customLowerPrompt) {
+        parts.push("Fashion design");
+      }
+    } else {
+      parts.push(prompt);
+    }
+    
+    // Add gender context
+    parts.push(`Gender: ${selectedGender === 'female' ? 'female, feminine' : 'male, masculine'}`);
+    
+    // Add person type (who is wearing)
+    if (personTypeEnhancement) {
+      parts.push(`Model: ${personTypeEnhancement}`);
+    }
+    
+    // Add body type
+    if (bodyTypeEnhancement) {
+      parts.push(`Body type: ${bodyTypeEnhancement}`);
+    }
+    
+    // Add posture/pose
+    if (postureEnhancement) {
+      parts.push(`Pose: ${postureEnhancement}`);
+    }
+    
+    // Add style based on outfit mode
+    if (outfitMode === 'full') {
+      const styleEnhancement = allStyles[selectedStyle]?.prompt || "";
+      // Add color for full mode
+      const colorInfo = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex) : null;
+      if (colorInfo) {
+        parts.push(`Color: ${colorInfo.prompt}`);
+      }
+      if (styleEnhancement) {
+        parts.push(`Design preference: ${styleEnhancement}`);
+      }
+    } else {
+      // Custom mode - upper and lower styles with custom prompts and colors
+      // Add strict instruction to separate upper and lower body styles
+      parts.push("IMPORTANT: The upper body and lower body have DIFFERENT styles. Apply each style ONLY to its specified body area. Do NOT mix or blend the styles between upper and lower body");
+      
+      const upperStyleEnhancement = allStyles[selectedUpperStyle]?.prompt || UPPER_BODY_STYLES[selectedUpperStyle]?.prompt || "";
+      const lowerStyleEnhancement = allStyles[selectedLowerStyle]?.prompt || LOWER_BODY_STYLES[selectedLowerStyle]?.prompt || "";
+      const upperColorInfo = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex) : null;
+      const lowerColorInfo = selectedLowerColorHex ? getColorNameFromHex(selectedLowerColorHex) : null;
+      const sleeveLengthEnhancement = SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.prompt || "";
+      
+      // Use gender-specific footwear and headwear
+      const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
+      const headwearOptions = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
+      const footwearEnhancement = footwearOptions[selectedFootwear]?.prompt || "";
+      const headwearEnhancement = headwearOptions[selectedHeadwear]?.prompt || "";
+      const footwearColorInfo = selectedFootwearColorHex ? getColorNameFromHex(selectedFootwearColorHex) : null;
+      const headwearColorInfo = selectedHeadwearColorHex ? getColorNameFromHex(selectedHeadwearColorHex) : null;
+      
+      // Upper body: combine style + color + sleeve length + custom prompt
+      if (upperStyleEnhancement || customUpperPrompt || sleeveLengthEnhancement) {
+        const upperParts = [
+          upperStyleEnhancement,
+          upperColorInfo ? upperColorInfo.prompt : "",
+          sleeveLengthEnhancement,
+          customUpperPrompt
+        ].filter(Boolean).join(", ");
+        parts.push(`UPPER BODY ONLY (from shoulders to waist): ${upperParts}`);
+      }
+      
+      // Lower body: combine style + color + custom prompt
+      if (lowerStyleEnhancement || customLowerPrompt) {
+        const lowerParts = [
+          lowerStyleEnhancement,
+          lowerColorInfo ? lowerColorInfo.prompt : "",
+          customLowerPrompt
+        ].filter(Boolean).join(", ");
+        parts.push(`LOWER BODY ONLY (from waist to feet): ${lowerParts}`);
+      }
+      
+      // Footwear: combine style + color + custom prompt
+      if (footwearEnhancement || customFootwearPrompt) {
+        const footwearParts = [
+          footwearEnhancement,
+          footwearColorInfo ? footwearColorInfo.prompt : "",
+          customFootwearPrompt
+        ].filter(Boolean).join(", ");
+        parts.push(`FOOTWEAR: ${footwearParts}`);
+      }
+      
+      // Headwear: combine style + color + custom prompt
+      if (headwearEnhancement || customHeadwearPrompt) {
+        const headwearParts = [
+          headwearEnhancement,
+          headwearColorInfo ? headwearColorInfo.prompt : "",
+          customHeadwearPrompt
+        ].filter(Boolean).join(", ");
+        parts.push(`HEADWEAR: ${headwearParts}`);
+      }
+    }
+    
+    return parts.join(". ");
+  };
+  
+  // Get current color names for display
+  const upperColorName = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex).name : "Any";
+  const lowerColorName = selectedLowerColorHex ? getColorNameFromHex(selectedLowerColorHex).name : "Any";
+  const footwearColorName = selectedFootwearColorHex ? getColorNameFromHex(selectedFootwearColorHex).name : "Any";
+  const headwearColorName = selectedHeadwearColorHex ? getColorNameFromHex(selectedHeadwearColorHex).name : "Any";
+  
+  // Get current gender-specific options
+  const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
+  const headwearOptions = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
+  
+  // Check if custom mode has valid input for generation
+  const canGenerateCustom = outfitMode === 'custom' && (customUpperPrompt.trim() || customLowerPrompt.trim() || customFootwearPrompt.trim() || customHeadwearPrompt.trim());
+  
+  // Update style usage for LRU tracking
+  const updateStyleUsage = (styleKey: string) => {
+    setStyleUsageHistory(prev => {
+      const existingIndex = prev.findIndex(entry => entry.styleKey === styleKey);
+      const now = Date.now();
+      
+      if (existingIndex >= 0) {
+        // Update existing entry
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          count: updated[existingIndex].count + 1,
+          lastUsed: now,
+        };
+        return updated;
+      } else {
+        // Add new entry
+        return [...prev, { styleKey, count: 1, lastUsed: now }];
+      }
+    });
+  };
+  
+  // Get top 5 frequently used styles (sorted by count, then by recency)
+  const getFrequentStyles = () => {
+    return styleUsageHistory
+      .filter(entry => allStyles[entry.styleKey]) // Only include existing styles
+      .sort((a, b) => {
+        if (b.count !== a.count) return b.count - a.count;
+        return b.lastUsed - a.lastUsed;
+      })
+      .slice(0, 5);
+  };
+  
+  const frequentStyles = getFrequentStyles();
+  
+  const enhancedPromptPreview = computeEnhancedPrompt();
+  
+  // Pricing estimation (based on enhanced prompt)
+  const PRICING = {
+    INPUT_TOKEN_PRICE_USD: 0.30 / 1_000_000, // $0.30 per 1M tokens
+    OUTPUT_IMAGE_PRICE_USD: 0.039, // $0.039 per image
+    USD_TO_INR: 83,
+    CHARS_PER_TOKEN: 4,
+  };
+  
+  const estimatePricing = (promptText: string) => {
+    const estimatedTokens = Math.ceil(promptText.length / PRICING.CHARS_PER_TOKEN);
+    const inputCostUSD = estimatedTokens * PRICING.INPUT_TOKEN_PRICE_USD;
+    const totalCostUSD = inputCostUSD + PRICING.OUTPUT_IMAGE_PRICE_USD;
+    const totalCostINR = totalCostUSD * PRICING.USD_TO_INR;
+    return { tokens: estimatedTokens, costINR: totalCostINR.toFixed(2) };
+  };
+  
+  // Get current enhanced prompt (custom or computed)
+  const finalEnhancedPrompt = customEnhancedPrompt || enhancedPromptPreview;
+  const pricingEstimate = estimatePricing(finalEnhancedPrompt);
+
+  const handleGenerate = async () => {
+    // Validate based on outfit mode
+    if (outfitMode === 'custom') {
+      if (!customUpperPrompt.trim() && !customLowerPrompt.trim() && !customFootwearPrompt.trim() && !customHeadwearPrompt.trim()) {
+        toast.error("Please enter a description for upper body, lower body, footwear, or headwear");
+        return;
+      }
+    } else {
+      if (!prompt.trim()) {
+        toast.error("Please enter a description");
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    setLastPrompt(prompt);
+
+    try {
+      // Call real API with style prompt enhancement
+      const languageCode = getLanguageCode(detectedLanguage);
+      
+      // Use custom prompt if user modified it, otherwise use computed
+      const finalPrompt = customEnhancedPrompt || computeEnhancedPrompt();
+      
+      console.log('Generating image with prompt:', finalPrompt);
+      console.log('Style:', selectedStyle);
+      console.log('Language:', languageCode);
+
+      const response = await apiClient.generateImage({
+        prompt: finalPrompt,
+        language: languageCode,
+        style: selectedStyle as any,
+      });
+
+      if (response.success && response.imageUrl) {
+        setGeneratedImage(response.imageUrl);
+        
+        // Track style usage for frequently used styles
+        updateStyleUsage(selectedStyle);
+        
+        // Store the backend-enhanced prompt returned from API
+        if (response.prompt) {
+          setBackendEnhancedPrompt(response.prompt);
+        }
+        
+        // Add to history (keep max 5)
+        const newHistoryItem: GenerationHistoryItem = {
+          id: Date.now().toString(),
+          imageUrl: response.imageUrl,
+          prompt: prompt, // Store user's original prompt
+          timestamp: Date.now(),
+        };
+        setGenerationHistory(prev => {
+          const updated = [newHistoryItem, ...prev];
+          return updated.slice(0, 5); // Keep only latest 5
+        });
+        
+        toast.success(`Design created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+      } else {
+        throw new Error(response.error || 'Failed to generate image');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate image. Please try again.");
+      console.error('Generation error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegenerate = () => {
+    if (lastPrompt) {
+      setPrompt(lastPrompt);
+      handleGenerate();
+    }
+  };
+
+  const handleGenerateBack = async () => {
+    if (!generatedImage) {
+      toast.error("Generate a front view first");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Use IMAGE + TEXT conditioned generation for consistent back view
+      const backViewPrompt = "Show the back view of this exact garment. Keep the same fabric, colors, embroidery, and design elements. Rotate to show the rear of the outfit.";
+      
+      console.log('Generating back view conditioned on front image');
+
+      // Use image-to-image with the generated front image
+      const response = await apiClient.generateFromImage({
+        imageData: generatedImage,
+        textPrompt: backViewPrompt,
+        style: selectedStyle,
+      });
+
+      if (response.success && response.imageUrl) {
+        setGeneratedImage(response.imageUrl);
+        toast.success(`Back view created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+      } else {
+        throw new Error(response.error || 'Failed to generate back view');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate back view. Please try again.");
+      console.error('Generation error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleImageToImage = async (imageData: string, textPrompt: string) => {
+    setIsLoading(true);
+    setLastPrompt(textPrompt || "Image transformation");
+
+    try {
+      // For image+text mode, style comes from reference image - no style enhancement
+      const fullPrompt = textPrompt || "Create a new fashion design inspired by this reference image";
+      
+      console.log('Generating from image with prompt:', fullPrompt);
+
+      const response = await apiClient.generateFromImage({
+        imageData: imageData,
+        textPrompt: fullPrompt,
+      });
+
+      if (response.success && response.imageUrl) {
+        setGeneratedImage(response.imageUrl);
+        toast.success(`Design created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+      } else {
+        throw new Error(response.error || 'Failed to generate image');
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to generate image. Please try again.");
+      console.error('Generation error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <section id="create" className="relative py-24">
+      {/* Background pattern */}
+      <div className="absolute inset-0 pattern-overlay opacity-50" />
+      
+      <div className="container mx-auto px-6 relative z-10">
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center mb-12"
+        >
+          <h2 className="font-display text-3xl md:text-5xl font-bold mb-4">
+            <span className="text-foreground">Create Your</span>{" "}
+            <span className="gradient-text">Masterpiece</span>
+          </h2>
+          <p className="text-muted-foreground max-w-xl mx-auto">
+            Describe your dream fashion design in any Indian language. 
+            Our AI understands your vision and brings it to life.
+          </p>
+        </motion.div>
+
+        {/* Mode tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.3 }}
+          className="flex justify-center gap-2 mb-8"
+        >
+          <button
+            onClick={() => setGenerationMode('text')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+              generationMode === 'text'
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            ✍️ Text to Image
+          </button>
+          <button
+            onClick={() => setGenerationMode('image')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+              generationMode === 'image'
+                ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+            }`}
+          >
+            🖼️ Image + Text to Image
+          </button>
+        </motion.div>
+
+        {/* Backdrop overlay when dropdown is open - blocks clicks on elements below */}
+        {isDropdownOpen && (
+          <div 
+            className="fixed inset-0 z-40 bg-black/60"
+            onClick={() => setIsDropdownOpen(false)}
+          />
+        )}
+
+        {/* Options for Text-to-Image mode */}
+        {generationMode === 'text' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="flex flex-col items-center mb-8 space-y-6"
+          >
+            {/* Step 1: Gender Selection - Big prominent buttons */}
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Step 1: Select Gender</span>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => handleGenderChange('female')}
+                  disabled={isLoading}
+                  className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
+                    selectedGender === 'female'
+                      ? 'bg-pink-500/20 text-pink-400 border-2 border-pink-500 shadow-lg shadow-pink-500/20'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
+                  } disabled:opacity-50`}
+                >
+                  <span className="text-2xl">👩</span>
+                  Female
+                </button>
+                <button
+                  onClick={() => handleGenderChange('male')}
+                  disabled={isLoading}
+                  className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
+                    selectedGender === 'male'
+                      ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500 shadow-lg shadow-blue-500/20'
+                      : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
+                  } disabled:opacity-50`}
+                >
+                  <span className="text-2xl">👨</span>
+                  Male
+                </button>
+              </div>
+            </div>
+
+            {/* Step 2: Outfit Mode Toggle */}
+            <div className="flex flex-col items-center gap-3">
+              <span className="text-sm font-medium text-muted-foreground">Step 2: Outfit Type</span>
+              <div className="flex gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
+                <button
+                  onClick={() => setOutfitMode('full')}
+                  disabled={isLoading}
+                  className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                    outfitMode === 'full'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  👔 Full Outfit
+                </button>
+                <button
+                  onClick={() => setOutfitMode('custom')}
+                  disabled={isLoading}
+                  className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                    outfitMode === 'custom'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  ✂️ Custom (Upper + Lower)
+                </button>
+              </div>
+            </div>
+
+            {/* Step 3: Style Selection - Based on outfit mode */}
+            <div className="flex flex-col items-center gap-3 w-full max-w-2xl">
+              <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
+              
+              {outfitMode === 'full' ? (
+                /* Full Outfit Mode - Expandable Style Panel */
+                <div className="w-full">
+                  {/* Style Selector Button + Add Style Button */}
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <button
+                      onClick={() => setIsStyleExpanded(!isStyleExpanded)}
+                      disabled={isLoading}
+                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                        isStyleExpanded
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
+                      }`}
+                    >
+                      <span className="text-xl">{allStyles[selectedStyle]?.icon}</span>
+                      <span>{allStyles[selectedStyle]?.label}</span>
+                      <span className={`transition-transform ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                    <button
+                      onClick={() => setShowAddStyle(!showAddStyle)}
+                      disabled={isLoading}
+                      className={`px-3 py-3 text-sm rounded-xl transition-all duration-200 border-2 border-dashed ${
+                        showAddStyle
+                          ? 'border-primary text-primary bg-primary/10'
+                          : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
+                      } disabled:opacity-50`}
+                    >
+                      ➕
+                    </button>
+                  </div>
+                  
+                  {/* Expandable Style Grid - Content shifts down when expanded */}
+                  {isStyleExpanded && (
+                    <div className="bg-zinc-900 border border-border rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      {/* Frequently Used Section */}
+                      {frequentStyles.length > 0 && (
+                        <div className="mb-4">
+                          <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-primary/30 flex items-center gap-2">
+                            <span>⭐</span> Frequently Used
+                          </h3>
+                          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                            {frequentStyles.map(({ styleKey }) => {
+                              const style = allStyles[styleKey];
+                              if (!style) return null;
+                              return (
+                                <button
+                                  key={styleKey}
+                                  onClick={() => { setSelectedStyle(styleKey); setIsStyleExpanded(false); }}
+                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                    selectedStyle === styleKey
+                                      ? 'bg-primary/20 text-primary border border-primary/40'
+                                      : 'hover:bg-muted/50 border border-transparent'
+                                  }`}
+                                >
+                                  <span className="text-lg">{style.icon}</span>
+                                  <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Category Sections */}
+                      {Object.entries(STYLE_CATEGORIES)
+                        .sort((a, b) => a[1].order - b[1].order)
+                        .map(([categoryKey, categoryInfo]) => {
+                          const categoryStyles = Object.entries(allStyles).filter(
+                            ([_, style]) => style.category === categoryKey
+                          );
+                          if (categoryStyles.length === 0) return null;
+                          
+                          return (
+                            <div key={categoryKey} className="mb-4 last:mb-0">
+                              <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
+                                {categoryInfo.label}
+                              </h3>
+                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                {categoryStyles.map(([key, style]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => { setSelectedStyle(key); setIsStyleExpanded(false); }}
+                                    className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                      selectedStyle === key
+                                        ? 'bg-primary/20 text-primary border border-primary/40'
+                                        : 'hover:bg-muted/50 border border-transparent'
+                                    }`}
+                                  >
+                                    <span className="text-lg">{style.icon}</span>
+                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Custom Mode - Upper + Lower Style Selection with expandable panels */
+                <div className="w-full">
+                  <div className="flex flex-wrap justify-center gap-4 mb-2">
+                    {/* Upper Body Style Button */}
+                    <button
+                      onClick={() => setIsUpperStyleExpanded(!isUpperStyleExpanded)}
+                      disabled={isLoading}
+                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                        isUpperStyleExpanded
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
+                      }`}
+                    >
+                      <span className="text-xl">{allStyles[selectedUpperStyle]?.icon || UPPER_BODY_STYLES[selectedUpperStyle]?.icon || "👚"}</span>
+                      <span>Upper: {allStyles[selectedUpperStyle]?.label || UPPER_BODY_STYLES[selectedUpperStyle]?.label || "Select"}</span>
+                      <span className={`transition-transform ${isUpperStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                    
+                    {/* Lower Body Style Button */}
+                    <button
+                      onClick={() => setIsLowerStyleExpanded(!isLowerStyleExpanded)}
+                      disabled={isLoading}
+                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                        isLowerStyleExpanded
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
+                      }`}
+                    >
+                      <span className="text-xl">{allStyles[selectedLowerStyle]?.icon || LOWER_BODY_STYLES[selectedLowerStyle]?.icon || "👖"}</span>
+                      <span>Lower: {allStyles[selectedLowerStyle]?.label || LOWER_BODY_STYLES[selectedLowerStyle]?.label || "Select"}</span>
+                      <span className={`transition-transform ${isLowerStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                  </div>
+                  
+                  {/* Upper Body Style Expandable Panel - Shifts content down */}
+                  {isUpperStyleExpanded && (
+                    <div className="bg-zinc-900 border border-border rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <p className="text-xs text-muted-foreground mb-3">👚 Select a style for upper body garment:</p>
+                      {Object.entries(STYLE_CATEGORIES)
+                        .sort((a, b) => a[1].order - b[1].order)
+                        .map(([categoryKey, categoryInfo]) => {
+                          const categoryStyles = Object.entries(allStyles).filter(
+                            ([_, style]) => style.category === categoryKey
+                          );
+                          if (categoryStyles.length === 0) return null;
+                          return (
+                            <div key={categoryKey} className="mb-4 last:mb-0">
+                              <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
+                                {categoryInfo.label}
+                              </h3>
+                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                {categoryStyles.map(([key, style]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => { setSelectedUpperStyle(key); setIsUpperStyleExpanded(false); }}
+                                    className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                      selectedUpperStyle === key
+                                        ? 'bg-primary/20 text-primary border border-primary/40'
+                                        : 'hover:bg-muted/50 border border-transparent'
+                                    }`}
+                                  >
+                                    <span className="text-lg">{style.icon}</span>
+                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                  
+                  {/* Lower Body Style Expandable Panel - Shifts content down */}
+                  {isLowerStyleExpanded && (
+                    <div className="bg-zinc-900 border border-border rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <p className="text-xs text-muted-foreground mb-3">👖 Select a style for lower body garment:</p>
+                      {Object.entries(STYLE_CATEGORIES)
+                        .sort((a, b) => a[1].order - b[1].order)
+                        .map(([categoryKey, categoryInfo]) => {
+                          const categoryStyles = Object.entries(allStyles).filter(
+                            ([_, style]) => style.category === categoryKey
+                          );
+                          if (categoryStyles.length === 0) return null;
+                          return (
+                            <div key={categoryKey} className="mb-4 last:mb-0">
+                              <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
+                                {categoryInfo.label}
+                              </h3>
+                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                                {categoryStyles.map(([key, style]) => (
+                                  <button
+                                    key={key}
+                                    onClick={() => { setSelectedLowerStyle(key); setIsLowerStyleExpanded(false); }}
+                                    className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                      selectedLowerStyle === key
+                                        ? 'bg-primary/20 text-primary border border-primary/40'
+                                        : 'hover:bg-muted/50 border border-transparent'
+                                    }`}
+                                  >
+                                    <span className="text-lg">{style.icon}</span>
+                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Step 4: Additional Options (collapsible) */}
+            <div className="flex flex-wrap justify-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
+              {/* Person Type Dropdown */}
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+                <span className="text-xs text-muted-foreground">Age:</span>
+                <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className="bg-muted/30 border border-border/50 hover:bg-muted data-[state=open]:bg-muted h-8 text-sm"
+                        disabled={isLoading}
+                      >
+                        <span className="flex items-center gap-1">
+                          <span>{personTypes[selectedPersonType]?.icon}</span>
+                          <span>{personTypes[selectedPersonType]?.label}</span>
+                        </span>
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent className="bg-card border border-border/50 rounded-lg shadow-xl">
+                        <ul className="grid w-[180px] gap-1 p-2">
+                          {Object.entries(personTypes).map(([key, { label, icon }]) => (
+                            <li key={key}>
+                              <button
+                                onClick={() => setSelectedPersonType(key)}
+                                className={`block w-full select-none rounded-md p-2 text-left text-sm ${
+                                  selectedPersonType === key
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'hover:bg-muted'
+                                }`}
+                              >
+                                {icon} {label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </div>
+
+              {/* Body Type Dropdown - Gender Specific */}
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+                <span className="text-xs text-muted-foreground">Body:</span>
+                <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className="bg-muted/30 border border-border/50 hover:bg-muted data-[state=open]:bg-muted h-8 text-sm"
+                        disabled={isLoading}
+                      >
+                        <span className="flex items-center gap-1">
+                          <span>{bodyTypes[selectedBodyType]?.icon}</span>
+                          <span>{bodyTypes[selectedBodyType]?.label}</span>
+                        </span>
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                        <ul className="grid w-[160px] gap-1 p-2">
+                          {Object.entries(bodyTypes).map(([key, { label, icon }]) => (
+                            <li key={key}>
+                              <button
+                                onClick={() => setSelectedBodyType(key)}
+                                className={`block w-full select-none rounded-md p-2 text-left text-sm ${
+                                  selectedBodyType === key
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'hover:bg-muted'
+                                }`}
+                              >
+                                {icon} {label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </div>
+
+              {/* Color Picker - Only show in Full Outfit mode */}
+              {outfitMode === 'full' && (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+                  <span className="text-xs text-muted-foreground">Color:</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={selectedUpperColorHex || "#888888"}
+                      onChange={(e) => setSelectedUpperColorHex(e.target.value)}
+                      disabled={isLoading}
+                      className="w-8 h-8 rounded-lg border-0 cursor-pointer bg-transparent"
+                      style={{ padding: 0 }}
+                    />
+                    <span className="text-sm font-medium min-w-[60px]">{upperColorName}</span>
+                    {selectedUpperColorHex && (
+                      <button
+                        onClick={() => setSelectedUpperColorHex("")}
+                        className="text-xs text-muted-foreground hover:text-foreground px-1"
+                        title="Clear color selection"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Posture Dropdown */}
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+                <span className="text-xs text-muted-foreground">Pose:</span>
+                <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                  <NavigationMenuList>
+                    <NavigationMenuItem>
+                      <NavigationMenuTrigger 
+                        className="bg-muted/30 border border-border/50 hover:bg-muted data-[state=open]:bg-muted h-8 text-sm"
+                        disabled={isLoading}
+                      >
+                        <span className="flex items-center gap-1">
+                          <span>{POSTURE_OPTIONS[selectedPosture]?.icon}</span>
+                          <span>{POSTURE_OPTIONS[selectedPosture]?.label}</span>
+                        </span>
+                      </NavigationMenuTrigger>
+                      <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                        <ul className="grid w-[150px] gap-1 p-2">
+                          {Object.entries(POSTURE_OPTIONS).map(([key, { label, icon }]) => (
+                            <li key={key}>
+                              <button
+                                onClick={() => setSelectedPosture(key)}
+                                className={`block w-full select-none rounded-md p-2 text-left text-sm ${
+                                  selectedPosture === key
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'hover:bg-muted'
+                                }`}
+                              >
+                                {icon} {label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </NavigationMenuContent>
+                    </NavigationMenuItem>
+                  </NavigationMenuList>
+                </NavigationMenu>
+              </div>
+            </div>
+            
+            {/* Add Custom Style Form (Collapsible) */}
+            {showAddStyle && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4 w-full max-w-md p-4 rounded-xl bg-card border border-border/50"
+              >
+                <h4 className="text-sm font-medium text-foreground mb-3">Create Custom Style</h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Style Name</label>
+                    <input
+                      type="text"
+                      value={newStyleName}
+                      onChange={(e) => setNewStyleName(e.target.value)}
+                      placeholder="e.g., Chanderi Silk"
+                      className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Design Preference Prompt</label>
+                    <textarea
+                      value={newStylePrompt}
+                      onChange={(e) => setNewStylePrompt(e.target.value)}
+                      placeholder="e.g., Lightweight Chanderi silk fabric, subtle gold zari borders, pastel colors, sheer texture, Madhya Pradesh heritage weaving"
+                      rows={3}
+                      className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => {
+                        setShowAddStyle(false);
+                        setNewStyleName("");
+                        setNewStylePrompt("");
+                      }}
+                      className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleAddCustomStyle}
+                      className="px-4 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+                    >
+                      Add Style
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Main creation interface */}
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+          {/* Input side */}
+          <div>
+            {generationMode === 'text' ? (
+              <>
+                {/* Custom Mode - Two text areas with color pickers */}
+                {outfitMode === 'custom' ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-3xl mx-auto"
+                  >
+                    <div className="gradient-border">
+                      <div className="relative bg-card rounded-xl overflow-hidden p-4 space-y-4">
+                        {/* Upper Body Prompt with Color Picker */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-foreground">👚 Upper Body</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={selectedUpperColorHex || "#888888"}
+                                  onChange={(e) => setSelectedUpperColorHex(e.target.value)}
+                                  disabled={isLoading}
+                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
+                                  style={{ padding: 0 }}
+                                  title="Pick upper body color"
+                                />
+                                <span className="text-xs text-muted-foreground">{upperColorName}</span>
+                                {selectedUpperColorHex && (
+                                  <button
+                                    onClick={() => setSelectedUpperColorHex("")}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                    title="Clear"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                                {/* Sleeve Length Dropdown */}
+                                <select
+                                  value={selectedSleeveLength}
+                                  onChange={(e) => setSelectedSleeveLength(e.target.value)}
+                                  disabled={isLoading}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Sleeve length"
+                                >
+                                  {Object.entries(SLEEVE_LENGTH_OPTIONS).map(([key, { label, icon }]) => (
+                                    <option key={key} value={key}>{icon} {label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <textarea
+                              value={customUpperPrompt}
+                              onChange={(e) => setCustomUpperPrompt(e.target.value)}
+                              placeholder="Describe upper body outfit... e.g., 'A silk blouse with golden embroidery and puff sleeves'"
+                              rows={3}
+                              disabled={isLoading}
+                              className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isUpperListening ? 'ring-2 ring-primary' : ''}`}
+                            />
+                            {isUpperListening && (
+                              <span className="absolute right-3 top-3 text-xs text-primary animate-pulse">Listening in {voiceLang.split('-')[0].toUpperCase()}...</span>
+                            )}
+                          </div>
+                          {/* Audio input bar for upper body */}
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50">
+                              <Mic className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">Audio</span>
+                            </div>
+                            <select
+                              value={voiceLang}
+                              onChange={(e) => setVoiceLang(e.target.value)}
+                              disabled={isLoading}
+                              className="text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
+                              title="Voice input language"
+                            >
+                              <option value="en-IN">🇮🇳 English</option>
+                              <option value="hi-IN">🇮🇳 हिंदी</option>
+                              <option value="ta-IN">🇮🇳 தமிழ்</option>
+                              <option value="te-IN">🇮🇳 తెలుగు</option>
+                              <option value="mr-IN">🇮🇳 मराठी</option>
+                              <option value="pa-IN">🇮🇳 ਪੰਜਾਬੀ</option>
+                              <option value="bn-IN">🇮🇳 বাংলা</option>
+                              <option value="gu-IN">🇮🇳 ગુજરાતી</option>
+                              <option value="kn-IN">🇮🇳 ಕನ್ನಡ</option>
+                              <option value="ml-IN">🇮🇳 മലയാളം</option>
+                              <option value="or-IN">🇮🇳 ଓଡ଼ିଆ</option>
+                            </select>
+                            <Button
+                              variant="glass"
+                              size="icon"
+                              onClick={toggleUpperListening}
+                              disabled={isLoading}
+                              className={`relative ${isUpperListening ? 'text-primary' : ''}`}
+                              title={isUpperListening ? "Stop listening" : "Start voice input"}
+                            >
+                              {isUpperListening ? (
+                                <>
+                                  <MicOff className="w-4 h-4" />
+                                  <span className="absolute inset-0 rounded-lg border-2 border-primary animate-pulse" />
+                                </>
+                              ) : (
+                                <Mic className="w-4 h-4" />
+                              )}
+                            </Button>
+                            {customUpperPrompt && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCustomUpperPrompt("")}
+                                disabled={isLoading}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Lower Body Prompt with Color Picker */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-foreground">👖 Lower Body</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={selectedLowerColorHex || "#888888"}
+                                  onChange={(e) => setSelectedLowerColorHex(e.target.value)}
+                                  disabled={isLoading}
+                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
+                                  style={{ padding: 0 }}
+                                  title="Pick lower body color"
+                                />
+                                <span className="text-xs text-muted-foreground">{lowerColorName}</span>
+                                {selectedLowerColorHex && (
+                                  <button
+                                    onClick={() => setSelectedLowerColorHex("")}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                    title="Clear"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <textarea
+                              value={customLowerPrompt}
+                              onChange={(e) => setCustomLowerPrompt(e.target.value)}
+                              placeholder="Describe lower body outfit... e.g., 'Flared palazzo pants in matching color, ankle length'"
+                              rows={3}
+                              disabled={isLoading}
+                              className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isLowerListening ? 'ring-2 ring-primary' : ''}`}
+                            />
+                            {isLowerListening && (
+                              <span className="absolute right-3 top-3 text-xs text-primary animate-pulse">Listening in {voiceLang.split('-')[0].toUpperCase()}...</span>
+                            )}
+                          </div>
+                          {/* Audio input bar for lower body */}
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50">
+                              <Mic className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">Audio</span>
+                            </div>
+                            <select
+                              value={voiceLang}
+                              onChange={(e) => setVoiceLang(e.target.value)}
+                              disabled={isLoading}
+                              className="text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
+                              title="Voice input language"
+                            >
+                              <option value="en-IN">🇮🇳 English</option>
+                              <option value="hi-IN">🇮🇳 हिंदी</option>
+                              <option value="ta-IN">🇮🇳 தமிழ்</option>
+                              <option value="te-IN">🇮🇳 తెలుగు</option>
+                              <option value="mr-IN">🇮🇳 मराठी</option>
+                              <option value="pa-IN">🇮🇳 ਪੰਜਾਬੀ</option>
+                              <option value="bn-IN">🇮🇳 বাংলা</option>
+                              <option value="gu-IN">🇮🇳 ગુજરાતી</option>
+                              <option value="kn-IN">🇮🇳 ಕನ್ನಡ</option>
+                              <option value="ml-IN">🇮🇳 മലയാളം</option>
+                              <option value="or-IN">🇮🇳 ଓଡ଼ିଆ</option>
+                            </select>
+                            <Button
+                              variant="glass"
+                              size="icon"
+                              onClick={toggleLowerListening}
+                              disabled={isLoading}
+                              className={`relative ${isLowerListening ? 'text-primary' : ''}`}
+                              title={isLowerListening ? "Stop listening" : "Start voice input"}
+                            >
+                              {isLowerListening ? (
+                                <>
+                                  <MicOff className="w-4 h-4" />
+                                  <span className="absolute inset-0 rounded-lg border-2 border-primary animate-pulse" />
+                                </>
+                              ) : (
+                                <Mic className="w-4 h-4" />
+                              )}
+                            </Button>
+                            {customLowerPrompt && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCustomLowerPrompt("")}
+                                disabled={isLoading}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Footwear Section */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-foreground">👟 Footwear</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={selectedFootwearColorHex || "#888888"}
+                                  onChange={(e) => setSelectedFootwearColorHex(e.target.value)}
+                                  disabled={isLoading}
+                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
+                                  style={{ padding: 0 }}
+                                  title="Pick footwear color"
+                                />
+                                <span className="text-xs text-muted-foreground">{footwearColorName}</span>
+                                {selectedFootwearColorHex && (
+                                  <button
+                                    onClick={() => setSelectedFootwearColorHex("")}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                    title="Clear"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                                {/* Footwear Type Dropdown */}
+                                <select
+                                  value={selectedFootwear}
+                                  onChange={(e) => setSelectedFootwear(e.target.value)}
+                                  disabled={isLoading}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Footwear type"
+                                >
+                                  {Object.entries(footwearOptions).map(([key, { label, icon }]) => (
+                                    <option key={key} value={key}>{icon} {label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <textarea
+                              value={customFootwearPrompt}
+                              onChange={(e) => setCustomFootwearPrompt(e.target.value)}
+                              placeholder="Describe footwear... e.g., 'Embroidered golden juttis matching the outfit'"
+                              rows={2}
+                              disabled={isLoading}
+                              className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isFootwearListening ? 'ring-2 ring-primary' : ''}`}
+                            />
+                            {isFootwearListening && (
+                              <span className="absolute right-3 top-3 text-xs text-primary animate-pulse">Listening in {voiceLang.split('-')[0].toUpperCase()}...</span>
+                            )}
+                          </div>
+                          {/* Audio input bar for footwear */}
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50">
+                              <Mic className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">Audio</span>
+                            </div>
+                            <select
+                              value={voiceLang}
+                              onChange={(e) => setVoiceLang(e.target.value)}
+                              disabled={isLoading}
+                              className="text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
+                              title="Voice input language"
+                            >
+                              <option value="en-IN">🇮🇳 English</option>
+                              <option value="hi-IN">🇮🇳 हिंदी</option>
+                              <option value="ta-IN">🇮🇳 தமிழ்</option>
+                              <option value="te-IN">🇮🇳 తెలుగు</option>
+                              <option value="mr-IN">🇮🇳 मराठी</option>
+                              <option value="pa-IN">🇮🇳 ਪੰਜਾਬੀ</option>
+                              <option value="bn-IN">🇮🇳 বাংলা</option>
+                              <option value="gu-IN">🇮🇳 ગુજરાતી</option>
+                              <option value="kn-IN">🇮🇳 ಕನ್ನಡ</option>
+                              <option value="ml-IN">🇮🇳 മലയാളം</option>
+                              <option value="or-IN">🇮🇳 ଓଡ଼ିଆ</option>
+                            </select>
+                            <Button
+                              variant="glass"
+                              size="icon"
+                              onClick={toggleFootwearListening}
+                              disabled={isLoading}
+                              className={`relative ${isFootwearListening ? 'text-primary' : ''}`}
+                              title={isFootwearListening ? "Stop listening" : "Start voice input"}
+                            >
+                              {isFootwearListening ? (
+                                <>
+                                  <MicOff className="w-4 h-4" />
+                                  <span className="absolute inset-0 rounded-lg border-2 border-primary animate-pulse" />
+                                </>
+                              ) : (
+                                <Mic className="w-4 h-4" />
+                              )}
+                            </Button>
+                            {customFootwearPrompt && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCustomFootwearPrompt("")}
+                                disabled={isLoading}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Headwear Section */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <span className="text-sm font-medium text-foreground">👒 Headwear</span>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={selectedHeadwearColorHex || "#888888"}
+                                  onChange={(e) => setSelectedHeadwearColorHex(e.target.value)}
+                                  disabled={isLoading}
+                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
+                                  style={{ padding: 0 }}
+                                  title="Pick headwear color"
+                                />
+                                <span className="text-xs text-muted-foreground">{headwearColorName}</span>
+                                {selectedHeadwearColorHex && (
+                                  <button
+                                    onClick={() => setSelectedHeadwearColorHex("")}
+                                    className="text-xs text-muted-foreground hover:text-foreground"
+                                    title="Clear"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                                {/* Headwear Type Dropdown */}
+                                <select
+                                  value={selectedHeadwear}
+                                  onChange={(e) => setSelectedHeadwear(e.target.value)}
+                                  disabled={isLoading}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Headwear type"
+                                >
+                                  {Object.entries(headwearOptions).map(([key, { label, icon }]) => (
+                                    <option key={key} value={key}>{icon} {label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <textarea
+                              value={customHeadwearPrompt}
+                              onChange={(e) => setCustomHeadwearPrompt(e.target.value)}
+                              placeholder="Describe headwear... e.g., 'Traditional maang tikka with pearl drops'"
+                              rows={2}
+                              disabled={isLoading}
+                              className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isHeadwearListening ? 'ring-2 ring-primary' : ''}`}
+                            />
+                            {isHeadwearListening && (
+                              <span className="absolute right-3 top-3 text-xs text-primary animate-pulse">Listening in {voiceLang.split('-')[0].toUpperCase()}...</span>
+                            )}
+                          </div>
+                          {/* Audio input bar for headwear */}
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/20 border border-border/30">
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50">
+                              <Mic className="w-3.5 h-3.5 text-muted-foreground" />
+                              <span className="text-xs font-medium text-muted-foreground">Audio</span>
+                            </div>
+                            <select
+                              value={voiceLang}
+                              onChange={(e) => setVoiceLang(e.target.value)}
+                              disabled={isLoading}
+                              className="text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
+                              title="Voice input language"
+                            >
+                              <option value="en-IN">🇮🇳 English</option>
+                              <option value="hi-IN">🇮🇳 हिंदी</option>
+                              <option value="ta-IN">🇮🇳 தமிழ்</option>
+                              <option value="te-IN">🇮🇳 తెలుగు</option>
+                              <option value="mr-IN">🇮🇳 मराठी</option>
+                              <option value="pa-IN">🇮🇳 ਪੰਜਾਬੀ</option>
+                              <option value="bn-IN">🇮🇳 বাংলা</option>
+                              <option value="gu-IN">🇮🇳 ગુજરાતી</option>
+                              <option value="kn-IN">🇮🇳 ಕನ್ನಡ</option>
+                              <option value="ml-IN">🇮🇳 മലയാളം</option>
+                              <option value="or-IN">🇮🇳 ଓଡ଼ିଆ</option>
+                            </select>
+                            <Button
+                              variant="glass"
+                              size="icon"
+                              onClick={toggleHeadwearListening}
+                              disabled={isLoading}
+                              className={`relative ${isHeadwearListening ? 'text-primary' : ''}`}
+                              title={isHeadwearListening ? "Stop listening" : "Start voice input"}
+                            >
+                              {isHeadwearListening ? (
+                                <>
+                                  <MicOff className="w-4 h-4" />
+                                  <span className="absolute inset-0 rounded-lg border-2 border-primary animate-pulse" />
+                                </>
+                              ) : (
+                                <Mic className="w-4 h-4" />
+                              )}
+                            </Button>
+                            {customHeadwearPrompt && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setCustomHeadwearPrompt("")}
+                                disabled={isLoading}
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Generate Button */}
+                        <div className="flex items-center justify-between pt-2">
+                          <p className="text-xs text-muted-foreground">
+                            Describe your upper and lower body outfit details
+                          </p>
+                          <button
+                            onClick={handleGenerate}
+                            disabled={!canGenerateCustom || isLoading}
+                            className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
+                              canGenerateCustom && !isLoading
+                                ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105'
+                                : 'bg-muted text-muted-foreground cursor-not-allowed'
+                            }`}
+                          >
+                            {isLoading ? (
+                              <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                              />
+                            ) : (
+                              <>✨ Generate</>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Prompt Preview */}
+                        <div className="p-3 rounded-lg bg-zinc-800/50 border border-border/50">
+                          <span className="text-xs font-medium text-muted-foreground">📝 Final Prompt Preview</span>
+                          <p className="text-xs text-foreground/80 leading-relaxed break-words mt-1">
+                            {computeEnhancedPrompt()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* Full Outfit Mode - Regular PromptInput */
+                  <PromptInput
+                    value={prompt}
+                    onChange={(val) => {
+                      setPrompt(val);
+                      // Reset custom prompt when user types new input
+                      setCustomEnhancedPrompt(null);
+                    }}
+                    onSubmit={handleGenerate}
+                    isLoading={isLoading}
+                    detectedLanguage={detectedLanguage}
+                  />
+                )}
+                
+                {/* Advanced Options */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mt-4"
+                >
+                  <button
+                    onClick={() => setShowAdvanced(!showAdvanced)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <motion.span
+                      animate={{ rotate: showAdvanced ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      ▼
+                    </motion.span>
+                    {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+                  </button>
+                  
+                  {showAdvanced && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-4 p-4 rounded-xl bg-card border border-border/50 space-y-4"
+                    >
+                      {/* Prompt being sent to backend */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-foreground">
+                            📝 Your Prompt (frontend preview)
+                          </label>
+                          {customEnhancedPrompt && (
+                            <button
+                              onClick={() => setCustomEnhancedPrompt(null)}
+                              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
+                        <textarea
+                          value={customEnhancedPrompt || enhancedPromptPreview}
+                          onChange={(e) => setCustomEnhancedPrompt(e.target.value)}
+                          rows={3}
+                          disabled={isLoading || !prompt.trim()}
+                          className="w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                          placeholder="Enter your prompt above to see the enhanced version..."
+                        />
+                      </div>
+                      
+                      {/* Backend-enhanced prompt (shown after generation) */}
+                      {backendEnhancedPrompt && (
+                        <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+                          <label className="text-sm font-medium text-primary mb-2 block">
+                            ✨ AI-Enhanced Prompt (from backend)
+                          </label>
+                          <p className="text-sm text-foreground font-mono whitespace-pre-wrap">
+                            {backendEnhancedPrompt}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Dual pricing estimate */}
+                      {prompt.trim() && (
+                        <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-foreground">💰 Estimated Costs</span>
+                            <span className="text-sm font-semibold text-primary">
+                              Total: ~₹{(parseFloat(pricingEstimate.costINR) + 0.21).toFixed(2)}
+                            </span>
+                          </div>
+                          <div className="space-y-1 text-xs text-muted-foreground">
+                            <div className="flex justify-between">
+                              <span>1. Prompt Enhancement (text gen):</span>
+                              <span>~₹0.21 (~100 tokens in/out)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>2. Image Generation:</span>
+                              <span>~₹{pricingEstimate.costINR} ({pricingEstimate.tokens} tokens + image)</span>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                            Text: $2.50/1M output tokens • Image: $0.039/image
+                          </p>
+                        </div>
+                      )}
+                      
+                      <p className="text-xs text-muted-foreground">
+                        💡 The backend AI further enhances your prompt for better results. The final enhanced version will appear after generation.
+                      </p>
+                    </motion.div>
+                  )}
+                </motion.div>
+              </>
+            ) : (
+              <ImageToImageInput
+                onSubmit={handleImageToImage}
+                isLoading={isLoading}
+              />
+            )}
+
+            {/* Style suggestions */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+              className="mt-8"
+            >
+              {/* <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wider">
+                Quick suggestions
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "Bridal Lehenga",
+                  "Designer Saree",
+                  "Indo-Western",
+                  "Party Wear",
+                  "Traditional Kurta",
+                ].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setPrompt(suggestion + " ")}
+                    disabled={isLoading}
+                    className="px-3 py-1.5 text-sm rounded-full bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground border border-border/50 transition-all duration-200 hover:border-primary/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div> */}
+            </motion.div>
+          </div>
+
+          {/* Preview side */}
+          <div>
+            <ImagePreview
+              imageUrl={generatedImage}
+              isLoading={isLoading}
+              prompt={lastPrompt}
+              onRegenerate={handleRegenerate}
+              onGenerateBack={handleGenerateBack}
+            />
+            
+            {/* Generation History - only for text-to-image mode */}
+            {generationMode === 'text' && generationHistory.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6"
+              >
+                <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wider">
+                  Recent Generations ({generationHistory.length}/5)
+                </p>
+                <div className="grid grid-cols-5 gap-2">
+                  {generationHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className="relative group cursor-pointer rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-all duration-200"
+                      onClick={() => {
+                        setGeneratedImage(item.imageUrl);
+                        setLastPrompt(item.prompt);
+                      }}
+                    >
+                      <img
+                        src={item.imageUrl}
+                        alt={item.prompt}
+                        className="w-full aspect-square object-cover"
+                      />
+                      {/* Hover overlay with prompt */}
+                      <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
+                        <p className="text-xs text-foreground text-center line-clamp-3">
+                          {item.prompt}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default CreateSection;
