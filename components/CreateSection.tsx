@@ -1564,7 +1564,7 @@ const CreateSection = () => {
             </div>
 
             {/* Step 3: Style Selection - Based on outfit mode */}
-            <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: '75%' }}>
+            <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: '90%' }}>
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
               {outfitMode === 'full' ? (
@@ -1717,7 +1717,7 @@ const CreateSection = () => {
                               <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
                                 {categoryInfo.label}
                               </h3>
-                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                                 {categoryStyles.map(([key, style]) => (
                                   <button
                                     key={key}
@@ -1728,8 +1728,8 @@ const CreateSection = () => {
                                         : 'hover:bg-muted/50 border border-transparent'
                                     }`}
                                   >
-                                    <span className="text-lg">{style.icon}</span>
-                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                    <span className="text-2xl">{style.icon}</span>
+                                    <p className="text-sm mt-1 truncate">{style.label}</p>
                                   </button>
                                 ))}
                               </div>
@@ -1755,7 +1755,7 @@ const CreateSection = () => {
                               <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
                                 {categoryInfo.label}
                               </h3>
-                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                                 {categoryStyles.map(([key, style]) => (
                                   <button
                                     key={key}
@@ -1766,8 +1766,8 @@ const CreateSection = () => {
                                         : 'hover:bg-muted/50 border border-transparent'
                                     }`}
                                   >
-                                    <span className="text-lg">{style.icon}</span>
-                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                    <span className="text-2xl">{style.icon}</span>
+                                    <p className="text-sm mt-1 truncate">{style.label}</p>
                                   </button>
                                 ))}
                               </div>
