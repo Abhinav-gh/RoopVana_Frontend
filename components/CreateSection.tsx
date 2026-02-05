@@ -907,8 +907,8 @@ const CreateSection = () => {
   
   // Handle adding custom style
   const handleAddCustomStyle = () => {
-    if (!newStyleName.trim() || !newStylePrompt.trim()) {
-      toast.error("Please enter both style name and prompt");
+    if (!newStyleName.trim()) {
+      toast.error("Please enter a style name");
       return;
     }
     
@@ -924,7 +924,7 @@ const CreateSection = () => {
       [styleKey]: {
         label: newStyleName,
         icon: "🎨",
-        prompt: newStylePrompt,
+        prompt: newStylePrompt.trim() || newStyleName, // Use name as fallback prompt if description empty
         category: "fusion" as const,
       }
     }));
@@ -1232,8 +1232,8 @@ const CreateSection = () => {
   const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
   const headwearOptions = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
   
-  // Check if custom mode has valid input for generation
-  const canGenerateCustom = outfitMode === 'custom' && (customUpperPrompt.trim() || customLowerPrompt.trim() || customFootwearPrompt.trim() || customHeadwearPrompt.trim());
+  // Check if custom mode has valid input for generation - prompts are optional, just being in custom mode is enough
+  const canGenerateCustom = outfitMode === 'custom';
   
   // Update style usage for LRU tracking
   const updateStyleUsage = (styleKey: string) => {

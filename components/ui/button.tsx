@@ -17,8 +17,8 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-muted hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
-        // Premium hero button with gradient
-        hero: "bg-[var(--gradient-button)] text-primary-foreground font-semibold shadow-button hover:shadow-glow hover:scale-[1.02] active:scale-[0.98]",
+        // Premium hero button with gradient - golden background with white text
+        hero: "bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 text-white font-semibold shadow-button hover:shadow-glow hover:scale-[1.02] active:scale-[0.98]",
         // Glass morphism button
         glass: "bg-card/60 backdrop-blur-xl text-foreground hover:bg-card/80 border border-border/50",
         // Accent golden button
