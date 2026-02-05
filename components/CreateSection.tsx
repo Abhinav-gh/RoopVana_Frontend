@@ -1564,7 +1564,7 @@ const CreateSection = () => {
             </div>
 
             {/* Step 3: Style Selection - Based on outfit mode */}
-            <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: '90%' }}>
+            <div className="flex flex-col items-center gap-3 w-full">
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
               {outfitMode === 'full' ? (
