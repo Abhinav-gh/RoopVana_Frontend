@@ -622,6 +622,32 @@ const getColorNameFromHex = (hex: string): { name: string; prompt: string } => {
   return { name: "Custom", prompt: `custom colored clothing with hex ${hex}` };
 };
 
+// Preset color palette for simple dropdown selection
+const COLOR_PALETTE: { [key: string]: { label: string; hex: string; prompt: string } } = {
+  any: { label: "Any Color", hex: "", prompt: "" },
+  black: { label: "🖤 Black", hex: "#000000", prompt: "black colored clothing, deep dark elegant" },
+  white: { label: "🤍 White", hex: "#FFFFFF", prompt: "white colored clothing, pure cream ivory" },
+  red: { label: "❤️ Red", hex: "#DC143C", prompt: "red colored clothing, crimson scarlet" },
+  maroon: { label: "🟤 Maroon", hex: "#800000", prompt: "maroon colored clothing, deep wine burgundy" },
+  gold: { label: "💛 Gold", hex: "#FFD700", prompt: "golden colored clothing, gold embellishments, warm metallic" },
+  yellow: { label: "🌟 Yellow", hex: "#FFD93D", prompt: "yellow colored clothing, sunny bright" },
+  orange: { label: "🧡 Orange", hex: "#FF6B35", prompt: "orange colored clothing, tangerine amber" },
+  pink: { label: "💗 Pink", hex: "#FF69B4", prompt: "pink colored clothing, rose blush" },
+  magenta: { label: "💜 Magenta", hex: "#FF00FF", prompt: "magenta colored clothing, fuchsia vibrant" },
+  purple: { label: "💟 Purple", hex: "#9B59B6", prompt: "purple colored clothing, violet indigo" },
+  blue: { label: "💙 Blue", hex: "#3498DB", prompt: "blue colored clothing, navy royal blue" },
+  navy: { label: "🌑 Navy", hex: "#000080", prompt: "navy blue colored clothing, deep midnight blue" },
+  teal: { label: "💎 Teal", hex: "#008080", prompt: "teal colored clothing, cyan turquoise" },
+  green: { label: "💚 Green", hex: "#27AE60", prompt: "green colored clothing, emerald forest" },
+  olive: { label: "🫒 Olive", hex: "#808000", prompt: "olive colored clothing, earthy green" },
+  beige: { label: "🏖️ Beige", hex: "#F5F5DC", prompt: "beige colored clothing, nude cream" },
+  brown: { label: "🤎 Brown", hex: "#8B4513", prompt: "brown colored clothing, chocolate coffee" },
+  gray: { label: "🩶 Gray", hex: "#808080", prompt: "gray colored clothing, silver neutral" },
+  silver: { label: "✨ Silver", hex: "#C0C0C0", prompt: "silver metallic clothing, shimmering gray" },
+  peach: { label: "🍑 Peach", hex: "#FFCBA4", prompt: "peach colored clothing, soft coral" },
+  coral: { label: "🪸 Coral", hex: "#FF7F50", prompt: "coral colored clothing, warm tropical" },
+};
+
 // Posture options
 const POSTURE_OPTIONS: { [key: string]: { label: string; icon: string; prompt: string } } = {
   standing: { label: "Standing", icon: "🧍", prompt: "standing pose, full body view" },
@@ -797,8 +823,8 @@ const CreateSection = () => {
   // Other options
   const [selectedBodyType, setSelectedBodyType] = useState<string>("any");
   const [selectedPersonType, setSelectedPersonType] = useState<string>("woman");
-  const [selectedUpperColorHex, setSelectedUpperColorHex] = useState<string>(""); // Color for upper body
-  const [selectedLowerColorHex, setSelectedLowerColorHex] = useState<string>(""); // Color for lower body
+  const [selectedUpperColor, setSelectedUpperColor] = useState<string>("any"); // Color key for upper body
+  const [selectedLowerColor, setSelectedLowerColor] = useState<string>("any"); // Color key for lower body
   const [selectedPosture, setSelectedPosture] = useState<string>("standing");
   
   // Custom prompts for upper/lower body in custom mode
@@ -809,11 +835,11 @@ const CreateSection = () => {
   // Sleeve length and footwear options for custom mode
   const [selectedSleeveLength, setSelectedSleeveLength] = useState<string>("any");
   const [selectedFootwear, setSelectedFootwear] = useState<string>("any");
-  const [selectedFootwearColorHex, setSelectedFootwearColorHex] = useState<string>("");
+  const [selectedFootwearColor, setSelectedFootwearColor] = useState<string>("any");
   
   // Headwear options for custom mode
   const [selectedHeadwear, setSelectedHeadwear] = useState<string>("none");
-  const [selectedHeadwearColorHex, setSelectedHeadwearColorHex] = useState<string>("");
+  const [selectedHeadwearColor, setSelectedHeadwearColor] = useState<string>("any");
   const [customHeadwearPrompt, setCustomHeadwearPrompt] = useState<string>("");
   
   // Speech recognition for custom mode
@@ -1125,8 +1151,8 @@ const CreateSection = () => {
     if (outfitMode === 'full') {
       const styleEnhancement = allStyles[selectedStyle]?.prompt || "";
       // Add color for full mode
-      const colorInfo = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex) : null;
-      if (colorInfo) {
+      const colorInfo = COLOR_PALETTE[selectedUpperColor];
+      if (colorInfo && colorInfo.prompt) {
         parts.push(`Color: ${colorInfo.prompt}`);
       }
       if (styleEnhancement) {
@@ -1139,8 +1165,8 @@ const CreateSection = () => {
       
       const upperStyleEnhancement = allStyles[selectedUpperStyle]?.prompt || UPPER_BODY_STYLES[selectedUpperStyle]?.prompt || "";
       const lowerStyleEnhancement = allStyles[selectedLowerStyle]?.prompt || LOWER_BODY_STYLES[selectedLowerStyle]?.prompt || "";
-      const upperColorInfo = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex) : null;
-      const lowerColorInfo = selectedLowerColorHex ? getColorNameFromHex(selectedLowerColorHex) : null;
+      const upperColorInfo = COLOR_PALETTE[selectedUpperColor];
+      const lowerColorInfo = COLOR_PALETTE[selectedLowerColor];
       const sleeveLengthEnhancement = SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.prompt || "";
       
       // Use gender-specific footwear and headwear
@@ -1148,8 +1174,8 @@ const CreateSection = () => {
       const headwearOptions = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
       const footwearEnhancement = footwearOptions[selectedFootwear]?.prompt || "";
       const headwearEnhancement = headwearOptions[selectedHeadwear]?.prompt || "";
-      const footwearColorInfo = selectedFootwearColorHex ? getColorNameFromHex(selectedFootwearColorHex) : null;
-      const headwearColorInfo = selectedHeadwearColorHex ? getColorNameFromHex(selectedHeadwearColorHex) : null;
+      const footwearColorInfo = COLOR_PALETTE[selectedFootwearColor];
+      const headwearColorInfo = COLOR_PALETTE[selectedHeadwearColor];
       
       // Upper body: combine style + color + sleeve length + custom prompt
       if (upperStyleEnhancement || customUpperPrompt || sleeveLengthEnhancement) {
@@ -1197,10 +1223,10 @@ const CreateSection = () => {
   };
   
   // Get current color names for display
-  const upperColorName = selectedUpperColorHex ? getColorNameFromHex(selectedUpperColorHex).name : "Any";
-  const lowerColorName = selectedLowerColorHex ? getColorNameFromHex(selectedLowerColorHex).name : "Any";
-  const footwearColorName = selectedFootwearColorHex ? getColorNameFromHex(selectedFootwearColorHex).name : "Any";
-  const headwearColorName = selectedHeadwearColorHex ? getColorNameFromHex(selectedHeadwearColorHex).name : "Any";
+  const upperColorName = COLOR_PALETTE[selectedUpperColor]?.label || "Any Color";
+  const lowerColorName = COLOR_PALETTE[selectedLowerColor]?.label || "Any Color";
+  const footwearColorName = COLOR_PALETTE[selectedFootwearColor]?.label || "Any Color";
+  const headwearColorName = COLOR_PALETTE[selectedHeadwearColor]?.label || "Any Color";
   
   // Get current gender-specific options
   const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
@@ -1538,7 +1564,7 @@ const CreateSection = () => {
             </div>
 
             {/* Step 3: Style Selection - Based on outfit mode */}
-            <div className="flex flex-col items-center gap-3 w-full max-w-2xl">
+            <div className="flex flex-col items-center gap-3 w-full" style={{ maxWidth: '75%' }}>
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
               {outfitMode === 'full' ? (
@@ -1581,7 +1607,7 @@ const CreateSection = () => {
                           <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-primary/30 flex items-center gap-2">
                             <span>⭐</span> Frequently Used
                           </h3>
-                          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                          <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                             {frequentStyles.map(({ styleKey }) => {
                               const style = allStyles[styleKey];
                               if (!style) return null;
@@ -1595,8 +1621,8 @@ const CreateSection = () => {
                                       : 'hover:bg-muted/50 border border-transparent'
                                   }`}
                                 >
-                                  <span className="text-lg">{style.icon}</span>
-                                  <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                  <span className="text-2xl">{style.icon}</span>
+                                  <p className="text-sm mt-1 truncate">{style.label}</p>
                                 </button>
                               );
                             })}
@@ -1618,7 +1644,7 @@ const CreateSection = () => {
                               <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
                                 {categoryInfo.label}
                               </h3>
-                              <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                                 {categoryStyles.map(([key, style]) => (
                                   <button
                                     key={key}
@@ -1629,8 +1655,8 @@ const CreateSection = () => {
                                         : 'hover:bg-muted/50 border border-transparent'
                                     }`}
                                   >
-                                    <span className="text-lg">{style.icon}</span>
-                                    <p className="text-[10px] mt-0.5 truncate">{style.label}</p>
+                                    <span className="text-2xl">{style.icon}</span>
+                                    <p className="text-sm mt-1 truncate">{style.label}</p>
                                   </button>
                                 ))}
                               </div>
@@ -1832,30 +1858,22 @@ const CreateSection = () => {
                 </NavigationMenu>
               </div>
 
-              {/* Color Picker - Only show in Full Outfit mode */}
+              {/* Color Dropdown - Only show in Full Outfit mode */}
               {outfitMode === 'full' && (
                 <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
                   <span className="text-xs text-muted-foreground">Color:</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={selectedUpperColorHex || "#888888"}
-                      onChange={(e) => setSelectedUpperColorHex(e.target.value)}
-                      disabled={isLoading}
-                      className="w-8 h-8 rounded-lg border-0 cursor-pointer bg-transparent"
-                      style={{ padding: 0 }}
-                    />
-                    <span className="text-sm font-medium min-w-[60px]">{upperColorName}</span>
-                    {selectedUpperColorHex && (
-                      <button
-                        onClick={() => setSelectedUpperColorHex("")}
-                        className="text-xs text-muted-foreground hover:text-foreground px-1"
-                        title="Clear color selection"
-                      >
-                        ✕
-                      </button>
-                    )}
-                  </div>
+                  <select
+                    value={selectedUpperColor}
+                    onChange={(e) => setSelectedUpperColor(e.target.value)}
+                    disabled={isLoading}
+                    className="px-3 py-1.5 rounded-lg text-sm border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  >
+                    {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                      <option key={key} value={key}>
+                        {color.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 
@@ -1967,31 +1985,23 @@ const CreateSection = () => {
                   >
                     <div className="gradient-border">
                       <div className="relative bg-card rounded-xl overflow-hidden p-4 space-y-4">
-                        {/* Upper Body Prompt with Color Picker */}
+                        {/* Upper Body Prompt with Color Dropdown */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👚 Upper Body</span>
                               <div className="flex items-center gap-2">
-                                <input
-                                  type="color"
-                                  value={selectedUpperColorHex || "#888888"}
-                                  onChange={(e) => setSelectedUpperColorHex(e.target.value)}
+                                <select
+                                  value={selectedUpperColor}
+                                  onChange={(e) => setSelectedUpperColor(e.target.value)}
                                   disabled={isLoading}
-                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
-                                  style={{ padding: 0 }}
-                                  title="Pick upper body color"
-                                />
-                                <span className="text-xs text-muted-foreground">{upperColorName}</span>
-                                {selectedUpperColorHex && (
-                                  <button
-                                    onClick={() => setSelectedUpperColorHex("")}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                    title="Clear"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Upper body color"
+                                >
+                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                    <option key={key} value={key}>{color.label}</option>
+                                  ))}
+                                </select>
                                 {/* Sleeve Length Dropdown */}
                                 <select
                                   value={selectedSleeveLength}
@@ -2081,25 +2091,17 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👖 Lower Body</span>
                               <div className="flex items-center gap-2">
-                                <input
-                                  type="color"
-                                  value={selectedLowerColorHex || "#888888"}
-                                  onChange={(e) => setSelectedLowerColorHex(e.target.value)}
+                                <select
+                                  value={selectedLowerColor}
+                                  onChange={(e) => setSelectedLowerColor(e.target.value)}
                                   disabled={isLoading}
-                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
-                                  style={{ padding: 0 }}
-                                  title="Pick lower body color"
-                                />
-                                <span className="text-xs text-muted-foreground">{lowerColorName}</span>
-                                {selectedLowerColorHex && (
-                                  <button
-                                    onClick={() => setSelectedLowerColorHex("")}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                    title="Clear"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Lower body color"
+                                >
+                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                    <option key={key} value={key}>{color.label}</option>
+                                  ))}
+                                </select>
                               </div>
                             </div>
                           </div>
@@ -2177,25 +2179,17 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👟 Footwear</span>
                               <div className="flex items-center gap-2">
-                                <input
-                                  type="color"
-                                  value={selectedFootwearColorHex || "#888888"}
-                                  onChange={(e) => setSelectedFootwearColorHex(e.target.value)}
+                                <select
+                                  value={selectedFootwearColor}
+                                  onChange={(e) => setSelectedFootwearColor(e.target.value)}
                                   disabled={isLoading}
-                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
-                                  style={{ padding: 0 }}
-                                  title="Pick footwear color"
-                                />
-                                <span className="text-xs text-muted-foreground">{footwearColorName}</span>
-                                {selectedFootwearColorHex && (
-                                  <button
-                                    onClick={() => setSelectedFootwearColorHex("")}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                    title="Clear"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Footwear color"
+                                >
+                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                    <option key={key} value={key}>{color.label}</option>
+                                  ))}
+                                </select>
                                 {/* Footwear Type Dropdown */}
                                 <select
                                   value={selectedFootwear}
@@ -2285,25 +2279,17 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👒 Headwear</span>
                               <div className="flex items-center gap-2">
-                                <input
-                                  type="color"
-                                  value={selectedHeadwearColorHex || "#888888"}
-                                  onChange={(e) => setSelectedHeadwearColorHex(e.target.value)}
+                                <select
+                                  value={selectedHeadwearColor}
+                                  onChange={(e) => setSelectedHeadwearColor(e.target.value)}
                                   disabled={isLoading}
-                                  className="w-8 h-8 rounded-lg border-2 border-border cursor-pointer"
-                                  style={{ padding: 0 }}
-                                  title="Pick headwear color"
-                                />
-                                <span className="text-xs text-muted-foreground">{headwearColorName}</span>
-                                {selectedHeadwearColorHex && (
-                                  <button
-                                    onClick={() => setSelectedHeadwearColorHex("")}
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                    title="Clear"
-                                  >
-                                    ✕
-                                  </button>
-                                )}
+                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
+                                  title="Headwear color"
+                                >
+                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                    <option key={key} value={key}>{color.label}</option>
+                                  ))}
+                                </select>
                                 {/* Headwear Type Dropdown */}
                                 <select
                                   value={selectedHeadwear}
