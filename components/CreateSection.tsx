@@ -2470,7 +2470,7 @@ const CreateSection = () => {
                           onChange={(e) => setCustomEnhancedPrompt(e.target.value)}
                           rows={3}
                           disabled={isLoading || !prompt.trim()}
-                          className="w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground text-sm font-mono resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                          className="w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
                           placeholder="Enter your prompt above to see the enhanced version..."
                         />
                       </div>
