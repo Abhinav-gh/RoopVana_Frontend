@@ -882,6 +882,10 @@ const CreateSection = () => {
   const [newStyleName, setNewStyleName] = useState("");
   const [newStylePrompt, setNewStylePrompt] = useState("");
   
+  // View Input Combination modal state
+  const [showInputCombination, setShowInputCombination] = useState(false);
+  const [copiedJSON, setCopiedJSON] = useState(false);
+  
   // Get person types based on selected gender
   const personTypes = selectedGender === 'female' ? FEMALE_PERSON_TYPES : MALE_PERSON_TYPES;
   
@@ -1270,6 +1274,118 @@ const CreateSection = () => {
   
   const frequentStyles = getFrequentStyles();
   
+  // Get all current input selections as JSON for developers
+  const getInputCombinationJSON = () => {
+    const footwearOpts = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
+    const headwearOpts = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
+    
+    const combination: Record<string, any> = {
+      gender: selectedGender,
+      generationMode: generationMode,
+      outfitMode: outfitMode,
+      personType: {
+        key: selectedPersonType,
+        label: personTypes[selectedPersonType]?.label || selectedPersonType,
+      },
+      bodyType: {
+        key: selectedBodyType,
+        label: bodyTypes[selectedBodyType]?.label || selectedBodyType,
+      },
+      posture: {
+        key: selectedPosture,
+        label: POSTURE_OPTIONS[selectedPosture]?.label || selectedPosture,
+      },
+    };
+    
+    if (outfitMode === 'full') {
+      combination.fullMode = {
+        style: {
+          key: selectedStyle,
+          label: allStyles[selectedStyle]?.label || selectedStyle,
+          category: allStyles[selectedStyle]?.category || 'custom',
+        },
+        color: {
+          key: selectedUpperColor,
+          label: COLOR_PALETTE[selectedUpperColor]?.label || selectedUpperColor,
+          hex: COLOR_PALETTE[selectedUpperColor]?.hex || '',
+        },
+        prompt: prompt,
+      };
+    } else {
+      combination.customMode = {
+        upperBody: {
+          style: {
+            key: selectedUpperStyle,
+            label: UPPER_BODY_STYLES[selectedUpperStyle]?.label || allStyles[selectedUpperStyle]?.label || selectedUpperStyle,
+          },
+          color: {
+            key: selectedUpperColor,
+            label: COLOR_PALETTE[selectedUpperColor]?.label || selectedUpperColor,
+            hex: COLOR_PALETTE[selectedUpperColor]?.hex || '',
+          },
+          sleeveLength: {
+            key: selectedSleeveLength,
+            label: SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.label || selectedSleeveLength,
+          },
+          customPrompt: customUpperPrompt,
+        },
+        lowerBody: {
+          style: {
+            key: selectedLowerStyle,
+            label: LOWER_BODY_STYLES[selectedLowerStyle]?.label || allStyles[selectedLowerStyle]?.label || selectedLowerStyle,
+          },
+          color: {
+            key: selectedLowerColor,
+            label: COLOR_PALETTE[selectedLowerColor]?.label || selectedLowerColor,
+            hex: COLOR_PALETTE[selectedLowerColor]?.hex || '',
+          },
+          customPrompt: customLowerPrompt,
+        },
+        footwear: {
+          type: {
+            key: selectedFootwear,
+            label: footwearOpts[selectedFootwear]?.label || selectedFootwear,
+          },
+          color: {
+            key: selectedFootwearColor,
+            label: COLOR_PALETTE[selectedFootwearColor]?.label || selectedFootwearColor,
+            hex: COLOR_PALETTE[selectedFootwearColor]?.hex || '',
+          },
+          customPrompt: customFootwearPrompt,
+        },
+        headwear: {
+          type: {
+            key: selectedHeadwear,
+            label: headwearOpts[selectedHeadwear]?.label || selectedHeadwear,
+          },
+          color: {
+            key: selectedHeadwearColor,
+            label: COLOR_PALETTE[selectedHeadwearColor]?.label || selectedHeadwearColor,
+            hex: COLOR_PALETTE[selectedHeadwearColor]?.hex || '',
+          },
+          customPrompt: customHeadwearPrompt,
+        },
+      };
+    }
+    
+    combination.enhancedPrompt = computeEnhancedPrompt();
+    
+    return combination;
+  };
+  
+  // Copy input combination JSON to clipboard
+  const copyInputCombination = async () => {
+    try {
+      const json = JSON.stringify(getInputCombinationJSON(), null, 2);
+      await navigator.clipboard.writeText(json);
+      setCopiedJSON(true);
+      toast.success('Input combination copied to clipboard!');
+      setTimeout(() => setCopiedJSON(false), 2000);
+    } catch (error) {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
   const enhancedPromptPreview = computeEnhancedPrompt();
   
   // Pricing estimation (based on enhanced prompt)
@@ -2430,18 +2546,28 @@ const CreateSection = () => {
                   animate={{ opacity: 1 }}
                   className="mt-4"
                 >
-                  <button
-                    onClick={() => setShowAdvanced(!showAdvanced)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <motion.span
-                      animate={{ rotate: showAdvanced ? 180 : 0 }}
-                      transition={{ duration: 0.2 }}
+                  <div className="flex items-center gap-4 flex-wrap">
+                    <button
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                      className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
-                      ▼
-                    </motion.span>
-                    {showAdvanced ? 'Hide' : 'Show'} Advanced Options
-                  </button>
+                      <motion.span
+                        animate={{ rotate: showAdvanced ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        ▼
+                      </motion.span>
+                      {showAdvanced ? 'Hide' : 'Show'} Advanced Options
+                    </button>
+                    
+                    {/* View Input Combination Button */}
+                    <button
+                      onClick={() => setShowInputCombination(true)}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border border-border/50 transition-all duration-200"
+                    >
+                      📋 View Input Combination
+                    </button>
+                  </div>
                   
                   {showAdvanced && (
                     <motion.div
@@ -2607,6 +2733,67 @@ const CreateSection = () => {
           </div>
         </div>
       </div>
+      
+      {/* View Input Combination Modal */}
+      {showInputCombination && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowInputCombination(false)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative z-10 w-full max-w-2xl max-h-[80vh] bg-card rounded-2xl border border-border/50 shadow-2xl overflow-hidden"
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border/50 bg-muted/30">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">📋</span>
+                <div>
+                  <h3 className="font-semibold text-foreground">Input Combination</h3>
+                  <p className="text-xs text-muted-foreground">Current selections as JSON</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={copyInputCombination}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
+                    copiedJSON
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/50'
+                      : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/30'
+                  }`}
+                >
+                  {copiedJSON ? '✓ Copied!' : '📋 Copy JSON'}
+                </button>
+                <button
+                  onClick={() => setShowInputCombination(false)}
+                  className="p-2 rounded-lg hover:bg-muted transition-colors"
+                >
+                  <X className="w-5 h-5 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Modal Content */}
+            <div className="p-4 overflow-auto max-h-[60vh]">
+              <pre className="p-4 rounded-xl bg-zinc-900/50 border border-border/50 overflow-x-auto text-sm">
+                <code className="text-green-400 font-mono whitespace-pre">
+                  {JSON.stringify(getInputCombinationJSON(), null, 2)}
+                </code>
+              </pre>
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-border/50 bg-muted/20">
+              <p className="text-xs text-muted-foreground text-center">
+                💡 Use this JSON to document your input combinations for demos
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </section>
   );
 };
