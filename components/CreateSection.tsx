@@ -2490,29 +2490,37 @@ const CreateSection = () => {
                         </div>
 
                         {/* Generate Button */}
-                        <div className="flex items-center justify-between pt-2">
-                          <p className="text-xs text-muted-foreground">
-                            Describe your upper and lower body outfit details
-                          </p>
-                          <button
-                            onClick={handleGenerate}
-                            disabled={!canGenerateCustom || isLoading}
-                            className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
-                              canGenerateCustom && !isLoading
-                                ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105'
-                                : 'bg-muted text-muted-foreground cursor-not-allowed'
-                            }`}
-                          >
-                            {isLoading ? (
-                              <motion.div
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                              />
-                            ) : (
-                              <>✨ Generate</>
-                            )}
-                          </button>
+                        <div className="flex flex-col gap-2 pt-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs text-muted-foreground">
+                              Describe your upper and lower body outfit details
+                            </p>
+                            <span className="text-xs text-muted-foreground">
+                              Est. cost: <span className="font-medium text-foreground">~₹{pricingEstimate.costINR}</span>
+                              <span className="text-[10px] ml-1">({pricingEstimate.tokens} tokens)</span>
+                            </span>
+                          </div>
+                          <div className="flex justify-end">
+                            <button
+                              onClick={handleGenerate}
+                              disabled={!canGenerateCustom || isLoading}
+                              className={`px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
+                                canGenerateCustom && !isLoading
+                                  ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-lg hover:shadow-xl hover:scale-105'
+                                  : 'bg-muted text-muted-foreground cursor-not-allowed'
+                              }`}
+                            >
+                              {isLoading ? (
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                                />
+                              ) : (
+                                <>✨ Generate</>
+                              )}
+                            </button>
+                          </div>
                         </div>
 
                         {/* Prompt Preview */}
@@ -2594,10 +2602,10 @@ const CreateSection = () => {
                         <textarea
                           value={customEnhancedPrompt || enhancedPromptPreview}
                           onChange={(e) => setCustomEnhancedPrompt(e.target.value)}
-                          rows={3}
-                          disabled={isLoading || !prompt.trim()}
+                          rows={4}
+                          disabled={isLoading || (outfitMode === 'full' ? !prompt.trim() : !canGenerateCustom)}
                           className="w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground text-sm font-mono resize-y focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
-                          placeholder="Enter your prompt above to see the enhanced version..."
+                          placeholder={outfitMode === 'full' ? "Enter your prompt above to see the enhanced version..." : "Configure your custom outfit options above to see the enhanced prompt..."}
                         />
                       </div>
                       
