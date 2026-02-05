@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 const Header = () => {
   return (
@@ -51,12 +52,14 @@ const Header = () => {
             ))}
           </nav> */}
 
-          {/* CTA */}
+          {/* Theme Toggle & Status */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
+            className="flex items-center gap-4"
           >
+            <ThemeToggle />
             <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span>Gen AI Ready</span>
