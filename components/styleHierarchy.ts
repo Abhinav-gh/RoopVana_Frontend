@@ -30,7 +30,7 @@ export interface StyleCategory {
 export type StyleHierarchy = { [category: string]: StyleCategory };
 
 // ============ COMMON PRINTS (shared across fabrics) ============
-const COMMON_PRINTS: { [key: string]: PrintType } = {
+export const COMMON_PRINTS: { [key: string]: PrintType } = {
   any: { label: "Any", icon: "✨", prompt: "" },
   floral: { label: "Floral", icon: "🌸", prompt: "floral motifs, flower patterns, botanical designs" },
   geometric: { label: "Geometric", icon: "🔷", prompt: "geometric patterns, abstract shapes, angular designs" },
@@ -40,6 +40,18 @@ const COMMON_PRINTS: { [key: string]: PrintType } = {
   stripes: { label: "Stripes", icon: "📊", prompt: "striped pattern, linear design" },
   checks: { label: "Checks", icon: "🏁", prompt: "checkered pattern, plaid design" },
   polka: { label: "Polka Dots", icon: "⚪", prompt: "polka dot pattern, dotted design" },
+};
+
+// ============ DEFAULT FABRICS (for custom garments) ============
+export const DEFAULT_FABRICS: { [key: string]: Fabric } = {
+  any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+  cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton fabric", prints: { ...COMMON_PRINTS } },
+  silk: { label: "Silk", icon: "✨", prompt: "luxurious silk fabric", prints: { ...COMMON_PRINTS } },
+  linen: { label: "Linen", icon: "🌾", prompt: "breathable linen fabric", prints: { ...COMMON_PRINTS } },
+  georgette: { label: "Georgette", icon: "💨", prompt: "lightweight georgette, flowing drape", prints: { ...COMMON_PRINTS } },
+  chiffon: { label: "Chiffon", icon: "🌬️", prompt: "lightweight chiffon, ethereal", prints: { ...COMMON_PRINTS } },
+  velvet: { label: "Velvet", icon: "🎀", prompt: "plush velvet fabric, rich texture", prints: { ...COMMON_PRINTS } },
+  satin: { label: "Satin", icon: "💎", prompt: "smooth satin, lustrous finish", prints: { ...COMMON_PRINTS } },
 };
 
 // ============ FEMALE STYLE HIERARCHY ============

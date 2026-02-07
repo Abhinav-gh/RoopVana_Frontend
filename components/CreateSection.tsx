@@ -25,6 +25,8 @@ import {
   Garment,
   Fabric,
   PrintType,
+  COMMON_PRINTS,
+  DEFAULT_FABRICS,
 } from "./styleHierarchy";
 
 // Language detection helper
@@ -978,14 +980,34 @@ const CreateSection = () => {
   // Get the style hierarchy based on gender
   const styleHierarchy = selectedGender === 'female' ? FEMALE_STYLE_HIERARCHY : MALE_STYLE_HIERARCHY;
   
-  // Get current category garments
+  // Get current category garments (empty for custom categories)
   const currentCategoryGarments = styleHierarchy[selectedCategory]?.garments || {};
   
   // Get current garment fabrics (if garment selected)
-  const currentGarmentFabrics = selectedGarment && currentCategoryGarments[selectedGarment]?.fabrics || {};
+  // For custom garments, use DEFAULT_FABRICS as fallback
+  const currentGarmentFabrics = (() => {
+    if (!selectedGarment) return {};
+    // If it's a custom garment, use default fabrics
+    if (selectedGarment.startsWith('custom_')) {
+      return DEFAULT_FABRICS;
+    }
+    return currentCategoryGarments[selectedGarment]?.fabrics || DEFAULT_FABRICS;
+  })();
   
   // Get current fabric prints (if fabric selected)
-  const currentFabricPrints = selectedGarment && selectedFabric && currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]?.prints || {};
+  // For custom fabrics, use COMMON_PRINTS as fallback
+  const currentFabricPrints = (() => {
+    if (!selectedGarment || !selectedFabric) return {};
+    // If it's a custom fabric, use common prints
+    if (selectedFabric.startsWith('custom_')) {
+      return COMMON_PRINTS;
+    }
+    // If it's a custom garment, fabrics come from DEFAULT_FABRICS
+    if (selectedGarment.startsWith('custom_')) {
+      return DEFAULT_FABRICS[selectedFabric]?.prints || COMMON_PRINTS;
+    }
+    return currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]?.prints || COMMON_PRINTS;
+  })();
   
   // Cascading reset: when category changes, reset lower levels
   useEffect(() => {
