@@ -17,6 +17,15 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import {
+  FEMALE_STYLE_HIERARCHY,
+  MALE_STYLE_HIERARCHY,
+  StyleHierarchy,
+  StyleCategory,
+  Garment,
+  Fabric,
+  PrintType,
+} from "./styleHierarchy";
 
 // Language detection helper
 const detectLanguage = (text: string): string | null => {
@@ -820,6 +829,26 @@ const CreateSection = () => {
   const [selectedUpperStyle, setSelectedUpperStyle] = useState<string>("traditional");
   const [selectedLowerStyle, setSelectedLowerStyle] = useState<string>("traditional");
   
+  // 3-Level Hierarchy Style Selections (Category -> Garment -> Fabric -> Print)
+  const [selectedCategory, setSelectedCategory] = useState<string>("indian");
+  const [selectedGarment, setSelectedGarment] = useState<string | null>(null);
+  const [selectedFabric, setSelectedFabric] = useState<string | null>(null);
+  const [selectedPrint, setSelectedPrint] = useState<string | null>(null);
+  
+  // Custom hierarchy items (user-added categories, garments, fabrics, prints)
+  const [customCategories, setCustomCategories] = useState<{ [key: string]: { label: string; icon: string } }>({});
+  const [customGarments, setCustomGarments] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
+  const [customFabrics, setCustomFabrics] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
+  const [customPrints, setCustomPrints] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
+  
+  // Add custom item modals
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [showAddGarment, setShowAddGarment] = useState(false);
+  const [showAddFabric, setShowAddFabric] = useState(false);
+  const [showAddPrint, setShowAddPrint] = useState(false);
+  const [newItemName, setNewItemName] = useState("");
+  const [newItemPrompt, setNewItemPrompt] = useState("");
+  
   // Other options
   const [selectedBodyType, setSelectedBodyType] = useState<string>("any");
   const [selectedPersonType, setSelectedPersonType] = useState<string>("woman");
@@ -942,6 +971,152 @@ const CreateSection = () => {
     setShowAddStyle(false);
     
     toast.success(`Style "${newStyleName}" added!`);
+  };
+
+  // === 3-Level Style Hierarchy Helpers ===
+  
+  // Get the style hierarchy based on gender
+  const styleHierarchy = selectedGender === 'female' ? FEMALE_STYLE_HIERARCHY : MALE_STYLE_HIERARCHY;
+  
+  // Get current category garments
+  const currentCategoryGarments = styleHierarchy[selectedCategory]?.garments || {};
+  
+  // Get current garment fabrics (if garment selected)
+  const currentGarmentFabrics = selectedGarment && currentCategoryGarments[selectedGarment]?.fabrics || {};
+  
+  // Get current fabric prints (if fabric selected)
+  const currentFabricPrints = selectedGarment && selectedFabric && currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]?.prints || {};
+  
+  // Cascading reset: when category changes, reset lower levels
+  useEffect(() => {
+    setSelectedGarment(null);
+    setSelectedFabric(null);
+    setSelectedPrint(null);
+  }, [selectedCategory]);
+  
+  // Cascading reset: when garment changes, reset fabric and print
+  useEffect(() => {
+    setSelectedFabric(null);
+    setSelectedPrint(null);
+  }, [selectedGarment]);
+  
+  // Cascading reset: when fabric changes, reset print
+  useEffect(() => {
+    setSelectedPrint(null);
+  }, [selectedFabric]);
+  
+  // Reset hierarchy selections when gender changes
+  useEffect(() => {
+    setSelectedCategory("indian");
+    setSelectedGarment(null);
+    setSelectedFabric(null);
+    setSelectedPrint(null);
+  }, [selectedGender]);
+  
+  // Handler for adding custom garment
+  const handleAddCustomGarment = () => {
+    if (!newItemName.trim()) {
+      toast.error("Please enter a garment name");
+      return;
+    }
+    const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
+    setCustomGarments(prev => ({
+      ...prev,
+      [key]: {
+        label: newItemName,
+        icon: "🎨",
+        prompt: newItemPrompt.trim() || newItemName,
+      }
+    }));
+    setSelectedGarment(key);
+    setNewItemName("");
+    setNewItemPrompt("");
+    setShowAddGarment(false);
+    toast.success(`Garment "${newItemName}" added!`);
+  };
+  
+  // Handler for adding custom fabric
+  const handleAddCustomFabric = () => {
+    if (!newItemName.trim()) {
+      toast.error("Please enter a fabric name");
+      return;
+    }
+    const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
+    setCustomFabrics(prev => ({
+      ...prev,
+      [key]: {
+        label: newItemName,
+        icon: "🧵",
+        prompt: newItemPrompt.trim() || newItemName,
+      }
+    }));
+    setSelectedFabric(key);
+    setNewItemName("");
+    setNewItemPrompt("");
+    setShowAddFabric(false);
+    toast.success(`Fabric "${newItemName}" added!`);
+  };
+  
+  // Handler for adding custom print
+  const handleAddCustomPrint = () => {
+    if (!newItemName.trim()) {
+      toast.error("Please enter a print name");
+      return;
+    }
+    const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
+    setCustomPrints(prev => ({
+      ...prev,
+      [key]: {
+        label: newItemName,
+        icon: "🎨",
+        prompt: newItemPrompt.trim() || newItemName,
+      }
+    }));
+    setSelectedPrint(key);
+    setNewItemName("");
+    setNewItemPrompt("");
+    setShowAddPrint(false);
+    toast.success(`Print "${newItemName}" added!`);
+  };
+  
+  // Get prompt parts for the 3-level hierarchy
+  const getHierarchyPromptParts = () => {
+    const parts: string[] = [];
+    
+    // Add garment prompt
+    if (selectedGarment) {
+      // Check custom garments first
+      if (customGarments[selectedGarment]) {
+        parts.push(customGarments[selectedGarment].prompt);
+      } else if (currentCategoryGarments[selectedGarment]) {
+        parts.push(currentCategoryGarments[selectedGarment].prompt);
+      }
+    }
+    
+    // Add fabric prompt
+    if (selectedFabric) {
+      if (customFabrics[selectedFabric]) {
+        parts.push(customFabrics[selectedFabric].prompt);
+      } else if (selectedGarment && currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]) {
+        const fabricPrompt = currentCategoryGarments[selectedGarment].fabrics[selectedFabric].prompt;
+        if (fabricPrompt) parts.push(fabricPrompt);
+      }
+    }
+    
+    // Add print prompt
+    if (selectedPrint) {
+      if (customPrints[selectedPrint]) {
+        parts.push(customPrints[selectedPrint].prompt);
+      } else if (selectedGarment && selectedFabric) {
+        const fabric = currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric];
+        if (fabric?.prints[selectedPrint]) {
+          const printPrompt = fabric.prints[selectedPrint].prompt;
+          if (printPrompt) parts.push(printPrompt);
+        }
+      }
+    }
+    
+    return parts;
   };
 
   // Initialize speech recognition for custom mode
@@ -1153,14 +1328,24 @@ const CreateSection = () => {
     
     // Add style based on outfit mode
     if (outfitMode === 'full') {
-      const styleEnhancement = allStyles[selectedStyle]?.prompt || "";
+      // Use 3-level hierarchy: Garment -> Fabric -> Print
+      const hierarchyParts = getHierarchyPromptParts();
+      
       // Add color for full mode
       const colorInfo = COLOR_PALETTE[selectedUpperColor];
       if (colorInfo && colorInfo.prompt) {
         parts.push(`Color: ${colorInfo.prompt}`);
       }
-      if (styleEnhancement) {
-        parts.push(`Design preference: ${styleEnhancement}`);
+      
+      // Add hierarchy-based style (garment + fabric + print)
+      if (hierarchyParts.length > 0) {
+        parts.push(`Garment style: ${hierarchyParts.join(", ")}`);
+      } else {
+        // Fallback to old style system if no hierarchy selection made
+        const styleEnhancement = allStyles[selectedStyle]?.prompt || "";
+        if (styleEnhancement) {
+          parts.push(`Design preference: ${styleEnhancement}`);
+        }
       }
     } else {
       // Custom mode - upper and lower styles with custom prompts and colors
@@ -1684,101 +1869,231 @@ const CreateSection = () => {
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
               {outfitMode === 'full' ? (
-                /* Full Outfit Mode - Expandable Style Panel */
-                <div className="w-full">
-                  {/* Style Selector Button + Add Style Button */}
-                  <div className="flex items-center justify-center gap-3 mb-2">
-                    <button
-                      onClick={() => setIsStyleExpanded(!isStyleExpanded)}
-                      disabled={isLoading}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
-                        isStyleExpanded
-                          ? 'bg-primary text-primary-foreground shadow-md'
-                          : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
-                      }`}
-                    >
-                      <span className="text-xl">{allStyles[selectedStyle]?.icon}</span>
-                      <span>{allStyles[selectedStyle]?.label}</span>
-                      <span className={`transition-transform ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
-                    </button>
-                    <button
-                      onClick={() => setShowAddStyle(!showAddStyle)}
-                      disabled={isLoading}
-                      className={`px-3 py-3 text-sm rounded-xl transition-all duration-200 border-2 border-dashed ${
-                        showAddStyle
-                          ? 'border-primary text-primary bg-primary/10'
-                          : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-                      } disabled:opacity-50`}
-                    >
-                      ➕
-                    </button>
-                  </div>
+                /* Full Outfit Mode - 4-Level Cascading Style Selection */
+                <div className="w-full max-w-4xl mx-auto space-y-4">
                   
-                  {/* Expandable Style Grid - Content shifts down when expanded */}
-                  {isStyleExpanded && (
-                    <div className="bg-zinc-900 border border-border rounded-xl p-4 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      {/* Frequently Used Section */}
-                      {frequentStyles.length > 0 && (
-                        <div className="mb-4">
-                          <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-primary/30 flex items-center gap-2">
-                            <span>⭐</span> Frequently Used
-                          </h3>
-                          <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
-                            {frequentStyles.map(({ styleKey }) => {
-                              const style = allStyles[styleKey];
-                              if (!style) return null;
-                              return (
-                                <button
-                                  key={styleKey}
-                                  onClick={() => { setSelectedStyle(styleKey); setIsStyleExpanded(false); }}
-                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
-                                    selectedStyle === styleKey
-                                      ? 'bg-primary/20 text-primary border border-primary/40'
-                                      : 'hover:bg-muted/50 border border-transparent'
-                                  }`}
-                                >
-                                  <span className="text-2xl">{style.icon}</span>
-                                  <p className="text-sm mt-1 truncate">{style.label}</p>
-                                </button>
-                              );
-                            })}
+                  {/* Level 1: Category Dropdown */}
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Category</span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        disabled={isLoading}
+                        className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
+                      >
+                        {Object.entries(styleHierarchy).map(([key, cat]) => (
+                          <option key={key} value={key}>{cat.icon} {cat.label}</option>
+                        ))}
+                        {Object.entries(customCategories).map(([key, item]) => (
+                          <option key={key} value={key}>{item.icon} {item.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => { setShowAddCategory(true); setNewItemName(""); setNewItemPrompt(""); }}
+                        disabled={isLoading}
+                        className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
+                      >
+                        ➕
+                      </button>
+                    </div>
+                    {/* Add Category Modal */}
+                    {showAddCategory && (
+                      <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
+                        <input
+                          type="text"
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          placeholder="Category name..."
+                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => setShowAddCategory(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+                          <button onClick={() => {
+                            if (!newItemName.trim()) {
+                              return;
+                            }
+                            const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
+                            setCustomCategories(prev => ({
+                              ...prev,
+                              [key]: { label: newItemName, icon: "🏷️" }
+                            }));
+                            setSelectedCategory(key);
+                            setNewItemName("");
+                            setShowAddCategory(false);
+                          }} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Level 2: Garment Dropdown */}
+                  <div className="flex flex-col items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Garment Type</span>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedGarment || ""}
+                        onChange={(e) => setSelectedGarment(e.target.value || null)}
+                        disabled={isLoading}
+                        className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
+                      >
+                        <option value="">Select a garment...</option>
+                        {Object.entries(currentCategoryGarments).map(([key, garment]) => (
+                          <option key={key} value={key}>{garment.icon} {garment.label}</option>
+                        ))}
+                        {Object.entries(customGarments).map(([key, item]) => (
+                          <option key={key} value={key}>{item.icon} {item.label}</option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => { setShowAddGarment(true); setNewItemName(""); setNewItemPrompt(""); }}
+                        disabled={isLoading}
+                        className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
+                      >
+                        ➕
+                      </button>
+                    </div>
+                    {/* Add Garment Modal */}
+                    {showAddGarment && (
+                      <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
+                        <input
+                          type="text"
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          placeholder="Garment name..."
+                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                        />
+                        <input
+                          type="text"
+                          value={newItemPrompt}
+                          onChange={(e) => setNewItemPrompt(e.target.value)}
+                          placeholder="Style description (optional)..."
+                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button onClick={() => setShowAddGarment(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+                          <button onClick={handleAddCustomGarment} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Level 3: Fabric Dropdown (appears after garment selected) */}
+                  {selectedGarment && (
+                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <span className="text-xs text-muted-foreground">Fabric</span>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={selectedFabric || ""}
+                          onChange={(e) => setSelectedFabric(e.target.value || null)}
+                          disabled={isLoading}
+                          className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
+                        >
+                          <option value="">Select a fabric...</option>
+                          {Object.entries(currentGarmentFabrics).map(([key, fabric]) => (
+                            <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
+                          ))}
+                          {Object.entries(customFabrics).map(([key, item]) => (
+                            <option key={key} value={key}>{item.icon} {item.label}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => { setShowAddFabric(true); setNewItemName(""); setNewItemPrompt(""); }}
+                          disabled={isLoading}
+                          className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
+                        >
+                          ➕
+                        </button>
+                      </div>
+                      {/* Add Fabric Modal */}
+                      {showAddFabric && (
+                        <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
+                          <input
+                            type="text"
+                            value={newItemName}
+                            onChange={(e) => setNewItemName(e.target.value)}
+                            placeholder="Fabric name..."
+                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                          />
+                          <input
+                            type="text"
+                            value={newItemPrompt}
+                            onChange={(e) => setNewItemPrompt(e.target.value)}
+                            placeholder="Fabric description (optional)..."
+                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setShowAddFabric(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+                            <button onClick={handleAddCustomFabric} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
                           </div>
                         </div>
                       )}
-                      
-                      {/* Category Sections */}
-                      {Object.entries(STYLE_CATEGORIES)
-                        .sort((a, b) => a[1].order - b[1].order)
-                        .map(([categoryKey, categoryInfo]) => {
-                          const categoryStyles = Object.entries(allStyles).filter(
-                            ([_, style]) => style.category === categoryKey
-                          );
-                          if (categoryStyles.length === 0) return null;
-                          
-                          return (
-                            <div key={categoryKey} className="mb-4 last:mb-0">
-                              <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
-                                {categoryInfo.label}
-                              </h3>
-                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
-                                {categoryStyles.map(([key, style]) => (
-                                  <button
-                                    key={key}
-                                    onClick={() => { setSelectedStyle(key); setIsStyleExpanded(false); }}
-                                    className={`select-none rounded-lg p-2 text-center transition-colors ${
-                                      selectedStyle === key
-                                        ? 'bg-primary/20 text-primary border border-primary/40'
-                                        : 'hover:bg-muted/50 border border-transparent'
-                                    }`}
-                                  >
-                                    <span className="text-2xl">{style.icon}</span>
-                                    <p className="text-sm mt-1 truncate">{style.label}</p>
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        })}
+                    </div>
+                  )}
+
+                  {/* Level 4: Print Dropdown (appears after fabric selected) */}
+                  {selectedGarment && selectedFabric && (
+                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <span className="text-xs text-muted-foreground">Print/Pattern</span>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={selectedPrint || ""}
+                          onChange={(e) => setSelectedPrint(e.target.value || null)}
+                          disabled={isLoading}
+                          className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
+                        >
+                          <option value="">Select a print/pattern...</option>
+                          {Object.entries(currentFabricPrints).map(([key, print]) => (
+                            <option key={key} value={key}>{print.icon} {print.label}</option>
+                          ))}
+                          {Object.entries(customPrints).map(([key, item]) => (
+                            <option key={key} value={key}>{item.icon} {item.label}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => { setShowAddPrint(true); setNewItemName(""); setNewItemPrompt(""); }}
+                          disabled={isLoading}
+                          className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
+                        >
+                          ➕
+                        </button>
+                      </div>
+                      {/* Add Print Modal */}
+                      {showAddPrint && (
+                        <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
+                          <input
+                            type="text"
+                            value={newItemName}
+                            onChange={(e) => setNewItemName(e.target.value)}
+                            placeholder="Print/Pattern name..."
+                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                          />
+                          <input
+                            type="text"
+                            value={newItemPrompt}
+                            onChange={(e) => setNewItemPrompt(e.target.value)}
+                            placeholder="Print description (optional)..."
+                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button onClick={() => setShowAddPrint(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+                            <button onClick={handleAddCustomPrint} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selection Summary */}
+                  {selectedGarment && (
+                    <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground bg-muted/20 rounded-lg p-2 mt-2">
+                      <span>Selected:</span>
+                      <span className="text-foreground font-medium">
+                        {styleHierarchy[selectedCategory]?.label}
+                        {selectedGarment && ` → ${currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label}`}
+                        {selectedFabric && ` → ${currentGarmentFabrics[selectedFabric]?.label || customFabrics[selectedFabric]?.label}`}
+                        {selectedPrint && ` → ${currentFabricPrints[selectedPrint]?.label || customPrints[selectedPrint]?.label}`}
+                      </span>
                     </div>
                   )}
                 </div>
