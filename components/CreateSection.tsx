@@ -1869,232 +1869,329 @@ const CreateSection = () => {
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
               {outfitMode === 'full' ? (
-                /* Full Outfit Mode - 4-Level Cascading Style Selection */
-                <div className="w-full max-w-4xl mx-auto space-y-4">
-                  
-                  {/* Level 1: Category Dropdown */}
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Category</span>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        disabled={isLoading}
-                        className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
-                      >
-                        {Object.entries(styleHierarchy).map(([key, cat]) => (
-                          <option key={key} value={key}>{cat.icon} {cat.label}</option>
-                        ))}
-                        {Object.entries(customCategories).map(([key, item]) => (
-                          <option key={key} value={key}>{item.icon} {item.label}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => { setShowAddCategory(true); setNewItemName(""); setNewItemPrompt(""); }}
-                        disabled={isLoading}
-                        className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
-                      >
-                        ➕
-                      </button>
-                    </div>
-                    {/* Add Category Modal */}
-                    {showAddCategory && (
-                      <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
-                        <input
-                          type="text"
-                          value={newItemName}
-                          onChange={(e) => setNewItemName(e.target.value)}
-                          placeholder="Category name..."
-                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={() => setShowAddCategory(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
-                          <button onClick={() => {
-                            if (!newItemName.trim()) {
-                              return;
-                            }
-                            const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
-                            setCustomCategories(prev => ({
-                              ...prev,
-                              [key]: { label: newItemName, icon: "🏷️" }
-                            }));
-                            setSelectedCategory(key);
-                            setNewItemName("");
-                            setShowAddCategory(false);
-                          }} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Level 2: Garment Dropdown */}
-                  <div className="flex flex-col items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Garment Type</span>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selectedGarment || ""}
-                        onChange={(e) => setSelectedGarment(e.target.value || null)}
-                        disabled={isLoading}
-                        className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
-                      >
-                        <option value="">Select a garment...</option>
-                        {Object.entries(currentCategoryGarments).map(([key, garment]) => (
-                          <option key={key} value={key}>{garment.icon} {garment.label}</option>
-                        ))}
-                        {Object.entries(customGarments).map(([key, item]) => (
-                          <option key={key} value={key}>{item.icon} {item.label}</option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => { setShowAddGarment(true); setNewItemName(""); setNewItemPrompt(""); }}
-                        disabled={isLoading}
-                        className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
-                      >
-                        ➕
-                      </button>
-                    </div>
-                    {/* Add Garment Modal */}
-                    {showAddGarment && (
-                      <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
-                        <input
-                          type="text"
-                          value={newItemName}
-                          onChange={(e) => setNewItemName(e.target.value)}
-                          placeholder="Garment name..."
-                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                        />
-                        <input
-                          type="text"
-                          value={newItemPrompt}
-                          onChange={(e) => setNewItemPrompt(e.target.value)}
-                          placeholder="Style description (optional)..."
-                          className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                        />
-                        <div className="flex gap-2 justify-end">
-                          <button onClick={() => setShowAddGarment(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
-                          <button onClick={handleAddCustomGarment} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Level 3: Fabric Dropdown (appears after garment selected) */}
-                  {selectedGarment && (
-                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <span className="text-xs text-muted-foreground">Fabric</span>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={selectedFabric || ""}
-                          onChange={(e) => setSelectedFabric(e.target.value || null)}
-                          disabled={isLoading}
-                          className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
-                        >
-                          <option value="">Select a fabric...</option>
-                          {Object.entries(currentGarmentFabrics).map(([key, fabric]) => (
-                            <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
-                          ))}
-                          {Object.entries(customFabrics).map(([key, item]) => (
-                            <option key={key} value={key}>{item.icon} {item.label}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => { setShowAddFabric(true); setNewItemName(""); setNewItemPrompt(""); }}
-                          disabled={isLoading}
-                          className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
-                        >
-                          ➕
-                        </button>
-                      </div>
-                      {/* Add Fabric Modal */}
-                      {showAddFabric && (
-                        <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
-                          <input
-                            type="text"
-                            value={newItemName}
-                            onChange={(e) => setNewItemName(e.target.value)}
-                            placeholder="Fabric name..."
-                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                          />
-                          <input
-                            type="text"
-                            value={newItemPrompt}
-                            onChange={(e) => setNewItemPrompt(e.target.value)}
-                            placeholder="Fabric description (optional)..."
-                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <button onClick={() => setShowAddFabric(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
-                            <button onClick={handleAddCustomFabric} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Level 4: Print Dropdown (appears after fabric selected) */}
-                  {selectedGarment && selectedFabric && (
-                    <div className="flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                      <span className="text-xs text-muted-foreground">Print/Pattern</span>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={selectedPrint || ""}
-                          onChange={(e) => setSelectedPrint(e.target.value || null)}
-                          disabled={isLoading}
-                          className="w-64 px-4 py-2.5 rounded-xl bg-muted/50 border border-border/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 cursor-pointer"
-                        >
-                          <option value="">Select a print/pattern...</option>
-                          {Object.entries(currentFabricPrints).map(([key, print]) => (
-                            <option key={key} value={key}>{print.icon} {print.label}</option>
-                          ))}
-                          {Object.entries(customPrints).map(([key, item]) => (
-                            <option key={key} value={key}>{item.icon} {item.label}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => { setShowAddPrint(true); setNewItemName(""); setNewItemPrompt(""); }}
-                          disabled={isLoading}
-                          className="px-2 py-2 rounded-lg text-sm border-2 border-dashed border-border/50 text-muted-foreground hover:border-primary/50 hover:text-primary transition-all disabled:opacity-50"
-                        >
-                          ➕
-                        </button>
-                      </div>
-                      {/* Add Print Modal */}
-                      {showAddPrint && (
-                        <div className="w-full max-w-sm p-3 rounded-lg bg-card border border-border/50 mt-2">
-                          <input
-                            type="text"
-                            value={newItemName}
-                            onChange={(e) => setNewItemName(e.target.value)}
-                            placeholder="Print/Pattern name..."
-                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                          />
-                          <input
-                            type="text"
-                            value={newItemPrompt}
-                            onChange={(e) => setNewItemPrompt(e.target.value)}
-                            placeholder="Print description (optional)..."
-                            className="w-full px-3 py-2 text-sm bg-muted/30 rounded-lg mb-2 text-foreground placeholder:text-muted-foreground/50"
-                          />
-                          <div className="flex gap-2 justify-end">
-                            <button onClick={() => setShowAddPrint(false)} className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground">Cancel</button>
-                            <button onClick={handleAddCustomPrint} className="px-3 py-1 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Selection Summary */}
-                  {selectedGarment && (
-                    <div className="flex flex-wrap justify-center gap-2 text-sm text-muted-foreground bg-muted/20 rounded-lg p-2 mt-2">
-                      <span>Selected:</span>
-                      <span className="text-foreground font-medium">
-                        {styleHierarchy[selectedCategory]?.label}
-                        {selectedGarment && ` → ${currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label}`}
-                        {selectedFabric && ` → ${currentGarmentFabrics[selectedFabric]?.label || customFabrics[selectedFabric]?.label}`}
-                        {selectedPrint && ` → ${currentFabricPrints[selectedPrint]?.label || customPrints[selectedPrint]?.label}`}
+                /* Full Outfit Mode - Single Expandable Hierarchical Style Selector */
+                <div className="w-full max-w-4xl mx-auto">
+                  {/* Main Style Button - Click to expand */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setIsStyleExpanded(!isStyleExpanded)}
+                      disabled={isLoading}
+                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 ${
+                        isStyleExpanded
+                          ? 'bg-primary text-primary-foreground shadow-md'
+                          : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
+                      }`}
+                    >
+                      <span className="text-xl">
+                        {currentCategoryGarments[selectedGarment || ""]?.icon || customGarments[selectedGarment || ""]?.icon || "👗"}
                       </span>
-                    </div>
+                      <span>
+                        {selectedGarment 
+                          ? `${styleHierarchy[selectedCategory]?.label || customCategories[selectedCategory]?.label || "Category"} → ${currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label}${selectedFabric ? ` → ${currentGarmentFabrics[selectedFabric]?.label || customFabrics[selectedFabric]?.label}` : ""}${selectedPrint ? ` → ${currentFabricPrints[selectedPrint]?.label || customPrints[selectedPrint]?.label}` : ""}`
+                          : "Select Style..."
+                        }
+                      </span>
+                      <span className={`transition-transform ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                  </div>
+
+                  {/* Expanded Hierarchical Panel */}
+                  {isStyleExpanded && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="mt-4 p-4 rounded-xl bg-card/50 border border-border/50 space-y-4"
+                    >
+                      {/* Level 1: Category */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Category</span>
+                          <button
+                            onClick={() => { setShowAddCategory(true); setNewItemName(""); }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            + Add Custom
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                          {Object.entries(styleHierarchy).map(([key, cat]) => (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedCategory(key)}
+                              disabled={isLoading}
+                              className={`select-none rounded-lg p-3 text-center transition-colors ${
+                                selectedCategory === key
+                                  ? 'bg-primary/20 text-primary border border-primary/40'
+                                  : 'hover:bg-muted/50 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-2xl block">{cat.icon}</span>
+                              <p className="text-sm mt-1 truncate">{cat.label}</p>
+                            </button>
+                          ))}
+                          {Object.entries(customCategories).map(([key, item]) => (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedCategory(key)}
+                              disabled={isLoading}
+                              className={`select-none rounded-lg p-3 text-center transition-colors ${
+                                selectedCategory === key
+                                  ? 'bg-primary/20 text-primary border border-primary/40'
+                                  : 'hover:bg-muted/50 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-2xl block">{item.icon}</span>
+                              <p className="text-sm mt-1 truncate">{item.label}</p>
+                            </button>
+                          ))}
+                        </div>
+                        {showAddCategory && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <input
+                              type="text"
+                              value={newItemName}
+                              onChange={(e) => setNewItemName(e.target.value)}
+                              placeholder="Category name..."
+                              className="flex-1 px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                            />
+                            <button onClick={() => {
+                              if (newItemName.trim()) {
+                                const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
+                                setCustomCategories(prev => ({ ...prev, [key]: { label: newItemName, icon: "🏷️" } }));
+                                setSelectedCategory(key);
+                              }
+                              setNewItemName("");
+                              setShowAddCategory(false);
+                            }} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                            <button onClick={() => setShowAddCategory(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="border-t border-border/30" />
+
+                      {/* Level 2: Garment */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Garment Type</span>
+                          <button
+                            onClick={() => { setShowAddGarment(true); setNewItemName(""); setNewItemPrompt(""); }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            + Add Custom
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                          {Object.entries(currentCategoryGarments).map(([key, garment]) => (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedGarment(key)}
+                              disabled={isLoading}
+                              className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                selectedGarment === key
+                                  ? 'bg-primary/20 text-primary border border-primary/40'
+                                  : 'hover:bg-muted/50 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-2xl block">{garment.icon}</span>
+                              <p className="text-sm mt-1 truncate">{garment.label}</p>
+                            </button>
+                          ))}
+                          {Object.entries(customGarments).map(([key, item]) => (
+                            <button
+                              key={key}
+                              onClick={() => setSelectedGarment(key)}
+                              disabled={isLoading}
+                              className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                selectedGarment === key
+                                  ? 'bg-primary/20 text-primary border border-primary/40'
+                                  : 'hover:bg-muted/50 border border-transparent'
+                              }`}
+                            >
+                              <span className="text-2xl block">{item.icon}</span>
+                              <p className="text-sm mt-1 truncate">{item.label}</p>
+                            </button>
+                          ))}
+                        </div>
+                        {showAddGarment && (
+                          <div className="flex flex-col gap-2 mt-2">
+                            <input
+                              type="text"
+                              value={newItemName}
+                              onChange={(e) => setNewItemName(e.target.value)}
+                              placeholder="Garment name..."
+                              className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                            />
+                            <input
+                              type="text"
+                              value={newItemPrompt}
+                              onChange={(e) => setNewItemPrompt(e.target.value)}
+                              placeholder="Description (optional)..."
+                              className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                            />
+                            <div className="flex gap-2">
+                              <button onClick={handleAddCustomGarment} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                              <button onClick={() => setShowAddGarment(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Level 3: Fabric (shows when garment selected) */}
+                      {selectedGarment && (
+                        <>
+                          <div className="border-t border-border/30" />
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Fabric</span>
+                              <button
+                                onClick={() => { setShowAddFabric(true); setNewItemName(""); setNewItemPrompt(""); }}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                + Add Custom
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                              {Object.entries(currentGarmentFabrics).map(([key, fabric]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedFabric(key)}
+                                  disabled={isLoading}
+                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                    selectedFabric === key
+                                      ? 'bg-primary/20 text-primary border border-primary/40'
+                                      : 'hover:bg-muted/50 border border-transparent'
+                                  }`}
+                                >
+                                  <span className="text-2xl block">{fabric.icon}</span>
+                                  <p className="text-sm mt-1 truncate">{fabric.label}</p>
+                                </button>
+                              ))}
+                              {Object.entries(customFabrics).map(([key, item]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedFabric(key)}
+                                  disabled={isLoading}
+                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                    selectedFabric === key
+                                      ? 'bg-primary/20 text-primary border border-primary/40'
+                                      : 'hover:bg-muted/50 border border-transparent'
+                                  }`}
+                                >
+                                  <span className="text-2xl block">{item.icon}</span>
+                                  <p className="text-sm mt-1 truncate">{item.label}</p>
+                                </button>
+                              ))}
+                            </div>
+                            {showAddFabric && (
+                              <div className="flex flex-col gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={newItemName}
+                                  onChange={(e) => setNewItemName(e.target.value)}
+                                  placeholder="Fabric name..."
+                                  className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                                />
+                                <input
+                                  type="text"
+                                  value={newItemPrompt}
+                                  onChange={(e) => setNewItemPrompt(e.target.value)}
+                                  placeholder="Description (optional)..."
+                                  className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                                />
+                                <div className="flex gap-2">
+                                  <button onClick={handleAddCustomFabric} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                                  <button onClick={() => setShowAddFabric(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Level 4: Print (shows when fabric selected) */}
+                      {selectedGarment && selectedFabric && (
+                        <>
+                          <div className="border-t border-border/30" />
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Print / Pattern</span>
+                              <button
+                                onClick={() => { setShowAddPrint(true); setNewItemName(""); setNewItemPrompt(""); }}
+                                className="text-xs text-primary hover:underline"
+                              >
+                                + Add Custom
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                              {Object.entries(currentFabricPrints).map(([key, print]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedPrint(key)}
+                                  disabled={isLoading}
+                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                    selectedPrint === key
+                                      ? 'bg-primary/20 text-primary border border-primary/40'
+                                      : 'hover:bg-muted/50 border border-transparent'
+                                  }`}
+                                >
+                                  <span className="text-2xl block">{print.icon}</span>
+                                  <p className="text-sm mt-1 truncate">{print.label}</p>
+                                </button>
+                              ))}
+                              {Object.entries(customPrints).map(([key, item]) => (
+                                <button
+                                  key={key}
+                                  onClick={() => setSelectedPrint(key)}
+                                  disabled={isLoading}
+                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                    selectedPrint === key
+                                      ? 'bg-primary/20 text-primary border border-primary/40'
+                                      : 'hover:bg-muted/50 border border-transparent'
+                                  }`}
+                                >
+                                  <span className="text-2xl block">{item.icon}</span>
+                                  <p className="text-sm mt-1 truncate">{item.label}</p>
+                                </button>
+                              ))}
+                            </div>
+                            {showAddPrint && (
+                              <div className="flex flex-col gap-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={newItemName}
+                                  onChange={(e) => setNewItemName(e.target.value)}
+                                  placeholder="Print/Pattern name..."
+                                  className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                                />
+                                <input
+                                  type="text"
+                                  value={newItemPrompt}
+                                  onChange={(e) => setNewItemPrompt(e.target.value)}
+                                  placeholder="Description (optional)..."
+                                  className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
+                                />
+                                <div className="flex gap-2">
+                                  <button onClick={handleAddCustomPrint} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
+                                  <button onClick={() => setShowAddPrint(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+
+                      {/* Done Button */}
+                      <div className="border-t border-border/30 pt-3">
+                        <button
+                          onClick={() => setIsStyleExpanded(false)}
+                          className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+                        >
+                          Done
+                        </button>
+                      </div>
+                    </motion.div>
                   )}
                 </div>
               ) : (
