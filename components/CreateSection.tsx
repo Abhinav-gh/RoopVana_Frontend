@@ -1009,6 +1009,90 @@ const CreateSection = () => {
     return currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]?.prints || COMMON_PRINTS;
   })();
   
+  // Helper function to get prompt parts from hierarchy selections
+  const getHierarchyPromptParts = (): string[] => {
+    const parts: string[] = [];
+    
+    // Add garment prompt
+    if (selectedGarment) {
+      if (selectedGarment.startsWith('custom_')) {
+        // Custom garment - use the custom item's prompt
+        const customItem = customGarments[selectedGarment];
+        if (customItem?.prompt) {
+          parts.push(customItem.prompt);
+        } else if (customItem?.label) {
+          parts.push(customItem.label);
+        }
+      } else {
+        // Standard garment from hierarchy
+        const garmentData = currentCategoryGarments[selectedGarment];
+        if (garmentData?.prompt) {
+          parts.push(garmentData.prompt);
+        } else if (garmentData?.label) {
+          parts.push(garmentData.label);
+        }
+      }
+    }
+    
+    // Add fabric prompt
+    if (selectedGarment && selectedFabric) {
+      if (selectedFabric.startsWith('custom_')) {
+        // Custom fabric
+        const customItem = customFabrics[selectedFabric];
+        if (customItem?.prompt) {
+          parts.push(customItem.prompt);
+        } else if (customItem?.label) {
+          parts.push(`${customItem.label} fabric`);
+        }
+      } else {
+        // Standard fabric from hierarchy or DEFAULT_FABRICS
+        let fabricData;
+        if (selectedGarment.startsWith('custom_')) {
+          fabricData = DEFAULT_FABRICS[selectedFabric];
+        } else {
+          fabricData = currentCategoryGarments[selectedGarment]?.fabrics?.[selectedFabric];
+        }
+        // Only add if there's a non-empty prompt
+        if (fabricData?.prompt) {
+          parts.push(fabricData.prompt);
+        } else if (fabricData?.label && selectedFabric !== 'any') {
+          // Fallback to label if no prompt (but skip "any")
+          parts.push(`${fabricData.label} fabric`);
+        }
+      }
+    }
+    
+    // Add print/pattern prompt
+    if (selectedGarment && selectedFabric && selectedPrint) {
+      if (selectedPrint.startsWith('custom_')) {
+        // Custom print
+        const customItem = customPrints[selectedPrint];
+        if (customItem?.prompt) {
+          parts.push(customItem.prompt);
+        } else if (customItem?.label) {
+          parts.push(`${customItem.label} pattern`);
+        }
+      } else {
+        // Standard print from hierarchy or COMMON_PRINTS
+        let printData;
+        if (selectedFabric.startsWith('custom_') || selectedGarment.startsWith('custom_')) {
+          printData = COMMON_PRINTS[selectedPrint];
+        } else {
+          printData = currentCategoryGarments[selectedGarment]?.fabrics?.[selectedFabric]?.prints?.[selectedPrint];
+        }
+        // Only add if there's a non-empty prompt
+        if (printData?.prompt) {
+          parts.push(printData.prompt);
+        } else if (printData?.label && selectedPrint !== 'any') {
+          // Fallback to label if no prompt (but skip "any")
+          parts.push(`${printData.label} pattern`);
+        }
+      }
+    }
+    
+    return parts;
+  };
+  
   // Cascading reset: when category changes, reset lower levels
   useEffect(() => {
     setSelectedGarment(null);
@@ -1100,48 +1184,7 @@ const CreateSection = () => {
     setShowAddPrint(false);
     toast.success(`Print "${newItemName}" added!`);
   };
-  
-  // Get prompt parts for the 3-level hierarchy
-  const getHierarchyPromptParts = () => {
-    const parts: string[] = [];
-    
-    // Add garment prompt
-    if (selectedGarment) {
-      // Check custom garments first
-      if (customGarments[selectedGarment]) {
-        parts.push(customGarments[selectedGarment].prompt);
-      } else if (currentCategoryGarments[selectedGarment]) {
-        parts.push(currentCategoryGarments[selectedGarment].prompt);
-      }
-    }
-    
-    // Add fabric prompt
-    if (selectedFabric) {
-      if (customFabrics[selectedFabric]) {
-        parts.push(customFabrics[selectedFabric].prompt);
-      } else if (selectedGarment && currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]) {
-        const fabricPrompt = currentCategoryGarments[selectedGarment].fabrics[selectedFabric].prompt;
-        if (fabricPrompt) parts.push(fabricPrompt);
-      }
-    }
-    
-    // Add print prompt
-    if (selectedPrint) {
-      if (customPrints[selectedPrint]) {
-        parts.push(customPrints[selectedPrint].prompt);
-      } else if (selectedGarment && selectedFabric) {
-        const fabric = currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric];
-        if (fabric?.prints[selectedPrint]) {
-          const printPrompt = fabric.prints[selectedPrint].prompt;
-          if (printPrompt) parts.push(printPrompt);
-        }
-      }
-    }
-    
-    return parts;
-  };
-
-  // Initialize speech recognition for custom mode
+   // Initialize speech recognition for custom mode
   useEffect(() => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
@@ -1351,7 +1394,6 @@ const CreateSection = () => {
     // Add style based on outfit mode
     if (outfitMode === 'full') {
       // Use 3-level hierarchy: Garment -> Fabric -> Print
-      const hierarchyParts = getHierarchyPromptParts();
       
       // Add color for full mode
       const colorInfo = COLOR_PALETTE[selectedUpperColor];
@@ -1359,9 +1401,68 @@ const CreateSection = () => {
         parts.push(`Color: ${colorInfo.prompt}`);
       }
       
-      // Add hierarchy-based style (garment + fabric + print)
-      if (hierarchyParts.length > 0) {
-        parts.push(`Garment style: ${hierarchyParts.join(", ")}`);
+      // Build structured garment description
+      if (selectedGarment) {
+        // Add instruction for the model
+        parts.push("OUTFIT: Generate a complete outfit with the following specifications");
+        
+        // Get garment info
+        let garmentLabel = "";
+        let garmentPrompt = "";
+        if (selectedGarment.startsWith('custom_')) {
+          const customItem = customGarments[selectedGarment];
+          garmentLabel = customItem?.label || "";
+          garmentPrompt = customItem?.prompt || "";
+        } else {
+          const garmentData = currentCategoryGarments[selectedGarment];
+          garmentLabel = garmentData?.label || "";
+          garmentPrompt = garmentData?.prompt || "";
+        }
+        parts.push(`Garment: ${garmentLabel}${garmentPrompt ? ` - ${garmentPrompt}` : ""}`);
+        
+        // Get fabric info
+        if (selectedFabric && selectedFabric !== 'any') {
+          let fabricLabel = "";
+          let fabricPrompt = "";
+          if (selectedFabric.startsWith('custom_')) {
+            const customItem = customFabrics[selectedFabric];
+            fabricLabel = customItem?.label || "";
+            fabricPrompt = customItem?.prompt || "";
+          } else if (selectedGarment.startsWith('custom_')) {
+            const fabricData = DEFAULT_FABRICS[selectedFabric];
+            fabricLabel = fabricData?.label || "";
+            fabricPrompt = fabricData?.prompt || "";
+          } else {
+            const fabricData = currentCategoryGarments[selectedGarment]?.fabrics?.[selectedFabric];
+            fabricLabel = fabricData?.label || "";
+            fabricPrompt = fabricData?.prompt || "";
+          }
+          if (fabricLabel) {
+            parts.push(`Fabric: ${fabricLabel}${fabricPrompt ? ` - ${fabricPrompt}` : ""}`);
+          }
+        }
+        
+        // Get print info
+        if (selectedFabric && selectedPrint && selectedPrint !== 'any') {
+          let printLabel = "";
+          let printPrompt = "";
+          if (selectedPrint.startsWith('custom_')) {
+            const customItem = customPrints[selectedPrint];
+            printLabel = customItem?.label || "";
+            printPrompt = customItem?.prompt || "";
+          } else if (selectedFabric.startsWith('custom_') || selectedGarment.startsWith('custom_')) {
+            const printData = COMMON_PRINTS[selectedPrint];
+            printLabel = printData?.label || "";
+            printPrompt = printData?.prompt || "";
+          } else {
+            const printData = currentCategoryGarments[selectedGarment]?.fabrics?.[selectedFabric]?.prints?.[selectedPrint];
+            printLabel = printData?.label || "";
+            printPrompt = printData?.prompt || "";
+          }
+          if (printLabel) {
+            parts.push(`Pattern: ${printLabel}${printPrompt ? ` - ${printPrompt}` : ""}`);
+          }
+        }
       } else {
         // Fallback to old style system if no hierarchy selection made
         const styleEnhancement = allStyles[selectedStyle]?.prompt || "";
