@@ -27,6 +27,10 @@ import {
   PrintType,
   COMMON_PRINTS,
   DEFAULT_FABRICS,
+  FEMALE_UPPER_BODY_GARMENTS,
+  FEMALE_LOWER_BODY_GARMENTS,
+  MALE_UPPER_BODY_GARMENTS,
+  MALE_LOWER_BODY_GARMENTS,
 } from "./styleHierarchy";
 
 // Language detection helper
@@ -503,6 +507,7 @@ const SLEEVE_LENGTH_OPTIONS: { [key: string]: { label: string; icon: string; pro
 // Female Footwear options
 const FEMALE_FOOTWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
   any: { label: "Any", icon: "👟", prompt: "" },
+  none: { label: "None", icon: "❌", prompt: "barefoot, no shoes" }, // Added None option
   heels: { label: "Heels", icon: "👠", prompt: "high heels, stilettos, elegant feminine footwear" },
   flats: { label: "Flats", icon: "🥿", prompt: "ballet flats, comfortable feminine footwear" },
   sandals: { label: "Sandals", icon: "👡", prompt: "strappy sandals, feminine open footwear" },
@@ -519,6 +524,7 @@ const FEMALE_FOOTWEAR: { [key: string]: { label: string; icon: string; prompt: s
 // Male Footwear options
 const MALE_FOOTWEAR: { [key: string]: { label: string; icon: string; prompt: string } } = {
   any: { label: "Any", icon: "👟", prompt: "" },
+  none: { label: "None", icon: "❌", prompt: "barefoot, no shoes" }, // Added None option
   oxfords: { label: "Oxfords", icon: "👞", prompt: "oxford shoes, formal lace-up shoes" },
   loafers: { label: "Loafers", icon: "👞", prompt: "loafers, slip-on formal shoes" },
   boots: { label: "Boots", icon: "🥾", prompt: "men's boots, ankle or high boots" },
@@ -837,6 +843,16 @@ const CreateSection = () => {
   const [selectedFabric, setSelectedFabric] = useState<string | null>(null);
   const [selectedPrint, setSelectedPrint] = useState<string | null>(null);
   
+  // Custom Mode: Upper Body Hierarchy (Garment -> Fabric -> Print)
+  const [selectedUpperGarment, setSelectedUpperGarment] = useState<string | null>(null);
+  const [selectedUpperFabric, setSelectedUpperFabric] = useState<string | null>(null);
+  const [selectedUpperPrint, setSelectedUpperPrint] = useState<string | null>(null);
+  
+  // Custom Mode: Lower Body Hierarchy (Garment -> Fabric -> Print)
+  const [selectedLowerGarment, setSelectedLowerGarment] = useState<string | null>(null);
+  const [selectedLowerFabric, setSelectedLowerFabric] = useState<string | null>(null);
+  const [selectedLowerPrint, setSelectedLowerPrint] = useState<string | null>(null);
+  
   // Custom hierarchy items (user-added categories, garments, fabrics, prints)
   const [customCategories, setCustomCategories] = useState<{ [key: string]: { label: string; icon: string } }>({});
   const [customGarments, setCustomGarments] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
@@ -1009,6 +1025,122 @@ const CreateSection = () => {
     return currentCategoryGarments[selectedGarment]?.fabrics[selectedFabric]?.prints || COMMON_PRINTS;
   })();
   
+  // === Custom Mode Upper/Lower Body Hierarchy Helpers ===
+  
+  // Get upper body garments based on gender
+  const upperBodyGarments = selectedGender === 'female' ? FEMALE_UPPER_BODY_GARMENTS : MALE_UPPER_BODY_GARMENTS;
+  
+  // Get lower body garments based on gender
+  const lowerBodyGarments = selectedGender === 'female' ? FEMALE_LOWER_BODY_GARMENTS : MALE_LOWER_BODY_GARMENTS;
+  
+  // Get upper body fabrics (if garment selected)
+  const upperBodyFabrics = (() => {
+    if (!selectedUpperGarment || selectedUpperGarment === 'none') return {};
+    return upperBodyGarments[selectedUpperGarment]?.fabrics || DEFAULT_FABRICS;
+  })();
+  
+  // Get upper body prints (if fabric selected)
+  const upperBodyPrints = (() => {
+    if (!selectedUpperGarment || selectedUpperGarment === 'none' || !selectedUpperFabric) return {};
+    return upperBodyFabrics[selectedUpperFabric]?.prints || COMMON_PRINTS;
+  })();
+  
+  // Get lower body fabrics (if garment selected)
+  const lowerBodyFabrics = (() => {
+    if (!selectedLowerGarment || selectedLowerGarment === 'none') return {};
+    return lowerBodyGarments[selectedLowerGarment]?.fabrics || DEFAULT_FABRICS;
+  })();
+  
+  // Get lower body prints (if fabric selected)
+  const lowerBodyPrints = (() => {
+    if (!selectedLowerGarment || selectedLowerGarment === 'none' || !selectedLowerFabric) return {};
+    return lowerBodyFabrics[selectedLowerFabric]?.prints || COMMON_PRINTS;
+  })();
+  
+  // Helper to get label for upper body button display
+  const getUpperBodyButtonLabel = () => {
+    if (!selectedUpperGarment) return "Select Upper";
+    const garment = upperBodyGarments[selectedUpperGarment];
+    if (!garment) return "Select Upper";
+    if (selectedUpperGarment === 'none') return "NONE";
+    let label = garment.label;
+    if (selectedUpperFabric && selectedUpperFabric !== 'any') {
+      const fabric = upperBodyFabrics[selectedUpperFabric];
+      if (fabric) label = `${fabric.label} ${label}`;
+    }
+    if (selectedUpperPrint && selectedUpperPrint !== 'any') {
+      const print = upperBodyPrints[selectedUpperPrint];
+      if (print) label = `${print.label} ${label}`;
+    }
+    return label;
+  };
+  
+  // Helper to get label for lower body button display
+  const getLowerBodyButtonLabel = () => {
+    if (!selectedLowerGarment) return "Select Lower";
+    const garment = lowerBodyGarments[selectedLowerGarment];
+    if (!garment) return "Select Lower";
+    if (selectedLowerGarment === 'none') return "NONE";
+    let label = garment.label;
+    if (selectedLowerFabric && selectedLowerFabric !== 'any') {
+      const fabric = lowerBodyFabrics[selectedLowerFabric];
+      if (fabric) label = `${fabric.label} ${label}`;
+    }
+    if (selectedLowerPrint && selectedLowerPrint !== 'any') {
+      const print = lowerBodyPrints[selectedLowerPrint];
+      if (print) label = `${print.label} ${label}`;
+    }
+    return label;
+  };
+  
+  // Helper to build prompt for upper body hierarchical selections
+  const getUpperBodyHierarchyPrompt = (): string => {
+    if (!selectedUpperGarment || selectedUpperGarment === 'none') return '';
+    const parts: string[] = [];
+    const garment = upperBodyGarments[selectedUpperGarment];
+    
+    // Add print first if selected
+    if (selectedUpperFabric && selectedUpperPrint && selectedUpperPrint !== 'any') {
+      const print = upperBodyPrints[selectedUpperPrint];
+      if (print?.prompt) parts.push(print.prompt);
+    }
+    
+    // Add fabric if selected
+    if (selectedUpperFabric && selectedUpperFabric !== 'any') {
+      const fabric = upperBodyFabrics[selectedUpperFabric];
+      if (fabric?.prompt) parts.push(fabric.prompt);
+    } else if (garment?.prompt) {
+      // Just add garment prompt if no specific fabric
+      parts.push(garment.prompt);
+    }
+    
+    return parts.filter(Boolean).join(', ');
+  };
+  
+  // Helper to build prompt for lower body hierarchical selections
+  const getLowerBodyHierarchyPrompt = (): string => {
+    if (!selectedLowerGarment || selectedLowerGarment === 'none') return '';
+    const parts: string[] = [];
+    const garment = lowerBodyGarments[selectedLowerGarment];
+    
+    // Add print first if selected
+    if (selectedLowerFabric && selectedLowerPrint && selectedLowerPrint !== 'any') {
+      const print = lowerBodyPrints[selectedLowerPrint];
+      if (print?.prompt) parts.push(print.prompt);
+    }
+    
+    // Add fabric if selected
+    if (selectedLowerFabric && selectedLowerFabric !== 'any') {
+      const fabric = lowerBodyFabrics[selectedLowerFabric];
+      if (fabric?.prompt) parts.push(fabric.prompt);
+    } else if (garment?.prompt) {
+      // Just add garment prompt if no specific fabric
+      parts.push(garment.prompt);
+    }
+    
+    return parts.filter(Boolean).join(', ');
+  };
+  
   // Helper function to get prompt parts from hierarchy selections
   const getHierarchyPromptParts = (): string[] => {
     const parts: string[] = [];
@@ -1117,7 +1249,36 @@ const CreateSection = () => {
     setSelectedGarment(null);
     setSelectedFabric(null);
     setSelectedPrint(null);
+    // Also reset custom mode upper/lower body selections
+    setSelectedUpperGarment(null);
+    setSelectedUpperFabric(null);
+    setSelectedUpperPrint(null);
+    setSelectedLowerGarment(null);
+    setSelectedLowerFabric(null);
+    setSelectedLowerPrint(null);
   }, [selectedGender]);
+  
+  // Cascading reset: when upper garment changes, reset upper fabric and print
+  useEffect(() => {
+    setSelectedUpperFabric(null);
+    setSelectedUpperPrint(null);
+  }, [selectedUpperGarment]);
+  
+  // Cascading reset: when upper fabric changes, reset upper print
+  useEffect(() => {
+    setSelectedUpperPrint(null);
+  }, [selectedUpperFabric]);
+  
+  // Cascading reset: when lower garment changes, reset lower fabric and print
+  useEffect(() => {
+    setSelectedLowerFabric(null);
+    setSelectedLowerPrint(null);
+  }, [selectedLowerGarment]);
+  
+  // Cascading reset: when lower fabric changes, reset lower print
+  useEffect(() => {
+    setSelectedLowerPrint(null);
+  }, [selectedLowerFabric]);
   
   // Handler for adding custom garment
   const handleAddCustomGarment = () => {
@@ -1473,10 +1634,24 @@ const CreateSection = () => {
     } else {
       // Custom mode - upper and lower styles with custom prompts and colors
       // Add strict instruction to separate upper and lower body styles
-      parts.push("IMPORTANT: The upper body and lower body have DIFFERENT styles. Apply each style ONLY to its specified body area. Do NOT mix or blend the styles between upper and lower body");
       
-      const upperStyleEnhancement = allStyles[selectedUpperStyle]?.prompt || UPPER_BODY_STYLES[selectedUpperStyle]?.prompt || "";
-      const lowerStyleEnhancement = allStyles[selectedLowerStyle]?.prompt || LOWER_BODY_STYLES[selectedLowerStyle]?.prompt || "";
+      // Check if ANY body part has a selection (hierarchical or custom prompt)
+      // Note: 'none' is a valid selection that means "explicitly exclude/don't generate"
+      const hasUpperBodySelection = selectedUpperGarment && selectedUpperGarment !== '';
+      const hasLowerBodySelection = selectedLowerGarment && selectedLowerGarment !== '';
+      const isUpperNone = selectedUpperGarment === 'none';
+      const isLowerNone = selectedLowerGarment === 'none';
+      
+      if (hasUpperBodySelection || hasLowerBodySelection || customUpperPrompt || customLowerPrompt) {
+        if (!isUpperNone && !isLowerNone) {
+          parts.push("IMPORTANT: The upper body and lower body have DIFFERENT styles. Apply each style ONLY to its specified body area. Do NOT mix or blend the styles between upper and lower body");
+        }
+      }
+      
+      // Get hierarchical prompts for upper and lower body
+      const upperHierarchyPrompt = getUpperBodyHierarchyPrompt();
+      const lowerHierarchyPrompt = getLowerBodyHierarchyPrompt();
+      
       const upperColorInfo = COLOR_PALETTE[selectedUpperColor];
       const lowerColorInfo = COLOR_PALETTE[selectedLowerColor];
       const sleeveLengthEnhancement = SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.prompt || "";
@@ -1484,34 +1659,47 @@ const CreateSection = () => {
       // Use gender-specific footwear and headwear
       const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
       const headwearOptions = selectedGender === 'female' ? FEMALE_HEADWEAR : MALE_HEADWEAR;
+      
+      // Handle Footwear NONE selection
+      const isFootwearNone = selectedFootwear === 'none';
       const footwearEnhancement = footwearOptions[selectedFootwear]?.prompt || "";
       const headwearEnhancement = headwearOptions[selectedHeadwear]?.prompt || "";
       const footwearColorInfo = COLOR_PALETTE[selectedFootwearColor];
       const headwearColorInfo = COLOR_PALETTE[selectedHeadwearColor];
       
-      // Upper body: combine style + color + sleeve length + custom prompt
-      if (upperStyleEnhancement || customUpperPrompt || sleeveLengthEnhancement) {
+      // Upper body logic
+      if (isUpperNone) {
+         parts.push("DO NOT generate upper body clothing. Focus camera on lower body/legs/feet. Crop out upper body.");
+      } else if (hasUpperBodySelection || customUpperPrompt || sleeveLengthEnhancement) {
         const upperParts = [
-          upperStyleEnhancement,
+          upperHierarchyPrompt,
           upperColorInfo ? upperColorInfo.prompt : "",
           sleeveLengthEnhancement,
           customUpperPrompt
         ].filter(Boolean).join(", ");
-        parts.push(`UPPER BODY ONLY (from shoulders to waist): ${upperParts}`);
+        if (upperParts.trim()) {
+          parts.push(`UPPER BODY ONLY (from shoulders to waist): ${upperParts}`);
+        }
       }
       
-      // Lower body: combine style + color + custom prompt
-      if (lowerStyleEnhancement || customLowerPrompt) {
+      // Lower body logic
+      if (isLowerNone) {
+        parts.push("DO NOT generate lower body clothing. Focus camera on upper body/face/torso. Crop out lower body.");
+      } else if (hasLowerBodySelection || customLowerPrompt) {
         const lowerParts = [
-          lowerStyleEnhancement,
+          lowerHierarchyPrompt,
           lowerColorInfo ? lowerColorInfo.prompt : "",
           customLowerPrompt
         ].filter(Boolean).join(", ");
-        parts.push(`LOWER BODY ONLY (from waist to feet): ${lowerParts}`);
+        if (lowerParts.trim()) {
+          parts.push(`LOWER BODY ONLY (from waist to feet): ${lowerParts}`);
+        }
       }
       
-      // Footwear: combine style + color + custom prompt
-      if (footwearEnhancement || customFootwearPrompt) {
+      // Footwear logic
+      if (isFootwearNone) {
+         parts.push("NO FOOTWEAR. Barefoot or crop feet out of frame.");
+      } else if (footwearEnhancement || customFootwearPrompt) {
         const footwearParts = [
           footwearEnhancement,
           footwearColorInfo ? footwearColorInfo.prompt : "",
@@ -1622,9 +1810,17 @@ const CreateSection = () => {
     } else {
       combination.customMode = {
         upperBody: {
-          style: {
-            key: selectedUpperStyle,
-            label: UPPER_BODY_STYLES[selectedUpperStyle]?.label || allStyles[selectedUpperStyle]?.label || selectedUpperStyle,
+          garment: {
+            key: selectedUpperGarment,
+            label: selectedUpperGarment && upperBodyGarments[selectedUpperGarment]?.label || selectedUpperGarment,
+          },
+          fabric: {
+            key: selectedUpperFabric,
+            label: selectedUpperFabric && upperBodyFabrics[selectedUpperFabric]?.label || selectedUpperFabric,
+          },
+          print: {
+            key: selectedUpperPrint,
+            label: selectedUpperPrint && upperBodyPrints[selectedUpperPrint]?.label || selectedUpperPrint,
           },
           color: {
             key: selectedUpperColor,
@@ -1638,9 +1834,17 @@ const CreateSection = () => {
           customPrompt: customUpperPrompt,
         },
         lowerBody: {
-          style: {
-            key: selectedLowerStyle,
-            label: LOWER_BODY_STYLES[selectedLowerStyle]?.label || allStyles[selectedLowerStyle]?.label || selectedLowerStyle,
+          garment: {
+            key: selectedLowerGarment,
+            label: selectedLowerGarment && lowerBodyGarments[selectedLowerGarment]?.label || selectedLowerGarment,
+          },
+          fabric: {
+            key: selectedLowerFabric,
+            label: selectedLowerFabric && lowerBodyFabrics[selectedLowerFabric]?.label || selectedLowerFabric,
+          },
+          print: {
+            key: selectedLowerPrint,
+            label: selectedLowerPrint && lowerBodyPrints[selectedLowerPrint]?.label || selectedLowerPrint,
           },
           color: {
             key: selectedLowerColor,
@@ -1719,8 +1923,15 @@ const CreateSection = () => {
   const handleGenerate = async () => {
     // Validate based on outfit mode
     if (outfitMode === 'custom') {
-      if (!customUpperPrompt.trim() && !customLowerPrompt.trim() && !customFootwearPrompt.trim() && !customHeadwearPrompt.trim()) {
-        toast.error("Please enter a description for upper body, lower body, footwear, or headwear");
+      // Check if user provided EITHER a text description OR made a selection in dropdowns
+      const hasTextPrompt = customUpperPrompt.trim() || customLowerPrompt.trim() || customFootwearPrompt.trim() || customHeadwearPrompt.trim();
+      const hasSelection = (selectedUpperGarment && selectedUpperGarment !== '') || 
+                          (selectedLowerGarment && selectedLowerGarment !== '') || 
+                          (selectedFootwear && selectedFootwear !== 'any') || 
+                          (selectedHeadwear && selectedHeadwear !== 'any');
+      
+      if (!hasTextPrompt && !hasSelection) {
+        toast.error("Please make a selection or enter a description to generate");
         return;
       }
     } else {
@@ -1987,7 +2198,8 @@ const CreateSection = () => {
               </div>
             </div>
 
-            {/* Step 3: Style Selection - Based on outfit mode */}
+            {/* Step 3: Style Selection - Only for Full Outfit Mode */}
+            {outfitMode === 'full' && (
             <div className="flex flex-col items-center gap-3 w-full">
               <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
               
@@ -2430,6 +2642,7 @@ const CreateSection = () => {
                 </div>
               )}
             </div>
+            )}
 
             {/* Step 4: Additional Options (collapsible) */}
             <div className="flex flex-wrap justify-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
@@ -2668,6 +2881,62 @@ const CreateSection = () => {
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Hierarchical Garment Selection for Upper Body */}
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {/* Garment Dropdown */}
+                            <select
+                              value={selectedUpperGarment || ""}
+                              onChange={(e) => setSelectedUpperGarment(e.target.value || null)}
+                              disabled={isLoading}
+                              className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
+                              title="Select upper body garment"
+                            >
+                              <option value="">Select Garment...</option>
+                              {Object.entries(upperBodyGarments).map(([key, garment]) => (
+                                <option key={key} value={key}>{garment.icon} {garment.label}</option>
+                              ))}
+                            </select>
+                            
+                            {/* Fabric Dropdown (shown when garment selected and not NONE) */}
+                            {selectedUpperGarment && selectedUpperGarment !== 'none' && Object.keys(upperBodyFabrics).length > 0 && (
+                              <select
+                                value={selectedUpperFabric || ""}
+                                onChange={(e) => setSelectedUpperFabric(e.target.value || null)}
+                                disabled={isLoading}
+                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
+                                title="Select fabric"
+                              >
+                                <option value="">Select Fabric...</option>
+                                {Object.entries(upperBodyFabrics).map(([key, fabric]) => (
+                                  <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
+                                ))}
+                              </select>
+                            )}
+                            
+                            {/* Print Dropdown (shown when fabric selected) */}
+                            {selectedUpperGarment && selectedUpperGarment !== 'none' && selectedUpperFabric && Object.keys(upperBodyPrints).length > 0 && (
+                              <select
+                                value={selectedUpperPrint || ""}
+                                onChange={(e) => setSelectedUpperPrint(e.target.value || null)}
+                                disabled={isLoading}
+                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
+                                title="Select print/pattern"
+                              >
+                                <option value="">Select Print...</option>
+                                {Object.entries(upperBodyPrints).map(([key, print]) => (
+                                  <option key={key} value={key}>{print.icon} {print.label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          
+                          {/* Summary of upper body selection */}
+                          {selectedUpperGarment && selectedUpperGarment !== 'none' && (
+                            <div className="text-xs text-muted-foreground bg-muted/20 px-3 py-1.5 rounded-md">
+                              Selected: <span className="text-foreground font-medium">{getUpperBodyButtonLabel()}</span>
+                            </div>
+                          )}
                           <div className="relative">
                             <textarea
                               value={customUpperPrompt}
@@ -2756,6 +3025,62 @@ const CreateSection = () => {
                               </div>
                             </div>
                           </div>
+                          
+                          {/* Hierarchical Garment Selection for Lower Body */}
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {/* Garment Dropdown */}
+                            <select
+                              value={selectedLowerGarment || ""}
+                              onChange={(e) => setSelectedLowerGarment(e.target.value || null)}
+                              disabled={isLoading}
+                              className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
+                              title="Select lower body garment"
+                            >
+                              <option value="">Select Garment...</option>
+                              {Object.entries(lowerBodyGarments).map(([key, garment]) => (
+                                <option key={key} value={key}>{garment.icon} {garment.label}</option>
+                              ))}
+                            </select>
+                            
+                            {/* Fabric Dropdown (shown when garment selected and not NONE) */}
+                            {selectedLowerGarment && selectedLowerGarment !== 'none' && Object.keys(lowerBodyFabrics).length > 0 && (
+                              <select
+                                value={selectedLowerFabric || ""}
+                                onChange={(e) => setSelectedLowerFabric(e.target.value || null)}
+                                disabled={isLoading}
+                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
+                                title="Select fabric"
+                              >
+                                <option value="">Select Fabric...</option>
+                                {Object.entries(lowerBodyFabrics).map(([key, fabric]) => (
+                                  <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
+                                ))}
+                              </select>
+                            )}
+                            
+                            {/* Print Dropdown (shown when fabric selected) */}
+                            {selectedLowerGarment && selectedLowerGarment !== 'none' && selectedLowerFabric && Object.keys(lowerBodyPrints).length > 0 && (
+                              <select
+                                value={selectedLowerPrint || ""}
+                                onChange={(e) => setSelectedLowerPrint(e.target.value || null)}
+                                disabled={isLoading}
+                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
+                                title="Select print/pattern"
+                              >
+                                <option value="">Select Print...</option>
+                                {Object.entries(lowerBodyPrints).map(([key, print]) => (
+                                  <option key={key} value={key}>{print.icon} {print.label}</option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          
+                          {/* Summary of lower body selection */}
+                          {selectedLowerGarment && selectedLowerGarment !== 'none' && (
+                            <div className="text-xs text-muted-foreground bg-muted/20 px-3 py-1.5 rounded-md">
+                              Selected: <span className="text-foreground font-medium">{getLowerBodyButtonLabel()}</span>
+                            </div>
+                          )}
                           <div className="relative">
                             <textarea
                               value={customLowerPrompt}

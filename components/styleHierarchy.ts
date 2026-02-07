@@ -819,3 +819,437 @@ export const MALE_STYLE_HIERARCHY: StyleHierarchy = {
     }
   }
 };
+
+// ============ CUSTOM MODE: UPPER/LOWER BODY HIERARCHIES ============
+// These are separate garment hierarchies for Custom outfit mode (Garment -> Fabric -> Print)
+
+// ============ FEMALE UPPER BODY GARMENTS ============
+export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
+  none: {
+    label: "NONE",
+    icon: "❌",
+    prompt: "",
+    fabrics: {}
+  },
+  blouse: {
+    label: "Blouse",
+    icon: "👚",
+    prompt: "elegant blouse, fitted upper garment",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "luxurious silk blouse", prints: { ...COMMON_PRINTS, zari: { label: "Zari Work", icon: "⭐", prompt: "gold/silver zari embroidery" } } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton blouse", prints: { ...COMMON_PRINTS } },
+      brocade: { label: "Brocade", icon: "🏆", prompt: "rich brocade blouse, woven patterns", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "plush velvet blouse", prints: { ...COMMON_PRINTS } },
+      net: { label: "Net", icon: "🕸️", prompt: "sheer net blouse, layered look", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  crop_top: {
+    label: "Crop Top",
+    icon: "✂️",
+    prompt: "modern crop top, midriff-baring, contemporary style",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk crop top", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton crop top", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet crop top", prints: { ...COMMON_PRINTS } },
+      sequin: { label: "Sequin", icon: "✨", prompt: "sparkly sequin crop top", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  kurta_top: {
+    label: "Kurta",
+    icon: "👕",
+    prompt: "stylish kurta top, ethnic upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton kurta", prints: { ...COMMON_PRINTS, chikankari: { label: "Chikankari", icon: "🪡", prompt: "Lucknowi chikankari embroidery" } } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk kurta top", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "breathable linen kurta", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "flowing georgette kurta", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  tunic: {
+    label: "Tunic",
+    icon: "👗",
+    prompt: "elegant tunic, versatile ethnic top",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton tunic", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk tunic", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette tunic", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  shirt: {
+    label: "Shirt",
+    icon: "👔",
+    prompt: "formal shirt, western style top",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk shirt, luxurious sheen", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen shirt, breathable", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  tshirt: {
+    label: "T-Shirt",
+    icon: "👕",
+    prompt: "casual t-shirt, relaxed fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "soft cotton t-shirt", prints: { ...COMMON_PRINTS } },
+      jersey: { label: "Jersey", icon: "🌊", prompt: "jersey fabric t-shirt", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  tank_top: {
+    label: "Tank Top",
+    icon: "🎽",
+    prompt: "sleeveless tank top, minimal upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton tank top", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk tank top", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  jacket: {
+    label: "Jacket",
+    icon: "🧥",
+    prompt: "stylish jacket, layered upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      denim: { label: "Denim", icon: "👖", prompt: "denim jacket", prints: { ...COMMON_PRINTS } },
+      leather: { label: "Leather", icon: "🧳", prompt: "leather jacket", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet jacket", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton jacket", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  cape: {
+    label: "Cape",
+    icon: "🦸‍♀️",
+    prompt: "dramatic cape overlay, flowing upper layer",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      chiffon: { label: "Chiffon", icon: "🌬️", prompt: "chiffon cape, ethereal drape", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette cape", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet cape", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  peplum_top: {
+    label: "Peplum Top",
+    icon: "💫",
+    prompt: "peplum top with flared waist detail",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk peplum top", prints: { ...COMMON_PRINTS } },
+      crepe: { label: "Crepe", icon: "🌊", prompt: "crepe peplum top", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette peplum top", prints: { ...COMMON_PRINTS } },
+    }
+  },
+};
+
+// ============ FEMALE LOWER BODY GARMENTS ============
+export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
+  none: {
+    label: "NONE",
+    icon: "❌",
+    prompt: "",
+    fabrics: {}
+  },
+  lehenga_skirt: {
+    label: "Lehenga Skirt",
+    icon: "💃",
+    prompt: "flared lehenga skirt, ethnic lower wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk lehenga skirt", prints: { ...COMMON_PRINTS, zari: { label: "Zari Work", icon: "⭐", prompt: "gold/silver zari embroidery" } } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet lehenga skirt", prints: { ...COMMON_PRINTS } },
+      net: { label: "Net", icon: "🕸️", prompt: "net lehenga skirt with lining", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette lehenga skirt", prints: { ...COMMON_PRINTS } },
+      brocade: { label: "Brocade", icon: "🏆", prompt: "brocade lehenga skirt", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  palazzo: {
+    label: "Palazzo",
+    icon: "👖",
+    prompt: "wide-leg palazzo pants, flowing lower wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton palazzo pants", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk palazzo pants", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette palazzo", prints: { ...COMMON_PRINTS } },
+      crepe: { label: "Crepe", icon: "🌊", prompt: "crepe palazzo pants", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  churidar: {
+    label: "Churidar",
+    icon: "🩱",
+    prompt: "fitted churidar pants with gathered ankles",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton churidar", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk churidar", prints: { ...COMMON_PRINTS } },
+      lycra: { label: "Lycra", icon: "🔄", prompt: "stretch lycra churidar", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  salwar: {
+    label: "Salwar",
+    icon: "👖",
+    prompt: "traditional salwar pants, loose comfortable fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton salwar", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk salwar", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  skirt: {
+    label: "Skirt",
+    icon: "👗",
+    prompt: "western style skirt",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton skirt", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk skirt", prints: { ...COMMON_PRINTS } },
+      denim: { label: "Denim", icon: "👖", prompt: "denim skirt", prints: { ...COMMON_PRINTS } },
+      satin: { label: "Satin", icon: "💎", prompt: "satin skirt", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  pants: {
+    label: "Pants",
+    icon: "👖",
+    prompt: "formal pants, tailored fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pants", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen pants", prints: { ...COMMON_PRINTS } },
+      wool: { label: "Wool Blend", icon: "🐑", prompt: "wool blend pants", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  jeans: {
+    label: "Jeans",
+    icon: "👖",
+    prompt: "casual denim jeans",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      raw_denim: { label: "Raw Denim", icon: "👖", prompt: "raw denim jeans", prints: { ...COMMON_PRINTS } },
+      washed: { label: "Washed Denim", icon: "🧺", prompt: "washed denim jeans", prints: { ...COMMON_PRINTS } },
+      black_denim: { label: "Black Denim", icon: "⬛", prompt: "black denim jeans", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  sharara: {
+    label: "Sharara",
+    icon: "👘",
+    prompt: "wide-leg sharara pants, flared from knee",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      georgette: { label: "Georgette", icon: "💨", prompt: "georgette sharara", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk sharara", prints: { ...COMMON_PRINTS } },
+      net: { label: "Net", icon: "🕸️", prompt: "net sharara with lining", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  dhoti_pants: {
+    label: "Dhoti Pants",
+    icon: "🩲",
+    prompt: "dhoti style pants, draped ethnic lower wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton dhoti pants", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk dhoti pants", prints: { ...COMMON_PRINTS } },
+      crepe: { label: "Crepe", icon: "🌊", prompt: "crepe dhoti pants", prints: { ...COMMON_PRINTS } },
+    }
+  },
+};
+
+// ============ MALE UPPER BODY GARMENTS ============
+export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
+  none: {
+    label: "NONE",
+    icon: "❌",
+    prompt: "",
+    fabrics: {}
+  },
+  kurta: {
+    label: "Kurta",
+    icon: "👕",
+    prompt: "traditional kurta, ethnic upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton kurta", prints: { ...COMMON_PRINTS, chikankari: { label: "Chikankari", icon: "🪡", prompt: "Lucknowi chikankari embroidery" }, block: { label: "Block Print", icon: "🎨", prompt: "hand block printed" } } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk kurta, festive wear", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "breathable linen kurta", prints: { ...COMMON_PRINTS } },
+      khadi: { label: "Khadi", icon: "🧶", prompt: "handspun khadi kurta", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  shirt: {
+    label: "Shirt",
+    icon: "👔",
+    prompt: "formal shirt, western style",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen shirt", prints: { ...COMMON_PRINTS } },
+      oxford: { label: "Oxford", icon: "📚", prompt: "oxford cloth shirt", prints: { ...COMMON_PRINTS } },
+      chambray: { label: "Chambray", icon: "🌊", prompt: "chambray shirt", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  tshirt: {
+    label: "T-Shirt",
+    icon: "👕",
+    prompt: "casual t-shirt, relaxed fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton t-shirt", prints: { ...COMMON_PRINTS } },
+      jersey: { label: "Jersey", icon: "🌊", prompt: "jersey t-shirt", prints: { ...COMMON_PRINTS } },
+      performance: { label: "Performance", icon: "🏃", prompt: "moisture-wicking t-shirt", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  jacket: {
+    label: "Jacket",
+    icon: "🧥",
+    prompt: "stylish jacket, layered upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      denim: { label: "Denim", icon: "👖", prompt: "denim jacket", prints: { ...COMMON_PRINTS } },
+      leather: { label: "Leather", icon: "🧳", prompt: "leather jacket", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton jacket", prints: { ...COMMON_PRINTS } },
+      nylon: { label: "Nylon", icon: "✈️", prompt: "nylon bomber jacket", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  waistcoat: {
+    label: "Waistcoat",
+    icon: "🎖️",
+    prompt: "Nehru jacket waistcoat, sleeveless ethnic upper layer",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk Nehru jacket", prints: { ...COMMON_PRINTS } },
+      brocade: { label: "Brocade", icon: "🏆", prompt: "brocade Nehru jacket", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet Nehru jacket", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen Nehru jacket", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  bundi: {
+    label: "Bundi",
+    icon: "🎽",
+    prompt: "sleeveless bundi jacket, Rajasthani style",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk bundi jacket", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton bundi", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet bundi", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  blazer: {
+    label: "Blazer",
+    icon: "🧥",
+    prompt: "formal blazer, tailored fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      wool: { label: "Wool Blend", icon: "🐑", prompt: "wool blend blazer", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen blazer", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton blazer", prints: { ...COMMON_PRINTS } },
+      velvet: { label: "Velvet", icon: "🎀", prompt: "velvet blazer", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  coat: {
+    label: "Coat",
+    icon: "🧥",
+    prompt: "overcoat, formal layered upper wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      wool: { label: "Wool", icon: "🐑", prompt: "wool overcoat", prints: { ...COMMON_PRINTS } },
+      cashmere: { label: "Cashmere", icon: "✨", prompt: "cashmere coat", prints: { ...COMMON_PRINTS } },
+      tweed: { label: "Tweed", icon: "🧶", prompt: "tweed coat", prints: { ...COMMON_PRINTS } },
+    }
+  },
+};
+
+// ============ MALE LOWER BODY GARMENTS ============
+export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
+  none: {
+    label: "NONE",
+    icon: "❌",
+    prompt: "",
+    fabrics: {}
+  },
+  pajama: {
+    label: "Pajama",
+    icon: "👖",
+    prompt: "traditional pajama pants, ethnic lower wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pajama", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk pajama", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  churidar: {
+    label: "Churidar",
+    icon: "🩱",
+    prompt: "fitted churidar pants with gathered ankles",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton churidar", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk churidar", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  trousers: {
+    label: "Trousers",
+    icon: "👔",
+    prompt: "formal trousers, tailored fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      wool: { label: "Wool Blend", icon: "🐑", prompt: "wool blend trousers", prints: { ...COMMON_PRINTS, pinstripe: { label: "Pinstripe", icon: "📊", prompt: "pinstripe pattern" } } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton trousers", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen trousers", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  jeans: {
+    label: "Jeans",
+    icon: "👖",
+    prompt: "casual denim jeans",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      raw_denim: { label: "Raw Denim", icon: "👖", prompt: "raw denim jeans", prints: { ...COMMON_PRINTS } },
+      washed: { label: "Washed Denim", icon: "🧺", prompt: "washed denim jeans", prints: { ...COMMON_PRINTS } },
+      black_denim: { label: "Black Denim", icon: "⬛", prompt: "black denim jeans", prints: { ...COMMON_PRINTS } },
+      distressed: { label: "Distressed", icon: "🔧", prompt: "distressed denim jeans", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  dhoti: {
+    label: "Dhoti",
+    icon: "🙏",
+    prompt: "traditional draped dhoti, ceremonial lower wear",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton dhoti", prints: { ...COMMON_PRINTS } },
+      silk: { label: "Silk", icon: "✨", prompt: "silk dhoti", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  pants: {
+    label: "Pants",
+    icon: "👖",
+    prompt: "casual pants, relaxed fit",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pants", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen pants", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  chinos: {
+    label: "Chinos",
+    icon: "👖",
+    prompt: "smart chino pants, casual elegance",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton Twill", icon: "☁️", prompt: "cotton twill chinos", prints: { ...COMMON_PRINTS } },
+    }
+  },
+  shorts: {
+    label: "Shorts",
+    icon: "🩳",
+    prompt: "casual shorts, knee-length",
+    fabrics: {
+      any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
+      cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shorts", prints: { ...COMMON_PRINTS } },
+      linen: { label: "Linen", icon: "🌾", prompt: "linen shorts", prints: { ...COMMON_PRINTS } },
+      denim: { label: "Denim", icon: "👖", prompt: "denim shorts", prints: { ...COMMON_PRINTS } },
+    }
+  },
+};
