@@ -1923,6 +1923,12 @@ const CreateSection = () => {
   const handleGenerate = async () => {
     // Validate based on outfit mode
     if (outfitMode === 'custom') {
+      // Prevent selecting NONE for both upper and lower body
+      if (selectedUpperGarment === 'none' && selectedLowerGarment === 'none') {
+        toast.error("Please select at least one garment type. You cannot set both Upper and Lower Body to 'None'.");
+        return;
+      }
+
       // Check if user provided EITHER a text description OR made a selection in dropdowns
       const hasTextPrompt = customUpperPrompt.trim() || customLowerPrompt.trim() || customFootwearPrompt.trim() || customHeadwearPrompt.trim();
       const hasSelection = (selectedUpperGarment && selectedUpperGarment !== '') || 
@@ -2943,7 +2949,7 @@ const CreateSection = () => {
                               onChange={(e) => setCustomUpperPrompt(e.target.value)}
                               placeholder="Describe upper body outfit... e.g., 'A silk blouse with golden embroidery and puff sleeves'"
                               rows={3}
-                              disabled={isLoading}
+                              disabled={isLoading || selectedUpperGarment === 'none'}
                               className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isUpperListening ? 'ring-2 ring-primary' : ''}`}
                             />
                             {isUpperListening && (
@@ -3087,7 +3093,7 @@ const CreateSection = () => {
                               onChange={(e) => setCustomLowerPrompt(e.target.value)}
                               placeholder="Describe lower body outfit... e.g., 'Flared palazzo pants in matching color, ankle length'"
                               rows={3}
-                              disabled={isLoading}
+                              disabled={isLoading || selectedLowerGarment === 'none'}
                               className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isLowerListening ? 'ring-2 ring-primary' : ''}`}
                             />
                             {isLowerListening && (
@@ -3187,7 +3193,7 @@ const CreateSection = () => {
                               onChange={(e) => setCustomFootwearPrompt(e.target.value)}
                               placeholder="Describe footwear... e.g., 'Embroidered golden juttis matching the outfit'"
                               rows={2}
-                              disabled={isLoading}
+                              disabled={isLoading || selectedFootwear === 'none'}
                               className={`w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 ${isFootwearListening ? 'ring-2 ring-primary' : ''}`}
                             />
                             {isFootwearListening && (
