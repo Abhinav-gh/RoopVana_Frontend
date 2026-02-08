@@ -951,6 +951,9 @@ const CreateSection = () => {
   
   const [generationMode, setGenerationMode] = useState<GenerationMode>('text');
   
+  // Track active dropdown for z-index management
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
   // Track if any dropdown is open (to show backdrop)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
@@ -3371,32 +3374,68 @@ const CreateSection = () => {
                     className="w-full max-w-3xl mx-auto"
                   >
                     <div className="gradient-border">
-                      <div className="relative bg-card rounded-xl overflow-hidden p-4 space-y-4">
+                      <div className="relative bg-card rounded-xl p-4 space-y-4">
                         {/* Upper Body Prompt with Color Dropdown */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👚 Upper Body</span>
                               <div className="flex items-center gap-2">
-                                <select
-                                  value={selectedUpperColor}
-                                  onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === 'add_new') {
-                                          handleOpenAddDialog('upperColor', 'Upper Body Color', true);
-                                      } else {
-                                          setSelectedUpperColor(val);
-                                      }
-                                  }}
-                                  disabled={isLoading}
-                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
-                                  title="Upper body color"
-                                >
-                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
-                                    <option key={key} value={key}>{color.label}</option>
-                                  ))}
-                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                                </select>
+                                {/* Upper Body Color Selector */}
+                                <div className={`relative h-8 w-full min-w-[120px] max-w-[150px] ${activeDropdown === 'upper' ? 'z-50' : 'z-10'}`}>
+                                  <NavigationMenu className="relative" onValueChange={(value: string) => { setIsDropdownOpen(!!value); setActiveDropdown(!!value ? 'upper' : null); }}>
+                                    <NavigationMenuList>
+                                      <NavigationMenuItem>
+                                        <NavigationMenuTrigger 
+                                          className="bg-muted/50 border border-border/50 hover:bg-muted h-9 px-3 text-xs w-full justify-start"
+                                          disabled={isLoading}
+                                        >
+                                          <span className="flex items-center gap-2 truncate">
+                                             <div 
+                                                className="w-3.5 h-3.5 rounded-full border border-border shadow-sm flex-shrink-0" 
+                                                style={{ backgroundColor: (COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.hex || '#9CA3AF' }}
+                                             />
+                                             <span className="truncate">
+                                                 {((COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.label || "Any Color").replace(/^[^\w\s]+\s/, '')}
+                                             </span>
+                                          </span>
+                                        </NavigationMenuTrigger>
+                                        <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                                          <ul className="grid w-[200px] max-h-[300px] overflow-y-auto gap-1 p-2">
+                                            {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
+                                                <li key={key}>
+                                                <button
+                                                    onClick={() => setSelectedUpperColor(key)}
+                                                    className={`flex items-center gap-3 w-full select-none rounded-md p-2 text-left text-sm ${
+                                                    selectedUpperColor === key
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div 
+                                                    className="w-4 h-4 rounded-full border border-border shadow-sm" 
+                                                    style={{ backgroundColor: color.hex }}
+                                                    />
+                                                    <span className="truncate">{color.label.replace(/^[^\w\s]+\s/, '')}</span>
+                                                </button>
+                                                </li>
+                                            ))}
+                                            <div className="h-px bg-border/50 my-1" />
+                                            <li>
+                                              <button
+                                                onClick={() => handleOpenAddDialog('upperColor', 'Upper Body Color', true)}
+                                                className="flex items-center gap-2 w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                                              >
+                                                <Plus className="w-4 h-4" />
+                                                Add Custom Color
+                                              </button>
+                                            </li>
+                                          </ul>
+                                        </NavigationMenuContent>
+                                      </NavigationMenuItem>
+                                    </NavigationMenuList>
+                                  </NavigationMenu>
+                                </div>
                                 {/* Sleeve Length Dropdown */}
                                 <select
                                   value={selectedSleeveLength}
@@ -3547,25 +3586,61 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👖 Lower Body</span>
                               <div className="flex items-center gap-2">
-                                <select
-                                  value={selectedLowerColor}
-                                  onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === 'add_new') {
-                                          handleOpenAddDialog('lowerColor', 'Lower Body Color', true);
-                                      } else {
-                                          setSelectedLowerColor(val);
-                                      }
-                                  }}
-                                  disabled={isLoading}
-                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
-                                  title="Lower body color"
-                                >
-                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
-                                    <option key={key} value={key}>{color.label}</option>
-                                  ))}
-                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                                </select>
+                                {/* Lower Body Color Selector */}
+                                <div className={`relative h-8 w-full min-w-[120px] max-w-[150px] ${activeDropdown === 'lower' ? 'z-50' : 'z-10'}`}>
+                                  <NavigationMenu className="relative" onValueChange={(value: string) => { setIsDropdownOpen(!!value); setActiveDropdown(!!value ? 'lower' : null); }}>
+                                    <NavigationMenuList>
+                                      <NavigationMenuItem>
+                                        <NavigationMenuTrigger 
+                                          className="bg-muted/50 border border-border/50 hover:bg-muted h-9 px-3 text-xs w-full justify-start"
+                                          disabled={isLoading}
+                                        >
+                                          <span className="flex items-center gap-2 truncate">
+                                             <div 
+                                                className="w-3.5 h-3.5 rounded-full border border-border shadow-sm flex-shrink-0" 
+                                                style={{ backgroundColor: (COLOR_PALETTE[selectedLowerColor] || customColors[selectedLowerColor])?.hex || '#9CA3AF' }}
+                                             />
+                                             <span className="truncate">
+                                                 {((COLOR_PALETTE[selectedLowerColor] || customColors[selectedLowerColor])?.label || "Any Color").replace(/^[^\w\s]+\s/, '')}
+                                             </span>
+                                          </span>
+                                        </NavigationMenuTrigger>
+                                        <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                                          <ul className="grid w-[200px] max-h-[300px] overflow-y-auto gap-1 p-2">
+                                            {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
+                                                <li key={key}>
+                                                <button
+                                                    onClick={() => setSelectedLowerColor(key)}
+                                                    className={`flex items-center gap-3 w-full select-none rounded-md p-2 text-left text-sm ${
+                                                    selectedLowerColor === key
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div 
+                                                    className="w-4 h-4 rounded-full border border-border shadow-sm" 
+                                                    style={{ backgroundColor: color.hex }}
+                                                    />
+                                                    <span className="truncate">{color.label.replace(/^[^\w\s]+\s/, '')}</span>
+                                                </button>
+                                                </li>
+                                            ))}
+                                            <div className="h-px bg-border/50 my-1" />
+                                            <li>
+                                              <button
+                                                onClick={() => handleOpenAddDialog('lowerColor', 'Lower Body Color', true)}
+                                                className="flex items-center gap-2 w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                                              >
+                                                <Plus className="w-4 h-4" />
+                                                Add Custom Color
+                                              </button>
+                                            </li>
+                                          </ul>
+                                        </NavigationMenuContent>
+                                      </NavigationMenuItem>
+                                    </NavigationMenuList>
+                                  </NavigationMenu>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -3696,25 +3771,61 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👟 Footwear</span>
                               <div className="flex items-center gap-2">
-                                <select
-                                  value={selectedFootwearColor}
-                                  onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === 'add_new') {
-                                          handleOpenAddDialog('footwearColor', 'Footwear Color', true);
-                                      } else {
-                                          setSelectedFootwearColor(val);
-                                      }
-                                  }}
-                                  disabled={isLoading}
-                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
-                                  title="Footwear color"
-                                >
-                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
-                                    <option key={key} value={key}>{color.label}</option>
-                                  ))}
-                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                                </select>
+                                {/* Footwear Color Selector */}
+                                <div className={`relative h-8 w-full min-w-[120px] max-w-[150px] ${activeDropdown === 'footwear' ? 'z-50' : 'z-10'}`}>
+                                  <NavigationMenu className="relative" onValueChange={(value: string) => { setIsDropdownOpen(!!value); setActiveDropdown(!!value ? 'footwear' : null); }}>
+                                    <NavigationMenuList>
+                                      <NavigationMenuItem>
+                                        <NavigationMenuTrigger 
+                                          className="bg-muted/50 border border-border/50 hover:bg-muted h-9 px-3 text-xs w-full justify-start"
+                                          disabled={isLoading}
+                                        >
+                                          <span className="flex items-center gap-2 truncate">
+                                             <div 
+                                                className="w-3.5 h-3.5 rounded-full border border-border shadow-sm flex-shrink-0" 
+                                                style={{ backgroundColor: (COLOR_PALETTE[selectedFootwearColor] || customColors[selectedFootwearColor])?.hex || '#9CA3AF' }}
+                                             />
+                                             <span className="truncate">
+                                                 {((COLOR_PALETTE[selectedFootwearColor] || customColors[selectedFootwearColor])?.label || "Any Color").replace(/^[^\w\s]+\s/, '')}
+                                             </span>
+                                          </span>
+                                        </NavigationMenuTrigger>
+                                        <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                                          <ul className="grid w-[200px] max-h-[300px] overflow-y-auto gap-1 p-2">
+                                            {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
+                                                <li key={key}>
+                                                <button
+                                                    onClick={() => setSelectedFootwearColor(key)}
+                                                    className={`flex items-center gap-3 w-full select-none rounded-md p-2 text-left text-sm ${
+                                                    selectedFootwearColor === key
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div 
+                                                    className="w-4 h-4 rounded-full border border-border shadow-sm" 
+                                                    style={{ backgroundColor: color.hex }}
+                                                    />
+                                                    <span className="truncate">{color.label.replace(/^[^\w\s]+\s/, '')}</span>
+                                                </button>
+                                                </li>
+                                            ))}
+                                            <div className="h-px bg-border/50 my-1" />
+                                            <li>
+                                              <button
+                                                onClick={() => handleOpenAddDialog('footwearColor', 'Footwear Color', true)}
+                                                className="flex items-center gap-2 w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                                              >
+                                                <Plus className="w-4 h-4" />
+                                                Add Custom Color
+                                              </button>
+                                            </li>
+                                          </ul>
+                                        </NavigationMenuContent>
+                                      </NavigationMenuItem>
+                                    </NavigationMenuList>
+                                  </NavigationMenu>
+                                </div>
                                 {/* Footwear Type Dropdown */}
                                 <select
                                   value={selectedFootwear}
@@ -3812,25 +3923,61 @@ const CreateSection = () => {
                             <div className="flex items-center gap-3">
                               <span className="text-sm font-medium text-foreground">👒 Headwear</span>
                               <div className="flex items-center gap-2">
-                                <select
-                                  value={selectedHeadwearColor}
-                                  onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val === 'add_new') {
-                                          handleOpenAddDialog('headwearColor', 'Headwear Color', true);
-                                      } else {
-                                          setSelectedHeadwearColor(val);
-                                      }
-                                  }}
-                                  disabled={isLoading}
-                                  className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
-                                  title="Headwear color"
-                                >
-                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
-                                    <option key={key} value={key}>{color.label}</option>
-                                  ))}
-                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                                </select>
+                                {/* Headwear Color Selector */}
+                                <div className={`relative h-8 w-full min-w-[120px] max-w-[150px] ${activeDropdown === 'headwear' ? 'z-50' : 'z-10'}`}>
+                                  <NavigationMenu className="relative" onValueChange={(value: string) => { setIsDropdownOpen(!!value); setActiveDropdown(!!value ? 'headwear' : null); }}>
+                                    <NavigationMenuList>
+                                      <NavigationMenuItem>
+                                        <NavigationMenuTrigger 
+                                          className="bg-muted/50 border border-border/50 hover:bg-muted h-9 px-3 text-xs w-full justify-start"
+                                          disabled={isLoading}
+                                        >
+                                          <span className="flex items-center gap-2 truncate">
+                                             <div 
+                                                className="w-3.5 h-3.5 rounded-full border border-border shadow-sm flex-shrink-0" 
+                                                style={{ backgroundColor: (COLOR_PALETTE[selectedHeadwearColor] || customColors[selectedHeadwearColor])?.hex || '#9CA3AF' }}
+                                             />
+                                             <span className="truncate">
+                                                 {((COLOR_PALETTE[selectedHeadwearColor] || customColors[selectedHeadwearColor])?.label || "Any Color").replace(/^[^\w\s]+\s/, '')}
+                                             </span>
+                                          </span>
+                                        </NavigationMenuTrigger>
+                                        <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                                          <ul className="grid w-[200px] max-h-[300px] overflow-y-auto gap-1 p-2">
+                                            {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
+                                                <li key={key}>
+                                                <button
+                                                    onClick={() => setSelectedHeadwearColor(key)}
+                                                    className={`flex items-center gap-3 w-full select-none rounded-md p-2 text-left text-sm ${
+                                                    selectedHeadwearColor === key
+                                                        ? 'bg-primary/10 text-primary'
+                                                        : 'hover:bg-muted'
+                                                    }`}
+                                                >
+                                                    <div 
+                                                    className="w-4 h-4 rounded-full border border-border shadow-sm" 
+                                                    style={{ backgroundColor: color.hex }}
+                                                    />
+                                                    <span className="truncate">{color.label.replace(/^[^\w\s]+\s/, '')}</span>
+                                                </button>
+                                                </li>
+                                            ))}
+                                            <div className="h-px bg-border/50 my-1" />
+                                            <li>
+                                              <button
+                                                onClick={() => handleOpenAddDialog('headwearColor', 'Headwear Color', true)}
+                                                className="flex items-center gap-2 w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                                              >
+                                                <Plus className="w-4 h-4" />
+                                                Add Custom Color
+                                              </button>
+                                            </li>
+                                          </ul>
+                                        </NavigationMenuContent>
+                                      </NavigationMenuItem>
+                                    </NavigationMenuList>
+                                  </NavigationMenu>
+                                </div>
                                 {/* Headwear Type Dropdown */}
                                 <select
                                   value={selectedHeadwear}
