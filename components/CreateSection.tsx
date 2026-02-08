@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Mic, MicOff, X } from "lucide-react";
+import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
@@ -1198,18 +1198,42 @@ const CreateSection = () => {
 
   // Handler for saving an edited prompt
   const handleSaveEditedPrompt = (newPrompt: string) => {
-    setEditedPrompts(prev => ({
-      ...prev,
-      [`${editDialog.type}:${editDialog.key}`]: newPrompt
-    }));
+    if (editDialog.type === 'full_style') {
+      setCustomEnhancedPrompt(newPrompt);
+    } else {
+      setEditedPrompts(prev => ({
+        ...prev,
+        [`${editDialog.type}:${editDialog.key}`]: newPrompt
+      }));
+    }
+    setEditDialog(prev => ({ ...prev, isOpen: false }));
   };
 
   // Handler for resetting an edited prompt
   const handleResetEditedPrompt = () => {
-    setEditedPrompts(prev => {
-      const newState = { ...prev };
-      delete newState[`${editDialog.type}:${editDialog.key}`];
-      return newState;
+    if (editDialog.type === 'full_style') {
+      setCustomEnhancedPrompt('');
+    } else {
+      setEditedPrompts(prev => {
+        const newState = { ...prev };
+        delete newState[`${editDialog.type}:${editDialog.key}`];
+        return newState;
+      });
+    }
+    // Don't close dialog immediately on reset, let user see the reset value
+    // But update currentPrompt in logic? EditOptionDialog might handle it via props update
+  };
+    
+  // New handler for editing full style
+  const handleEditFullStyle = () => {
+    const baseline = computeEnhancedPrompt();
+    setEditDialog({
+      isOpen: true,
+      type: 'full_style',
+      key: 'override',
+      label: 'Full Outfit Prompt',
+      defaultPrompt: baseline,
+      currentPrompt: customEnhancedPrompt || baseline
     });
   };
   
@@ -2405,34 +2429,253 @@ const CreateSection = () => {
 
             {/* Step 3: Style Selection - Only for Full Outfit Mode */}
             {outfitMode === 'full' && (
-            <div className="flex flex-col items-center gap-3 w-full">
-              <span className="text-sm font-medium text-muted-foreground">Step 3: Choose Style</span>
+            <div className="flex flex-col items-center gap-8 w-full">
+              {/* Step 3: Model Details (Age, Body, Color, Pose) */}
+              <div className="flex flex-col items-center gap-3 w-full">
+                 <span className="text-sm font-medium text-muted-foreground">Step 3: Model Details</span>
+                 <div className="flex flex-wrap justify-center gap-3">
+                    {/* Age/Person Type */}
+                    <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                      <NavigationMenuList>
+                        <NavigationMenuItem>
+                          <NavigationMenuTrigger 
+                            className="bg-muted/50 border border-border/50 hover:bg-muted h-12 px-4 text-base rounded-xl"
+                            disabled={isLoading}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="text-xl">{personTypes[selectedPersonType]?.icon}</span>
+                              <span>{personTypes[selectedPersonType]?.label}</span>
+                            </span>
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent className="bg-zinc-900 border border-border rounded-xl shadow-xl p-2">
+                            <ul className="grid w-[180px] gap-1">
+                              {Object.entries(personTypes).map(([key, { label, icon }]) => (
+                                <li key={key}>
+                                  <button
+                                    onClick={() => setSelectedPersonType(key)}
+                                    className={`block w-full select-none rounded-lg p-2 text-left text-sm transition-colors ${
+                                      selectedPersonType === key
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
+                                        : 'hover:bg-muted'
+                                    }`}
+                                  >
+                                    {icon} {label}
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      </NavigationMenuList>
+                    </NavigationMenu>
+
+                    {/* Body Type */}
+                    <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                      <NavigationMenuList>
+                        <NavigationMenuItem>
+                          <NavigationMenuTrigger 
+                            className="bg-muted/50 border border-border/50 hover:bg-muted h-12 px-4 text-base rounded-xl"
+                            disabled={isLoading}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="text-xl">{(bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.icon}</span>
+                              <span>{(bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.label}</span>
+                            </span>
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent className="bg-zinc-900 border border-border rounded-xl shadow-xl p-2">
+                            <ul className="grid w-[180px] gap-1">
+                              {Object.entries({...bodyTypes, ...customBodyTypes}).map(([key, { label, icon }]) => (
+                                <li key={key}>
+                                  <button
+                                    onClick={() => setSelectedBodyType(key)}
+                                    className={`block w-full select-none rounded-lg p-2 text-left text-sm transition-colors ${
+                                      selectedBodyType === key
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
+                                        : 'hover:bg-muted'
+                                    }`}
+                                  >
+                                    {icon} {label}
+                                  </button>
+                                </li>
+                              ))}
+                              <li>
+                                 <button
+                                   onClick={() => handleOpenAddDialog('bodyType', 'Body Type')}
+                                   className="block w-full select-none rounded-lg p-2 text-left text-sm text-primary hover:bg-primary/10 font-medium mt-1 border-t border-border/30"
+                                 >
+                                   + Add New...
+                                 </button>
+                               </li>
+                            </ul>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      </NavigationMenuList>
+                    </NavigationMenu>
+
+                    {/* Color Selector */}
+                    <div className="relative h-12">
+                      <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                        <NavigationMenuList>
+                          <NavigationMenuItem>
+                            <NavigationMenuTrigger 
+                              className="bg-muted/30 border border-border/50 hover:bg-muted data-[state=open]:bg-muted h-12 px-4 text-sm min-w-[140px]"
+                              disabled={isLoading}
+                            >
+                              <span className="flex items-center gap-2">
+                                 <div 
+                                    className="w-5 h-5 rounded-full border border-border shadow-sm" 
+                                    style={{ backgroundColor: (COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.hex || '#9CA3AF' }}
+                                 />
+                                 <span className="truncate max-w-[100px] text-left">
+                                     <span className="block text-[10px] text-muted-foreground leading-tight">Color</span>
+                                     <span className="block font-medium">{((COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.label || "Any Color").replace(/^[^\w\s]+\s/, '')}</span>
+                                 </span>
+                              </span>
+                            </NavigationMenuTrigger>
+                            <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
+                              <ul className="grid w-[200px] max-h-[300px] overflow-y-auto gap-1 p-2">
+                                {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
+                                    <li key={key}>
+                                    <button
+                                        onClick={() => setSelectedUpperColor(key)}
+                                        className={`flex items-center gap-3 w-full select-none rounded-md p-2 text-left text-sm ${
+                                        selectedUpperColor === key
+                                            ? 'bg-primary/10 text-primary'
+                                            : 'hover:bg-muted'
+                                        }`}
+                                    >
+                                        <div 
+                                        className="w-5 h-5 rounded-full border border-border shadow-sm" 
+                                        style={{ backgroundColor: color.hex }}
+                                        />
+                                        <span className="truncate">{color.label.replace(/^[^\w\s]+\s/, '')}</span>
+                                    </button>
+                                    </li>
+                                ))}
+                                <div className="h-px bg-border/50 my-1" />
+                                <li>
+                                  <button
+                                    onClick={() => handleOpenAddDialog('color', 'Color', true)}
+                                    className="flex items-center gap-2 w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                    Add Custom Color
+                                  </button>
+                                </li>
+                              </ul>
+                            </NavigationMenuContent>
+                          </NavigationMenuItem>
+                        </NavigationMenuList>
+                      </NavigationMenu>
+                    </div>
+
+                    {/* Pose Selector */}
+                    <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                      <NavigationMenuList>
+                        <NavigationMenuItem>
+                          <NavigationMenuTrigger 
+                            className="bg-muted/50 border border-border/50 hover:bg-muted h-12 px-4 text-base rounded-xl"
+                            disabled={isLoading}
+                          >
+                            <span className="flex items-center gap-2">
+                              <span className="text-xl">{(POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.icon}</span>
+                              <span>{(POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.label}</span>
+                            </span>
+                          </NavigationMenuTrigger>
+                          <NavigationMenuContent className="bg-zinc-900 border border-border rounded-xl shadow-xl p-2">
+                            <ul className="grid w-[180px] gap-1">
+                              {Object.entries({...POSTURE_OPTIONS, ...customPostures}).map(([key, { label, icon }]) => (
+                                <li key={key}>
+                                  <button
+                                    onClick={() => setSelectedPosture(key)}
+                                    className={`block w-full select-none rounded-lg p-2 text-left text-sm transition-colors ${
+                                      selectedPosture === key
+                                        ? 'bg-primary/20 text-primary border border-primary/30'
+                                        : 'hover:bg-muted'
+                                    }`}
+                                  >
+                                    {icon} {label}
+                                  </button>
+                                </li>
+                              ))}
+                              <li>
+                                 <button
+                                   onClick={() => handleOpenAddDialog('posture', 'Pose')}
+                                   className="block w-full select-none rounded-lg p-2 text-left text-sm text-primary hover:bg-primary/10 font-medium mt-1 border-t border-border/30"
+                                 >
+                                   + Add New...
+                                 </button>
+                               </li>
+                            </ul>
+                          </NavigationMenuContent>
+                        </NavigationMenuItem>
+                      </NavigationMenuList>
+                    </NavigationMenu>
+                 </div>
+              </div>
+
+              {/* Step 4: Choose Style (Renamed) */}
+              <div className="flex flex-col items-center gap-3 w-full">
+              <span className="text-sm font-medium text-muted-foreground">Step 4: Choose Style</span>
               
               {outfitMode === 'full' ? (
                 /* Full Outfit Mode - Single Expandable Hierarchical Style Selector */
                 <div className="w-full max-w-4xl mx-auto">
                   {/* Main Style Button - Click to expand */}
-                  <div className="flex justify-center">
+                  <div className="flex justify-center items-center gap-2">
                     <button
                       onClick={() => setIsStyleExpanded(!isStyleExpanded)}
                       disabled={isLoading}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-3 ${
+                      className={`flex-1 max-w-2xl px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-between gap-3 ${
                         isStyleExpanded
                           ? 'bg-primary text-primary-foreground shadow-md'
                           : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
                       }`}
                     >
-                      <span className="text-xl">
-                        {currentCategoryGarments[selectedGarment || ""]?.icon || customGarments[selectedGarment || ""]?.icon || "👗"}
-                      </span>
-                      <span>
-                        {selectedGarment 
-                          ? `${styleHierarchy[selectedCategory]?.label || customCategories[selectedCategory]?.label || "Category"} → ${currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label}${selectedFabric ? ` → ${currentGarmentFabrics[selectedFabric]?.label || customFabrics[selectedFabric]?.label}` : ""}${selectedPrint ? ` → ${currentFabricPrints[selectedPrint]?.label || customPrints[selectedPrint]?.label}` : ""}`
-                          : "Select Style..."
-                        }
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xl">
+                            {currentCategoryGarments[selectedGarment || ""]?.icon || customGarments[selectedGarment || ""]?.icon || "👗"}
+                        </span>
+                        <span className="text-left">
+                            {selectedGarment 
+                            ? (
+                                <span className="flex items-center flex-wrap gap-1">
+                                {styleHierarchy[selectedCategory]?.label || customCategories[selectedCategory]?.label || "Category"}
+                                <span className="opacity-50">→</span>
+                                {currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label}
+                                {selectedFabric ? (
+                                    <>
+                                    <span className="opacity-50">→</span>
+                                    {currentGarmentFabrics[selectedFabric]?.label || customFabrics[selectedFabric]?.label}
+                                    </>
+                                ) : ""}
+                                {selectedPrint ? (
+                                    <>
+                                    <span className="opacity-50">→</span>
+                                    {currentFabricPrints[selectedPrint]?.label || customPrints[selectedPrint]?.label}
+                                    </>
+                                ) : ""}
+                                </span>
+                            )
+                            : "Select Style..."
+                            }
+                        </span>
+                      </div>
                       <span className={`transition-transform ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </button>
+                    
+                    {/* Edit/Reset Buttons */}
+                    <div className="flex gap-1">
+                        {customEnhancedPrompt && (
+                            <button
+                                onClick={handleResetEditedPrompt}
+                                title="Reset to auto-generated"
+                                className="p-3 rounded-xl bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20 transition-colors"
+                            >
+                                <RotateCcw className="w-5 h-5" />
+                            </button>
+                        )}
+                    </div>
                   </div>
 
                   {/* Expanded Hierarchical Panel */}
@@ -2528,7 +2771,7 @@ const CreateSection = () => {
                               key={key}
                               onClick={() => setSelectedGarment(key)}
                               disabled={isLoading}
-                              className={`select-none rounded-lg p-2 text-center transition-colors ${
+                              className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                 selectedGarment === key
                                   ? 'bg-primary/20 text-primary border border-primary/40'
                                   : 'hover:bg-muted/50 border border-transparent'
@@ -2536,6 +2779,18 @@ const CreateSection = () => {
                             >
                               <span className="text-2xl block">{garment.icon}</span>
                               <p className="text-sm mt-1 truncate">{garment.label}</p>
+                                {selectedGarment === key && (
+                                  <div 
+                                    className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditOption('garment', key, garment);
+                                    }}
+                                    title="Edit garment prompt"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                  </div>
+                                )}
                             </button>
                           ))}
                           {Object.entries(customGarments).map(([key, item]) => (
@@ -2543,7 +2798,7 @@ const CreateSection = () => {
                               key={key}
                               onClick={() => setSelectedGarment(key)}
                               disabled={isLoading}
-                              className={`select-none rounded-lg p-2 text-center transition-colors ${
+                              className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                 selectedGarment === key
                                   ? 'bg-primary/20 text-primary border border-primary/40'
                                   : 'hover:bg-muted/50 border border-transparent'
@@ -2551,6 +2806,18 @@ const CreateSection = () => {
                             >
                               <span className="text-2xl block">{item.icon}</span>
                               <p className="text-sm mt-1 truncate">{item.label}</p>
+                              {selectedGarment === key && (
+                                <div 
+                                  className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditOption('garment', key, item);
+                                  }}
+                                  title="Edit garment prompt"
+                                >
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </div>
+                              )}
                             </button>
                           ))}
                         </div>
@@ -2598,7 +2865,7 @@ const CreateSection = () => {
                                   key={key}
                                   onClick={() => setSelectedFabric(key)}
                                   disabled={isLoading}
-                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                  className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                     selectedFabric === key
                                       ? 'bg-primary/20 text-primary border border-primary/40'
                                       : 'hover:bg-muted/50 border border-transparent'
@@ -2606,6 +2873,18 @@ const CreateSection = () => {
                                 >
                                   <span className="text-2xl block">{fabric.icon}</span>
                                   <p className="text-sm mt-1 truncate">{fabric.label}</p>
+                                  {selectedFabric === key && (
+                                    <div 
+                                      className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditOption('fabric', key, fabric);
+                                      }}
+                                      title="Edit fabric prompt"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
                                 </button>
                               ))}
                               {Object.entries(customFabrics).map(([key, item]) => (
@@ -2613,7 +2892,7 @@ const CreateSection = () => {
                                   key={key}
                                   onClick={() => setSelectedFabric(key)}
                                   disabled={isLoading}
-                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                  className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                     selectedFabric === key
                                       ? 'bg-primary/20 text-primary border border-primary/40'
                                       : 'hover:bg-muted/50 border border-transparent'
@@ -2621,6 +2900,18 @@ const CreateSection = () => {
                                 >
                                   <span className="text-2xl block">{item.icon}</span>
                                   <p className="text-sm mt-1 truncate">{item.label}</p>
+                                  {selectedFabric === key && (
+                                    <div 
+                                      className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditOption('fabric', key, item);
+                                      }}
+                                      title="Edit fabric prompt"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
                                 </button>
                               ))}
                             </div>
@@ -2670,14 +2961,26 @@ const CreateSection = () => {
                                   key={key}
                                   onClick={() => setSelectedPrint(key)}
                                   disabled={isLoading}
-                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                  className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                     selectedPrint === key
                                       ? 'bg-primary/20 text-primary border border-primary/40'
                                       : 'hover:bg-muted/50 border border-transparent'
                                   }`}
                                 >
-                                  <span className="text-2xl block">{print.icon}</span>
+                                  <span className="text-2xl block">🎨</span>
                                   <p className="text-sm mt-1 truncate">{print.label}</p>
+                                  {selectedPrint === key && (
+                                    <div 
+                                      className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditOption('print', key, print);
+                                      }}
+                                      title="Edit print prompt"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
                                 </button>
                               ))}
                               {Object.entries(customPrints).map(([key, item]) => (
@@ -2685,7 +2988,7 @@ const CreateSection = () => {
                                   key={key}
                                   onClick={() => setSelectedPrint(key)}
                                   disabled={isLoading}
-                                  className={`select-none rounded-lg p-2 text-center transition-colors ${
+                                  className={`relative select-none rounded-lg p-2 text-center transition-colors ${
                                     selectedPrint === key
                                       ? 'bg-primary/20 text-primary border border-primary/40'
                                       : 'hover:bg-muted/50 border border-transparent'
@@ -2693,6 +2996,18 @@ const CreateSection = () => {
                                 >
                                   <span className="text-2xl block">{item.icon}</span>
                                   <p className="text-sm mt-1 truncate">{item.label}</p>
+                                  {selectedPrint === key && (
+                                    <div 
+                                      className="absolute top-1 right-1 p-1.5 rounded-full bg-card shadow-sm border border-border/50 text-foreground hover:text-primary cursor-pointer z-20"
+                                      onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditOption('print', key, item);
+                                      }}
+                                      title="Edit print prompt"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5" />
+                                    </div>
+                                  )}
                                 </button>
                               ))}
                             </div>
@@ -2847,9 +3162,11 @@ const CreateSection = () => {
                 </div>
               )}
             </div>
+            </div>
             )}
 
-            {/* Step 4: Additional Options (collapsible) */}
+            {/* Step 4: Additional Options (Custom Mode Only) */}
+            {outfitMode === 'custom' && (
             <div className="flex flex-wrap justify-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
               {/* Person Type Dropdown */}
               <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
@@ -2935,24 +3252,7 @@ const CreateSection = () => {
                 </NavigationMenu>
               </div>
 
-              {/* Color Dropdown - Only show in Full Outfit mode */}
-              {outfitMode === 'full' && (
-                <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
-                  <span className="text-xs text-muted-foreground">Color:</span>
-                  <select
-                    value={selectedUpperColor}
-                    onChange={(e) => setSelectedUpperColor(e.target.value)}
-                    disabled={isLoading}
-                    className="px-3 py-1.5 rounded-lg text-sm border border-border bg-card text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  >
-                    {Object.entries(COLOR_PALETTE).map(([key, color]) => (
-                      <option key={key} value={key}>
-                        {color.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+
 
               {/* Posture Dropdown */}
               <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
@@ -3000,6 +3300,8 @@ const CreateSection = () => {
                 </NavigationMenu>
               </div>
             </div>
+            )}
+
             
             {/* Add Custom Style Form (Collapsible) */}
             {showAddStyle && (
