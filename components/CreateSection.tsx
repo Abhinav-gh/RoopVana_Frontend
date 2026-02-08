@@ -7,6 +7,8 @@ import { toast } from "sonner";
 import { Mic, MicOff, X } from "lucide-react";
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
+import { CustomDropdown, DropdownOption } from './CustomDropdown';
+import { EditOptionDialog } from './EditOptionDialog';
 import ImagePreview from "./ImagePreview";
 import ImageToImageInput from "./ImageToImageInput";
 import apiClient from "@/services/api";
@@ -904,6 +906,27 @@ const CreateSection = () => {
   const [customUpperPrompt, setCustomUpperPrompt] = useState<string>("");
   const [customLowerPrompt, setCustomLowerPrompt] = useState<string>("");
   const [customFootwearPrompt, setCustomFootwearPrompt] = useState<string>("");
+
+  // Storage for edited prompts (overrides)
+  // Key format: "type:itemId" e.g. "upperGarment:shirt", "upperFabric:silk"
+  const [editedPrompts, setEditedPrompts] = useState<Record<string, string>>({});
+
+  // Edit Dialog State
+  const [editDialog, setEditDialog] = useState<{
+    isOpen: boolean;
+    type: string; // 'upperGarment', 'upperFabric', etc.
+    key: string;
+    label: string;
+    defaultPrompt: string;
+    currentPrompt: string;
+  }>({
+    isOpen: false,
+    type: "",
+    key: "",
+    label: "",
+    defaultPrompt: "",
+    currentPrompt: ""
+  });
   
   // Sleeve length and footwear options for custom mode
   const [selectedSleeveLength, setSelectedSleeveLength] = useState<string>("any");
@@ -1119,53 +1142,110 @@ const CreateSection = () => {
     return label;
   };
   
-  // Helper to build prompt for upper body hierarchical selections
+  // Helper to build prompt for upper body hierarchical selections (Updated to use edited prompts)
   const getUpperBodyHierarchyPrompt = (): string => {
     if (!selectedUpperGarment || selectedUpperGarment === 'none') return '';
     const parts: string[] = [];
-    const garment = upperBodyGarments[selectedUpperGarment] || customUpperGarments[selectedUpperGarment];
-    const fabric = selectedUpperFabric ? (upperBodyFabrics[selectedUpperFabric] || customUpperFabrics[selectedUpperFabric]) : null;
-    const print = selectedUpperPrint ? (upperBodyPrints[selectedUpperPrint] || customUpperPrints[selectedUpperPrint]) : null;
     
     // 1. Base Garment
-    if (garment?.prompt) parts.push(garment.prompt);
+    const garment = upperBodyGarments[selectedUpperGarment] || customUpperGarments[selectedUpperGarment];
+    if (garment) {
+      // Check for edited prompt first
+      const editedPrompt = editedPrompts[`upperGarment:${selectedUpperGarment}`];
+      parts.push(editedPrompt !== undefined ? editedPrompt : garment.prompt);
+    }
     
     // 2. Fabric
-    if (fabric && fabric.label !== 'Any Fabric') {
-      parts.push(`FABRIC: ${fabric.label}`);
-      if (fabric.prompt) parts.push(fabric.prompt);
+    if (selectedUpperFabric && selectedUpperFabric !== 'any') {
+      const fabric = upperBodyFabrics[selectedUpperFabric] || customUpperFabrics[selectedUpperFabric];
+      if (fabric) {
+        parts.push(`FABRIC: ${fabric.label}`);
+        const editedPrompt = editedPrompts[`upperFabric:${selectedUpperFabric}`];
+        const finalPrompt = editedPrompt !== undefined ? editedPrompt : fabric.prompt;
+        if (finalPrompt) parts.push(finalPrompt);
+      }
     }
     
     // 3. Print
-    if (print && print.label !== 'Any') {
-      parts.push(`PRINT: ${print.label}`);
-      if (print.prompt) parts.push(print.prompt);
+    if (selectedUpperPrint && selectedUpperPrint !== 'any') {
+      const print = upperBodyPrints[selectedUpperPrint] || customUpperPrints[selectedUpperPrint];
+      if (print) {
+        parts.push(`PRINT: ${print.label}`);
+        const editedPrompt = editedPrompts[`upperPrint:${selectedUpperPrint}`];
+        const finalPrompt = editedPrompt !== undefined ? editedPrompt : print.prompt;
+        if (finalPrompt) parts.push(finalPrompt);
+      }
     }
     
     return parts.filter(Boolean).join(', ');
   };
+   
+  // Helper to handle opening the edit dialog
+  const handleEditOption = (type: string, key: string, option: DropdownOption) => {
+    // If we've edited it before, use that. Otherwise use the default from the option.
+    const savedPrompt = editedPrompts[`${type}:${key}`];
+    const defaultPrompt = option.prompt || "";
+    
+    setEditDialog({
+      isOpen: true,
+      type,
+      key,
+      label: option.label,
+      defaultPrompt,
+      currentPrompt: savedPrompt !== undefined ? savedPrompt : defaultPrompt
+    });
+  };
+
+  // Handler for saving an edited prompt
+  const handleSaveEditedPrompt = (newPrompt: string) => {
+    setEditedPrompts(prev => ({
+      ...prev,
+      [`${editDialog.type}:${editDialog.key}`]: newPrompt
+    }));
+  };
+
+  // Handler for resetting an edited prompt
+  const handleResetEditedPrompt = () => {
+    setEditedPrompts(prev => {
+      const newState = { ...prev };
+      delete newState[`${editDialog.type}:${editDialog.key}`];
+      return newState;
+    });
+  };
   
-  // Helper to build prompt for lower body hierarchical selections
+  // Helper to build prompt for lower body hierarchical selections (Updated to use edited prompts)
   const getLowerBodyHierarchyPrompt = (): string => {
     if (!selectedLowerGarment || selectedLowerGarment === 'none') return '';
     const parts: string[] = [];
-    const garment = lowerBodyGarments[selectedLowerGarment] || customLowerGarments[selectedLowerGarment];
-    const fabric = selectedLowerFabric ? (lowerBodyFabrics[selectedLowerFabric] || customLowerFabrics[selectedLowerFabric]) : null;
-    const print = selectedLowerPrint ? (lowerBodyPrints[selectedLowerPrint] || customLowerPrints[selectedLowerPrint]) : null;
     
     // 1. Base Garment
-    if (garment?.prompt) parts.push(garment.prompt);
+    const garment = lowerBodyGarments[selectedLowerGarment] || customLowerGarments[selectedLowerGarment];
+    if (garment) {
+      // Check for edited prompt
+      const editedPrompt = editedPrompts[`lowerGarment:${selectedLowerGarment}`];
+      parts.push(editedPrompt !== undefined ? editedPrompt : garment.prompt);
+    }
     
     // 2. Fabric
-    if (fabric && fabric.label !== 'Any Fabric') {
-      parts.push(`FABRIC: ${fabric.label}`);
-      if (fabric.prompt) parts.push(fabric.prompt);
+    if (selectedLowerFabric && selectedLowerFabric !== 'any') {
+      const fabric = lowerBodyFabrics[selectedLowerFabric] || customLowerFabrics[selectedLowerFabric];
+      if (fabric) {
+        parts.push(`FABRIC: ${fabric.label}`);
+        const editedPrompt = editedPrompts[`lowerFabric:${selectedLowerFabric}`];
+        const finalPrompt = editedPrompt !== undefined ? editedPrompt : fabric.prompt;
+        if (finalPrompt) parts.push(finalPrompt);
+      }
     }
     
     // 3. Print
-    if (print && print.label !== 'Any') {
-      parts.push(`PRINT: ${print.label}`);
-      if (print.prompt) parts.push(print.prompt);
+    if (selectedLowerPrint && selectedLowerPrint !== 'any') {
+      const print = lowerBodyPrints[selectedLowerPrint] || customLowerPrints[selectedLowerPrint];
+      if (print) {
+        parts.push(`PRINT: ${print.label}`);
+        const editedPrompt = editedPrompts[`lowerPrint:${selectedLowerPrint}`];
+        const finalPrompt = editedPrompt !== undefined ? editedPrompt : print.prompt;
+        if (finalPrompt) parts.push(finalPrompt);
+      }
     }
     
     return parts.filter(Boolean).join(', ');
@@ -3040,73 +3120,46 @@ const CreateSection = () => {
                           {/* Hierarchical Garment Selection for Upper Body */}
                           <div className="flex flex-wrap gap-2 items-center">
                             {/* Garment Dropdown */}
-                            <select
+                            <CustomDropdown
                               value={selectedUpperGarment || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === 'add_new') {
-                                  handleOpenAddDialog('upperGarment', 'Upper Garment');
-                                } else {
-                                  setSelectedUpperGarment(val || null);
-                                }
-                              }}
+                              options={Object.entries({...upperBodyGarments, ...customUpperGarments})}
+                              onChange={(val) => setSelectedUpperGarment(val || null)}
+                              onEdit={(key, opt) => handleEditOption('upperGarment', key, opt)}
+                              onAdd={() => handleOpenAddDialog('upperGarment', 'Upper Garment')}
+                              placeholder="Select Garment..."
+                              className="flex-1 min-w-[140px]"
                               disabled={isLoading}
-                              className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
                               title="Select upper body garment"
-                            >
-                              <option value="">Select Garment...</option>
-                              {Object.entries({...upperBodyGarments, ...customUpperGarments}).map(([key, garment]) => (
-                                <option key={key} value={key}>{garment.icon} {garment.label}</option>
-                              ))}
-                              <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                            </select>
+                            />
                             
                             {/* Fabric Dropdown (shown when garment selected and not NONE) */}
                             {selectedUpperGarment && selectedUpperGarment !== 'none' && (Object.keys(upperBodyFabrics).length > 0 || Object.keys(customUpperFabrics).length > 0) && (
-                              <select
+                              <CustomDropdown
                                 value={selectedUpperFabric || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === 'add_new') {
-                                        handleOpenAddDialog('upperFabric', 'Upper Fabric');
-                                    } else {
-                                        setSelectedUpperFabric(val || null);
-                                    }
-                                }}
+                                options={Object.entries({...upperBodyFabrics, ...customUpperFabrics})}
+                                onChange={(val) => setSelectedUpperFabric(val || null)}
+                                onEdit={(key, opt) => handleEditOption('upperFabric', key, opt)}
+                                onAdd={() => handleOpenAddDialog('upperFabric', 'Upper Fabric')}
+                                placeholder="Select Fabric..."
+                                className="flex-1 min-w-[120px]"
                                 disabled={isLoading}
-                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select fabric"
-                              >
-                                <option value="">Select Fabric...</option>
-                                {Object.entries({...upperBodyFabrics, ...customUpperFabrics}).map(([key, fabric]) => (
-                                  <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
-                                ))}
-                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                              </select>
+                              />
                             )}
                             
                             {/* Print Dropdown (shown when fabric selected) */}
                             {selectedUpperGarment && selectedUpperGarment !== 'none' && selectedUpperFabric && (Object.keys(upperBodyPrints).length > 0 || Object.keys(customUpperPrints).length > 0) && (
-                              <select
+                              <CustomDropdown
                                 value={selectedUpperPrint || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === 'add_new') {
-                                        handleOpenAddDialog('upperPrint', 'Upper Print');
-                                    } else {
-                                        setSelectedUpperPrint(val || null);
-                                    }
-                                }}
+                                options={Object.entries({...upperBodyPrints, ...customUpperPrints})}
+                                onChange={(val) => setSelectedUpperPrint(val || null)}
+                                onEdit={(key, opt) => handleEditOption('upperPrint', key, opt)}
+                                onAdd={() => handleOpenAddDialog('upperPrint', 'Upper Print')}
+                                placeholder="Select Print..."
+                                className="flex-1 min-w-[120px]"
                                 disabled={isLoading}
-                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select print/pattern"
-                              >
-                                <option value="">Select Print...</option>
-                                {Object.entries({...upperBodyPrints, ...customUpperPrints}).map(([key, print]) => (
-                                  <option key={key} value={key}>{print.icon} {print.label}</option>
-                                ))}
-                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                              </select>
+                              />
                             )}
                           </div>
                           
@@ -3216,73 +3269,46 @@ const CreateSection = () => {
                           {/* Hierarchical Garment Selection for Lower Body */}
                           <div className="flex flex-wrap gap-2 items-center">
                             {/* Garment Dropdown */}
-                            <select
+                            <CustomDropdown
                               value={selectedLowerGarment || ""}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                if (val === 'add_new') {
-                                  handleOpenAddDialog('lowerGarment', 'Lower Garment');
-                                } else {
-                                  setSelectedLowerGarment(val || null);
-                                }
-                              }}
+                              options={Object.entries({...lowerBodyGarments, ...customLowerGarments})}
+                              onChange={(val) => setSelectedLowerGarment(val || null)}
+                              onEdit={(key, opt) => handleEditOption('lowerGarment', key, opt)}
+                              onAdd={() => handleOpenAddDialog('lowerGarment', 'Lower Garment')}
+                              placeholder="Select Garment..."
+                              className="flex-1 min-w-[140px]"
                               disabled={isLoading}
-                              className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
                               title="Select lower body garment"
-                            >
-                              <option value="">Select Garment...</option>
-                              {Object.entries({...lowerBodyGarments, ...customLowerGarments}).map(([key, garment]) => (
-                                <option key={key} value={key}>{garment.icon} {garment.label}</option>
-                              ))}
-                              <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                            </select>
+                            />
                             
                             {/* Fabric Dropdown (shown when garment selected and not NONE) */}
                             {selectedLowerGarment && selectedLowerGarment !== 'none' && (Object.keys(lowerBodyFabrics).length > 0 || Object.keys(customLowerFabrics).length > 0) && (
-                              <select
-                                value={selectedLowerFabric || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === 'add_new') {
-                                        handleOpenAddDialog('lowerFabric', 'Lower Fabric');
-                                    } else {
-                                        setSelectedLowerFabric(val || null);
-                                    }
-                                }}
-                                disabled={isLoading}
-                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
-                                title="Select fabric"
-                              >
-                                <option value="">Select Fabric...</option>
-                                {Object.entries({...lowerBodyFabrics, ...customLowerFabrics}).map(([key, fabric]) => (
-                                  <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
-                                ))}
-                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                              </select>
+                                <CustomDropdown
+                                  value={selectedLowerFabric || ""}
+                                  options={Object.entries({...lowerBodyFabrics, ...customLowerFabrics})}
+                                  onChange={(val) => setSelectedLowerFabric(val || null)}
+                                  onEdit={(key, opt) => handleEditOption('lowerFabric', key, opt)}
+                                  onAdd={() => handleOpenAddDialog('lowerFabric', 'Lower Fabric')}
+                                  placeholder="Select Fabric..."
+                                  className="flex-1 min-w-[120px]"
+                                  disabled={isLoading}
+                                  title="Select fabric"
+                                />
                             )}
                             
                             {/* Print Dropdown (shown when fabric selected) */}
                             {selectedLowerGarment && selectedLowerGarment !== 'none' && selectedLowerFabric && (Object.keys(lowerBodyPrints).length > 0 || Object.keys(customLowerPrints).length > 0) && (
-                              <select
-                                value={selectedLowerPrint || ""}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === 'add_new') {
-                                        handleOpenAddDialog('lowerPrint', 'Lower Print');
-                                    } else {
-                                        setSelectedLowerPrint(val || null);
-                                    }
-                                }}
-                                disabled={isLoading}
-                                className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
-                                title="Select print/pattern"
-                              >
-                                <option value="">Select Print...</option>
-                                {Object.entries({...lowerBodyPrints, ...customLowerPrints}).map(([key, print]) => (
-                                  <option key={key} value={key}>{print.icon} {print.label}</option>
-                                ))}
-                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
-                              </select>
+                                <CustomDropdown
+                                  value={selectedLowerPrint || ""}
+                                  options={Object.entries({...lowerBodyPrints, ...customLowerPrints})}
+                                  onChange={(val) => setSelectedLowerPrint(val || null)}
+                                  onEdit={(key, opt) => handleEditOption('lowerPrint', key, opt)}
+                                  onAdd={() => handleOpenAddDialog('lowerPrint', 'Lower Print')}
+                                  placeholder="Select Print..."
+                                  className="flex-1 min-w-[120px]"
+                                  disabled={isLoading}
+                                  title="Select print/pattern"
+                                />
                             )}
                           </div>
                           
@@ -3627,7 +3653,7 @@ const CreateSection = () => {
                         </div>
 
                         {/* Prompt Preview */}
-                        <div className="p-3 rounded-lg bg-zinc-800/50 border border-border/50">
+                        <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                           <span className="text-xs font-medium text-muted-foreground">📝 Final Prompt Preview</span>
                           <p className="text-xs text-foreground/80 leading-relaxed break-words mt-1">
                             {computeEnhancedPrompt()}
@@ -3890,8 +3916,8 @@ const CreateSection = () => {
             
             {/* Modal Content */}
             <div className="p-4 overflow-auto max-h-[60vh]">
-              <pre className="p-4 rounded-xl bg-zinc-900/50 border border-border/50 overflow-x-auto text-sm">
-                <code className="text-green-400 font-mono whitespace-pre">
+              <pre className="p-4 rounded-xl bg-muted/50 border border-border/50 overflow-x-auto text-sm">
+                <code className="text-foreground font-mono whitespace-pre">
                   {JSON.stringify(getInputCombinationJSON(), null, 2)}
                 </code>
               </pre>
@@ -3914,6 +3940,17 @@ const CreateSection = () => {
         categoryName={addDialogState.label}
         withColor={addDialogState.withColor}
         onSave={handleSaveCustomOption}
+      />
+
+      {/* Edit Option Dialog */}
+      <EditOptionDialog
+        isOpen={editDialog.isOpen}
+        onClose={() => setEditDialog(prev => ({ ...prev, isOpen: false }))}
+        title={editDialog.label}
+        defaultValue={editDialog.defaultPrompt}
+        currentValue={editDialog.currentPrompt}
+        onSave={handleSaveEditedPrompt}
+        onReset={handleResetEditedPrompt}
       />
     </section>
   );
