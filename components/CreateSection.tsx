@@ -1782,6 +1782,7 @@ const CreateSection = () => {
          parts.push("DO NOT generate upper body clothing. Focus camera on lower body/legs/feet. Crop out upper body.");
       } else if (hasUpperBodySelection || customUpperPrompt || sleeveLengthEnhancement) {
         const upperParts = [
+          allStyles[selectedUpperStyle]?.prompt,
           upperHierarchyPrompt,
           upperColorInfo ? upperColorInfo.prompt : "",
           sleeveLengthEnhancement,
@@ -1797,6 +1798,7 @@ const CreateSection = () => {
         parts.push("DO NOT generate lower body clothing. Focus camera on upper body/face/torso. Crop out lower body.");
       } else if (hasLowerBodySelection || customLowerPrompt) {
         const lowerParts = [
+          allStyles[selectedLowerStyle]?.prompt,
           lowerHierarchyPrompt,
           lowerColorInfo ? lowerColorInfo.prompt : "",
           customLowerPrompt
@@ -2898,8 +2900,8 @@ const CreateSection = () => {
                         disabled={isLoading}
                       >
                         <span className="flex items-center gap-1">
-                          <span>{bodyTypes[selectedBodyType]?.icon}</span>
-                          <span>{bodyTypes[selectedBodyType]?.label}</span>
+                          <span>{(bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.icon}</span>
+                          <span>{(bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.label}</span>
                         </span>
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
@@ -2963,8 +2965,8 @@ const CreateSection = () => {
                         disabled={isLoading}
                       >
                         <span className="flex items-center gap-1">
-                          <span>{POSTURE_OPTIONS[selectedPosture]?.icon}</span>
-                          <span>{POSTURE_OPTIONS[selectedPosture]?.label}</span>
+                          <span>{(POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.icon}</span>
+                          <span>{(POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.label}</span>
                         </span>
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
