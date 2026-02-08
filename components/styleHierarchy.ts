@@ -18,6 +18,7 @@ export interface Garment {
   label: string;
   icon: string;
   prompt: string;
+  category?: 'Indian' | 'Western' | 'Indo-Western';
   fabrics: { [key: string]: Fabric };
 }
 
@@ -415,7 +416,7 @@ export const FEMALE_STYLE_HIERARCHY: StyleHierarchy = {
       },
       dhoti_pants_set: {
         label: "Dhoti Pants Set",
-        icon: "🩲",
+        icon: "👖",
         prompt: "dhoti pants with modern top, fusion ethnic style",
         fabrics: {
           any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
@@ -835,6 +836,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Blouse",
     icon: "👚",
     prompt: "elegant blouse, fitted upper garment",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "luxurious silk blouse", prints: { ...COMMON_PRINTS, zari: { label: "Zari Work", icon: "⭐", prompt: "gold/silver zari embroidery" } } },
@@ -848,6 +850,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Crop Top",
     icon: "✂️",
     prompt: "modern crop top, midriff-baring, contemporary style",
+    category: "Indo-Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "silk crop top", prints: { ...COMMON_PRINTS } },
@@ -860,6 +863,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Kurta",
     icon: "👕",
     prompt: "stylish kurta top, ethnic upper wear",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton kurta", prints: { ...COMMON_PRINTS, chikankari: { label: "Chikankari", icon: "🪡", prompt: "Lucknowi chikankari embroidery" } } },
@@ -872,6 +876,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Tunic",
     icon: "👗",
     prompt: "elegant tunic, versatile ethnic top",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton tunic", prints: { ...COMMON_PRINTS } },
@@ -883,6 +888,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Formal Shirt",
     icon: "👔",
     prompt: "(formal shirt:1.5), button-down formal shirt, western style, high quality fabric",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
@@ -894,6 +900,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "T-Shirt",
     icon: "👕",
     prompt: "casual t-shirt, relaxed fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "soft cotton t-shirt", prints: { ...COMMON_PRINTS } },
@@ -904,6 +911,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Tank Top",
     icon: "🎽",
     prompt: "sleeveless tank top, minimal upper wear",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton tank top", prints: { ...COMMON_PRINTS } },
@@ -914,6 +922,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Jacket",
     icon: "🧥",
     prompt: "stylish jacket, layered upper wear",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       denim: { label: "Denim", icon: "👖", prompt: "denim jacket", prints: { ...COMMON_PRINTS } },
@@ -926,6 +935,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Cape",
     icon: "🦸‍♀️",
     prompt: "dramatic cape overlay, flowing upper layer",
+    category: "Indo-Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       chiffon: { label: "Chiffon", icon: "🌬️", prompt: "chiffon cape, ethereal drape", prints: { ...COMMON_PRINTS } },
@@ -937,6 +947,7 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Peplum Top",
     icon: "💫",
     prompt: "peplum top with flared waist detail",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "silk peplum top", prints: { ...COMMON_PRINTS } },
@@ -958,6 +969,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Lehenga Skirt",
     icon: "💃",
     prompt: "flared lehenga skirt, ethnic lower wear",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "silk lehenga skirt", prints: { ...COMMON_PRINTS, zari: { label: "Zari Work", icon: "⭐", prompt: "gold/silver zari embroidery" } } },
@@ -971,6 +983,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Palazzo",
     icon: "👖",
     prompt: "wide-leg palazzo pants, flowing lower wear",
+    category: "Indo-Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton palazzo pants", prints: { ...COMMON_PRINTS } },
@@ -994,6 +1007,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Salwar",
     icon: "👖",
     prompt: "traditional salwar pants, loose comfortable fit",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton salwar", prints: { ...COMMON_PRINTS } },
@@ -1004,6 +1018,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Skirt",
     icon: "👗",
     prompt: "western style skirt",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton skirt", prints: { ...COMMON_PRINTS } },
@@ -1016,6 +1031,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Pants",
     icon: "👖",
     prompt: "formal pants, tailored fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pants", prints: { ...COMMON_PRINTS } },
@@ -1027,6 +1043,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Jeans",
     icon: "👖",
     prompt: "casual denim jeans",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       raw_denim: { label: "Raw Denim", icon: "👖", prompt: "raw denim jeans", prints: { ...COMMON_PRINTS } },
@@ -1038,6 +1055,7 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Sharara",
     icon: "👘",
     prompt: "wide-leg sharara pants, flared from knee",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       georgette: { label: "Georgette", icon: "💨", prompt: "georgette sharara", prints: { ...COMMON_PRINTS } },
@@ -1047,8 +1065,9 @@ export const FEMALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
   },
   dhoti_pants: {
     label: "Dhoti Pants",
-    icon: "🩲",
+    icon: "👖",
     prompt: "dhoti style pants, draped ethnic lower wear",
+    category: "Indo-Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton dhoti pants", prints: { ...COMMON_PRINTS } },
@@ -1070,6 +1089,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Kurta",
     icon: "👕",
     prompt: "traditional kurta, ethnic upper wear",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "comfortable cotton kurta", prints: { ...COMMON_PRINTS, chikankari: { label: "Chikankari", icon: "🪡", prompt: "Lucknowi chikankari embroidery" }, block: { label: "Block Print", icon: "🎨", prompt: "hand block printed" } } },
@@ -1082,6 +1102,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Formal Shirt",
     icon: "👔",
     prompt: "(formal shirt:1.5), button-down formal shirt, western style, high quality fabric",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
@@ -1094,6 +1115,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "T-Shirt",
     icon: "👕",
     prompt: "casual t-shirt, relaxed fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton t-shirt", prints: { ...COMMON_PRINTS } },
@@ -1105,6 +1127,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Jacket",
     icon: "🧥",
     prompt: "stylish jacket, layered upper wear",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       denim: { label: "Denim", icon: "👖", prompt: "denim jacket", prints: { ...COMMON_PRINTS } },
@@ -1117,6 +1140,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Waistcoat",
     icon: "🎖️",
     prompt: "Nehru jacket waistcoat, sleeveless ethnic upper layer",
+    category: "Indo-Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "silk Nehru jacket", prints: { ...COMMON_PRINTS } },
@@ -1129,6 +1153,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Bundi",
     icon: "🎽",
     prompt: "sleeveless bundi jacket, Rajasthani style",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       silk: { label: "Silk", icon: "✨", prompt: "silk bundi jacket", prints: { ...COMMON_PRINTS } },
@@ -1140,6 +1165,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Blazer",
     icon: "🧥",
     prompt: "formal blazer, tailored fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       wool: { label: "Wool Blend", icon: "🐑", prompt: "wool blend blazer", prints: { ...COMMON_PRINTS } },
@@ -1152,6 +1178,7 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Coat",
     icon: "🧥",
     prompt: "overcoat, formal layered upper wear",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       wool: { label: "Wool", icon: "🐑", prompt: "wool overcoat", prints: { ...COMMON_PRINTS } },
@@ -1173,6 +1200,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Pajama",
     icon: "👖",
     prompt: "traditional pajama pants, ethnic lower wear",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pajama", prints: { ...COMMON_PRINTS } },
@@ -1193,6 +1221,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Trousers",
     icon: "👔",
     prompt: "formal trousers, tailored fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       wool: { label: "Wool Blend", icon: "🐑", prompt: "wool blend trousers", prints: { ...COMMON_PRINTS, pinstripe: { label: "Pinstripe", icon: "📊", prompt: "pinstripe pattern" } } },
@@ -1204,6 +1233,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Jeans",
     icon: "👖",
     prompt: "casual denim jeans",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       raw_denim: { label: "Raw Denim", icon: "👖", prompt: "raw denim jeans", prints: { ...COMMON_PRINTS } },
@@ -1216,6 +1246,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Dhoti",
     icon: "🙏",
     prompt: "traditional draped dhoti, ceremonial lower wear",
+    category: "Indian",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton dhoti", prints: { ...COMMON_PRINTS } },
@@ -1226,6 +1257,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Pants",
     icon: "👖",
     prompt: "casual pants, relaxed fit",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton pants", prints: { ...COMMON_PRINTS } },
@@ -1236,6 +1268,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Chinos",
     icon: "👖",
     prompt: "smart chino pants, casual elegance",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton Twill", icon: "☁️", prompt: "cotton twill chinos", prints: { ...COMMON_PRINTS } },
@@ -1245,6 +1278,7 @@ export const MALE_LOWER_BODY_GARMENTS: { [key: string]: Garment } = {
     label: "Shorts",
     icon: "🩳",
     prompt: "casual shorts, knee-length",
+    category: "Western",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shorts", prints: { ...COMMON_PRINTS } },

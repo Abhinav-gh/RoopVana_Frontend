@@ -2,11 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown, Check, Pencil, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { OptionItem } from './OptionItem';
 
 export interface DropdownOption {
   label: string;
   icon?: string;
   prompt?: string;
+  category?: string;
 }
 
 interface CustomDropdownProps {
@@ -103,41 +105,83 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
                 {value === "" && <Check className="w-4 h-4 ml-2 shrink-0 opacity-50" />}
             </div>
 
-            {options.map(([key, option]) => (
-              <div
-                key={key}
-                className={cn(
-                  "group relative flex items-center justify-between w-full px-2 py-1.5 text-sm rounded-md cursor-pointer select-none outline-none hover:bg-accent hover:text-accent-foreground",
-                  value === key && "bg-accent/50 text-accent-foreground"
-                )}
-                onClick={() => handleSelect(key)}
-              >
-                <div className="flex items-center gap-2 truncate flex-1">
-                  {option.icon && <span className="text-base shrink-0">{option.icon}</span>}
-                  <span className="truncate">{option.label}</span>
-                </div>
-                
-                <div className="flex items-center gap-1">
-                  {value === key && <Check className="w-4 h-4 text-primary shrink-0" />}
-                  
-                  {/* Edit Button - Prevent propagation to avoid selecting the item when editing */}
-                  {onEdit && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(key, option);
-                        setIsOpen(false); 
-                      }}
-                      className="p-1 rounded-full text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-background hover:text-primary transition-all"
-                      title="Edit prompt"
-                    >
-                      <Pencil className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
+            {(() => {
+              // Check if any option has a category
+              const hasCategories = options.some(([_, opt]) => opt.category);
+
+              if (hasCategories) {
+                // Define category order
+                const categories = ['Indian', 'Western', 'Indo-Western'];
+                const groups: { [key: string]: typeof options } = {
+                  'Indian': [],
+                  'Western': [],
+                  'Indo-Western': [],
+                  'Other': []
+                };
+
+                // Group options
+                options.forEach(([key, opt]) => {
+                  const cat = opt.category;
+                  if (cat && (cat === 'Indian' || cat === 'Western' || cat === 'Indo-Western')) {
+                    groups[cat].push([key, opt]);
+                  } else {
+                    groups['Other'].push([key, opt]);
+                  }
+                });
+
+                // Render groups
+                return (
+                  <>
+                    {categories.map(cat => groups[cat].length > 0 && (
+                      <React.Fragment key={cat}>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/30 sticky top-0 z-10 backdrop-blur-sm">
+                          {cat}
+                        </div>
+                        {groups[cat].map(([key, option]) => (
+                          <OptionItem 
+                            key={key} 
+                            itemKey={key} 
+                            option={option} 
+                            isSelected={value === key}
+                            onSelect={() => handleSelect(key)}
+                            onEdit={onEdit}
+                          />
+                        ))}
+                      </React.Fragment>
+                    ))}
+                    {groups['Other'].length > 0 && (
+                      <>
+                        <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/30 sticky top-0 z-10 backdrop-blur-sm">
+                          Other
+                        </div>
+                        {groups['Other'].map(([key, option]) => (
+                          <OptionItem 
+                            key={key} 
+                            itemKey={key} 
+                            option={option} 
+                            isSelected={value === key}
+                            onSelect={() => handleSelect(key)}
+                            onEdit={onEdit}
+                          />
+                        ))}
+                      </>
+                    )}
+                  </>
+                );
+              } else {
+                // Render flat list if no categories
+                return options.map(([key, option]) => (
+                  <OptionItem 
+                    key={key} 
+                    itemKey={key} 
+                    option={option} 
+                    isSelected={value === key}
+                    onSelect={() => handleSelect(key)}
+                    onEdit={onEdit}
+                  />
+                ));
+              }
+            })()}
 
             {/* Add New Option */}
             {onAdd && (
