@@ -17,6 +17,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { AddOptionDialog } from "./AddOptionDialog";
 import {
   FEMALE_STYLE_HIERARCHY,
   MALE_STYLE_HIERARCHY,
@@ -858,6 +859,31 @@ const CreateSection = () => {
   const [customGarments, setCustomGarments] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
   const [customFabrics, setCustomFabrics] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
   const [customPrints, setCustomPrints] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
+
+  // NEW: Custom options for Upper/Lower Body hierarchies + other dropdowns
+  const [customUpperGarments, setCustomUpperGarments] = useState<Record<string, Garment>>({});
+  const [customLowerGarments, setCustomLowerGarments] = useState<Record<string, Garment>>({});
+  const [customUpperFabrics, setCustomUpperFabrics] = useState<Record<string, Fabric>>({});
+  const [customLowerFabrics, setCustomLowerFabrics] = useState<Record<string, Fabric>>({});
+  const [customUpperPrints, setCustomUpperPrints] = useState<Record<string, PrintType>>({});
+  const [customLowerPrints, setCustomLowerPrints] = useState<Record<string, PrintType>>({});
+  
+  // Custom options for other categories
+  const [customColors, setCustomColors] = useState<Record<string, { label: string; hex: string; prompt: string }>>({});
+  const [customFootwear, setCustomFootwear] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+  const [customHeadwear, setCustomHeadwear] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+  const [customSleeveLengths, setCustomSleeveLengths] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+  const [customBodyTypes, setCustomBodyTypes] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+  const [customPostures, setCustomPostures] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+
+  // Dialog State
+  const [addDialogState, setAddDialogState] = useState<{
+    isOpen: boolean;
+    category: string; // identifier for which state to update
+    label: string; // display title
+    withColor?: boolean;
+  }>({ isOpen: false, category: "", label: "" });
+
   
   // Add custom item modals
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -1060,16 +1086,16 @@ const CreateSection = () => {
   // Helper to get label for upper body button display
   const getUpperBodyButtonLabel = () => {
     if (!selectedUpperGarment) return "Select Upper";
-    const garment = upperBodyGarments[selectedUpperGarment];
+    const garment = upperBodyGarments[selectedUpperGarment] || customUpperGarments[selectedUpperGarment];
     if (!garment) return "Select Upper";
     if (selectedUpperGarment === 'none') return "NONE";
     let label = garment.label;
     if (selectedUpperFabric && selectedUpperFabric !== 'any') {
-      const fabric = upperBodyFabrics[selectedUpperFabric];
+      const fabric = upperBodyFabrics[selectedUpperFabric] || customUpperFabrics[selectedUpperFabric];
       if (fabric) label = `${fabric.label} ${label}`;
     }
     if (selectedUpperPrint && selectedUpperPrint !== 'any') {
-      const print = upperBodyPrints[selectedUpperPrint];
+      const print = upperBodyPrints[selectedUpperPrint] || customUpperPrints[selectedUpperPrint];
       if (print) label = `${print.label} ${label}`;
     }
     return label;
@@ -1078,16 +1104,16 @@ const CreateSection = () => {
   // Helper to get label for lower body button display
   const getLowerBodyButtonLabel = () => {
     if (!selectedLowerGarment) return "Select Lower";
-    const garment = lowerBodyGarments[selectedLowerGarment];
+    const garment = lowerBodyGarments[selectedLowerGarment] || customLowerGarments[selectedLowerGarment];
     if (!garment) return "Select Lower";
     if (selectedLowerGarment === 'none') return "NONE";
     let label = garment.label;
     if (selectedLowerFabric && selectedLowerFabric !== 'any') {
-      const fabric = lowerBodyFabrics[selectedLowerFabric];
+      const fabric = lowerBodyFabrics[selectedLowerFabric] || customLowerFabrics[selectedLowerFabric];
       if (fabric) label = `${fabric.label} ${label}`;
     }
     if (selectedLowerPrint && selectedLowerPrint !== 'any') {
-      const print = lowerBodyPrints[selectedLowerPrint];
+      const print = lowerBodyPrints[selectedLowerPrint] || customLowerPrints[selectedLowerPrint];
       if (print) label = `${print.label} ${label}`;
     }
     return label;
@@ -1097,9 +1123,9 @@ const CreateSection = () => {
   const getUpperBodyHierarchyPrompt = (): string => {
     if (!selectedUpperGarment || selectedUpperGarment === 'none') return '';
     const parts: string[] = [];
-    const garment = upperBodyGarments[selectedUpperGarment];
-    const fabric = selectedUpperFabric && upperBodyFabrics ? upperBodyFabrics[selectedUpperFabric] : null;
-    const print = selectedUpperPrint && upperBodyPrints ? upperBodyPrints[selectedUpperPrint] : null; // Use memoized prints
+    const garment = upperBodyGarments[selectedUpperGarment] || customUpperGarments[selectedUpperGarment];
+    const fabric = selectedUpperFabric ? (upperBodyFabrics[selectedUpperFabric] || customUpperFabrics[selectedUpperFabric]) : null;
+    const print = selectedUpperPrint ? (upperBodyPrints[selectedUpperPrint] || customUpperPrints[selectedUpperPrint]) : null;
     
     // 1. Base Garment
     if (garment?.prompt) parts.push(garment.prompt);
@@ -1123,9 +1149,9 @@ const CreateSection = () => {
   const getLowerBodyHierarchyPrompt = (): string => {
     if (!selectedLowerGarment || selectedLowerGarment === 'none') return '';
     const parts: string[] = [];
-    const garment = lowerBodyGarments[selectedLowerGarment];
-    const fabric = selectedLowerFabric && lowerBodyFabrics ? lowerBodyFabrics[selectedLowerFabric] : null;
-    const print = selectedLowerPrint && lowerBodyPrints ? lowerBodyPrints[selectedLowerPrint] : null; // Use memoized prints
+    const garment = lowerBodyGarments[selectedLowerGarment] || customLowerGarments[selectedLowerGarment];
+    const fabric = selectedLowerFabric ? (lowerBodyFabrics[selectedLowerFabric] || customLowerFabrics[selectedLowerFabric]) : null;
+    const print = selectedLowerPrint ? (lowerBodyPrints[selectedLowerPrint] || customLowerPrints[selectedLowerPrint]) : null;
     
     // 1. Base Garment
     if (garment?.prompt) parts.push(garment.prompt);
@@ -1523,9 +1549,9 @@ const CreateSection = () => {
   
   // Compute the enhanced prompt preview (user prompt first, then modifiers)
   const computeEnhancedPrompt = () => {
-    const bodyTypeEnhancement = bodyTypes[selectedBodyType]?.prompt || "";
+    const bodyTypeEnhancement = (bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.prompt || "";
     const personTypeEnhancement = personTypes[selectedPersonType]?.prompt || "";
-    const postureEnhancement = POSTURE_OPTIONS[selectedPosture]?.prompt || "";
+    const postureEnhancement = (POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.prompt || "";
     
     const parts = [];
     
@@ -1656,9 +1682,9 @@ const CreateSection = () => {
       const upperHierarchyPrompt = getUpperBodyHierarchyPrompt();
       const lowerHierarchyPrompt = getLowerBodyHierarchyPrompt();
       
-      const upperColorInfo = COLOR_PALETTE[selectedUpperColor];
-      const lowerColorInfo = COLOR_PALETTE[selectedLowerColor];
-      const sleeveLengthEnhancement = SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.prompt || "";
+      const upperColorInfo = COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor];
+      const lowerColorInfo = COLOR_PALETTE[selectedLowerColor] || customColors[selectedLowerColor];
+      const sleeveLengthEnhancement = (SLEEVE_LENGTH_OPTIONS[selectedSleeveLength] || customSleeveLengths[selectedSleeveLength])?.prompt || "";
       
       // Use gender-specific footwear and headwear
       const footwearOptions = selectedGender === 'female' ? FEMALE_FOOTWEAR : MALE_FOOTWEAR;
@@ -1666,10 +1692,10 @@ const CreateSection = () => {
       
       // Handle Footwear NONE selection
       const isFootwearNone = selectedFootwear === 'none';
-      const footwearEnhancement = footwearOptions[selectedFootwear]?.prompt || "";
-      const headwearEnhancement = headwearOptions[selectedHeadwear]?.prompt || "";
-      const footwearColorInfo = COLOR_PALETTE[selectedFootwearColor];
-      const headwearColorInfo = COLOR_PALETTE[selectedHeadwearColor];
+      const footwearEnhancement = (footwearOptions[selectedFootwear] || customFootwear[selectedFootwear])?.prompt || "";
+      const headwearEnhancement = (headwearOptions[selectedHeadwear] || customHeadwear[selectedHeadwear])?.prompt || "";
+      const footwearColorInfo = COLOR_PALETTE[selectedFootwearColor] || customColors[selectedFootwearColor];
+      const headwearColorInfo = COLOR_PALETTE[selectedHeadwearColor] || customColors[selectedHeadwearColor];
       
       // Upper body logic
       if (isUpperNone) {
@@ -1789,11 +1815,11 @@ const CreateSection = () => {
       },
       bodyType: {
         key: selectedBodyType,
-        label: bodyTypes[selectedBodyType]?.label || selectedBodyType,
+        label: (bodyTypes[selectedBodyType] || customBodyTypes[selectedBodyType])?.label || selectedBodyType,
       },
       posture: {
         key: selectedPosture,
-        label: POSTURE_OPTIONS[selectedPosture]?.label || selectedPosture,
+        label: (POSTURE_OPTIONS[selectedPosture] || customPostures[selectedPosture])?.label || selectedPosture,
       },
     };
     
@@ -1816,68 +1842,68 @@ const CreateSection = () => {
         upperBody: {
           garment: {
             key: selectedUpperGarment,
-            label: selectedUpperGarment && upperBodyGarments[selectedUpperGarment]?.label || selectedUpperGarment,
+            label: (selectedUpperGarment && (upperBodyGarments[selectedUpperGarment] || customUpperGarments[selectedUpperGarment])?.label) || selectedUpperGarment,
           },
           fabric: {
             key: selectedUpperFabric,
-            label: selectedUpperFabric && upperBodyFabrics[selectedUpperFabric]?.label || selectedUpperFabric,
+            label: (selectedUpperFabric && (upperBodyFabrics[selectedUpperFabric] || customUpperFabrics[selectedUpperFabric])?.label) || selectedUpperFabric,
           },
           print: {
             key: selectedUpperPrint,
-            label: selectedUpperPrint && upperBodyPrints[selectedUpperPrint]?.label || selectedUpperPrint,
+            label: (selectedUpperPrint && (upperBodyPrints[selectedUpperPrint] || customUpperPrints[selectedUpperPrint])?.label) || selectedUpperPrint,
           },
           color: {
             key: selectedUpperColor,
-            label: COLOR_PALETTE[selectedUpperColor]?.label || selectedUpperColor,
-            hex: COLOR_PALETTE[selectedUpperColor]?.hex || '',
+            label: (COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.label || selectedUpperColor,
+            hex: (COLOR_PALETTE[selectedUpperColor] || customColors[selectedUpperColor])?.hex || '',
           },
           sleeveLength: {
             key: selectedSleeveLength,
-            label: SLEEVE_LENGTH_OPTIONS[selectedSleeveLength]?.label || selectedSleeveLength,
+            label: (SLEEVE_LENGTH_OPTIONS[selectedSleeveLength] || customSleeveLengths[selectedSleeveLength])?.label || selectedSleeveLength,
           },
           customPrompt: customUpperPrompt,
         },
         lowerBody: {
           garment: {
             key: selectedLowerGarment,
-            label: selectedLowerGarment && lowerBodyGarments[selectedLowerGarment]?.label || selectedLowerGarment,
+            label: (selectedLowerGarment && (lowerBodyGarments[selectedLowerGarment] || customLowerGarments[selectedLowerGarment])?.label) || selectedLowerGarment,
           },
           fabric: {
             key: selectedLowerFabric,
-            label: selectedLowerFabric && lowerBodyFabrics[selectedLowerFabric]?.label || selectedLowerFabric,
+            label: (selectedLowerFabric && (lowerBodyFabrics[selectedLowerFabric] || customLowerFabrics[selectedLowerFabric])?.label) || selectedLowerFabric,
           },
           print: {
             key: selectedLowerPrint,
-            label: selectedLowerPrint && lowerBodyPrints[selectedLowerPrint]?.label || selectedLowerPrint,
+            label: (selectedLowerPrint && (lowerBodyPrints[selectedLowerPrint] || customLowerPrints[selectedLowerPrint])?.label) || selectedLowerPrint,
           },
           color: {
             key: selectedLowerColor,
-            label: COLOR_PALETTE[selectedLowerColor]?.label || selectedLowerColor,
-            hex: COLOR_PALETTE[selectedLowerColor]?.hex || '',
+            label: (COLOR_PALETTE[selectedLowerColor] || customColors[selectedLowerColor])?.label || selectedLowerColor,
+            hex: (COLOR_PALETTE[selectedLowerColor] || customColors[selectedLowerColor])?.hex || '',
           },
           customPrompt: customLowerPrompt,
         },
         footwear: {
           type: {
             key: selectedFootwear,
-            label: footwearOpts[selectedFootwear]?.label || selectedFootwear,
+            label: (footwearOpts[selectedFootwear] || customFootwear[selectedFootwear])?.label || selectedFootwear,
           },
           color: {
             key: selectedFootwearColor,
-            label: COLOR_PALETTE[selectedFootwearColor]?.label || selectedFootwearColor,
-            hex: COLOR_PALETTE[selectedFootwearColor]?.hex || '',
+            label: (COLOR_PALETTE[selectedFootwearColor] || customColors[selectedFootwearColor])?.label || selectedFootwearColor,
+            hex: (COLOR_PALETTE[selectedFootwearColor] || customColors[selectedFootwearColor])?.hex || '',
           },
           customPrompt: customFootwearPrompt,
         },
         headwear: {
           type: {
             key: selectedHeadwear,
-            label: headwearOpts[selectedHeadwear]?.label || selectedHeadwear,
+            label: (headwearOpts[selectedHeadwear] || customHeadwear[selectedHeadwear])?.label || selectedHeadwear,
           },
           color: {
             key: selectedHeadwearColor,
-            label: COLOR_PALETTE[selectedHeadwearColor]?.label || selectedHeadwearColor,
-            hex: COLOR_PALETTE[selectedHeadwearColor]?.hex || '',
+            label: (COLOR_PALETTE[selectedHeadwearColor] || customColors[selectedHeadwearColor])?.label || selectedHeadwearColor,
+            hex: (COLOR_PALETTE[selectedHeadwearColor] || customColors[selectedHeadwearColor])?.hex || '',
           },
           customPrompt: customHeadwearPrompt,
         },
@@ -1923,6 +1949,93 @@ const CreateSection = () => {
   // Get current enhanced prompt (custom or computed)
   const finalEnhancedPrompt = customEnhancedPrompt || enhancedPromptPreview;
   const pricingEstimate = estimatePricing(finalEnhancedPrompt);
+
+  // Handle opening the Add Option Dialog
+  const handleOpenAddDialog = (category: string, label: string, withColor: boolean = false) => {
+    setAddDialogState({
+      isOpen: true,
+      category,
+      label,
+      withColor,
+    });
+  };
+
+  // Handle saving the custom option from dialog
+  const handleSaveCustomOption = (data: { label: string; prompt: string; hex?: string }) => {
+    const { category, withColor } = addDialogState;
+    const key = `custom_${Date.now()}`;
+    const newItem = {
+        label: data.label,
+        prompt: data.prompt,
+        // Add specific fields based on category
+        ...(withColor ? { hex: data.hex || "#000000" } : {}),
+        icon: "✨", // Default icon
+    };
+
+    // Update specific state and selection based on category
+    switch (category) {
+        case 'upperGarment':
+            setCustomUpperGarments(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedUpperGarment(key);
+            break;
+        case 'lowerGarment':
+            setCustomLowerGarments(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedLowerGarment(key);
+            break;
+        case 'upperFabric':
+            setCustomUpperFabrics(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedUpperFabric(key);
+            break;
+        case 'lowerFabric':
+            setCustomLowerFabrics(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedLowerFabric(key);
+            break;
+        case 'upperPrint':
+            setCustomUpperPrints(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedUpperPrint(key);
+            break;
+        case 'lowerPrint':
+            setCustomLowerPrints(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedLowerPrint(key);
+            break;
+        case 'upperColor':
+             setCustomColors(prev => ({ ...prev, [key]: { ...newItem, hex: data.hex! } }));
+             setSelectedUpperColor(key);
+             break;
+        case 'lowerColor':
+             setCustomColors(prev => ({ ...prev, [key]: { ...newItem, hex: data.hex! } }));
+             setSelectedLowerColor(key);
+             break;
+        case 'footwearColor':
+             setCustomColors(prev => ({ ...prev, [key]: { ...newItem, hex: data.hex! } }));
+             setSelectedFootwearColor(key);
+             break;
+        case 'headwearColor':
+             setCustomColors(prev => ({ ...prev, [key]: { ...newItem, hex: data.hex! } }));
+             setSelectedHeadwearColor(key);
+             break;
+        case 'sleeveLength':
+            setCustomSleeveLengths(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedSleeveLength(key);
+            break;
+        case 'footwear':
+            setCustomFootwear(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedFootwear(key);
+            break;
+        case 'headwear':
+            setCustomHeadwear(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedHeadwear(key);
+            break;
+        case 'bodyType':
+            setCustomBodyTypes(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedBodyType(key);
+            break;
+        case 'posture': // Pose
+            setCustomPostures(prev => ({ ...prev, [key]: newItem as any }));
+            setSelectedPosture(key);
+            break;
+    }
+  };
 
   const handleGenerate = async () => {
     // Validate based on outfit mode
@@ -2711,7 +2824,7 @@ const CreateSection = () => {
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
                         <ul className="grid w-[160px] gap-1 p-2">
-                          {Object.entries(bodyTypes).map(([key, { label, icon }]) => (
+                          {Object.entries({...bodyTypes, ...customBodyTypes}).map(([key, { label, icon }]) => (
                             <li key={key}>
                               <button
                                 onClick={() => setSelectedBodyType(key)}
@@ -2725,6 +2838,14 @@ const CreateSection = () => {
                               </button>
                             </li>
                           ))}
+                          <li>
+                             <button
+                               onClick={() => handleOpenAddDialog('bodyType', 'Body Type')}
+                               className="block w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                             >
+                               + Add New...
+                             </button>
+                           </li>
                         </ul>
                       </NavigationMenuContent>
                     </NavigationMenuItem>
@@ -2768,7 +2889,7 @@ const CreateSection = () => {
                       </NavigationMenuTrigger>
                       <NavigationMenuContent className="bg-zinc-900 border border-border rounded-lg shadow-xl">
                         <ul className="grid w-[150px] gap-1 p-2">
-                          {Object.entries(POSTURE_OPTIONS).map(([key, { label, icon }]) => (
+                          {Object.entries({...POSTURE_OPTIONS, ...customPostures}).map(([key, { label, icon }]) => (
                             <li key={key}>
                               <button
                                 onClick={() => setSelectedPosture(key)}
@@ -2782,6 +2903,14 @@ const CreateSection = () => {
                               </button>
                             </li>
                           ))}
+                          <li>
+                             <button
+                               onClick={() => handleOpenAddDialog('posture', 'Pose')}
+                               className="block w-full select-none rounded-md p-2 text-left text-sm text-primary hover:bg-muted font-medium"
+                             >
+                               + Add New...
+                             </button>
+                           </li>
                         </ul>
                       </NavigationMenuContent>
                     </NavigationMenuItem>
@@ -2867,26 +2996,42 @@ const CreateSection = () => {
                               <div className="flex items-center gap-2">
                                 <select
                                   value={selectedUpperColor}
-                                  onChange={(e) => setSelectedUpperColor(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('upperColor', 'Upper Body Color', true);
+                                      } else {
+                                          setSelectedUpperColor(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Upper body color"
                                 >
-                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
                                     <option key={key} value={key}>{color.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                                 {/* Sleeve Length Dropdown */}
                                 <select
                                   value={selectedSleeveLength}
-                                  onChange={(e) => setSelectedSleeveLength(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('sleeveLength', 'Sleeve Length');
+                                      } else {
+                                          setSelectedSleeveLength(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Sleeve length"
                                 >
-                                  {Object.entries(SLEEVE_LENGTH_OPTIONS).map(([key, { label, icon }]) => (
-                                    <option key={key} value={key}>{icon} {label}</option>
+                                  {Object.entries({...SLEEVE_LENGTH_OPTIONS, ...customSleeveLengths}).map(([key, item]) => (
+                                    <option key={key} value={key}>{item.icon} {item.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                               </div>
                             </div>
@@ -2897,46 +3042,70 @@ const CreateSection = () => {
                             {/* Garment Dropdown */}
                             <select
                               value={selectedUpperGarment || ""}
-                              onChange={(e) => setSelectedUpperGarment(e.target.value || null)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'add_new') {
+                                  handleOpenAddDialog('upperGarment', 'Upper Garment');
+                                } else {
+                                  setSelectedUpperGarment(val || null);
+                                }
+                              }}
                               disabled={isLoading}
                               className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
                               title="Select upper body garment"
                             >
                               <option value="">Select Garment...</option>
-                              {Object.entries(upperBodyGarments).map(([key, garment]) => (
+                              {Object.entries({...upperBodyGarments, ...customUpperGarments}).map(([key, garment]) => (
                                 <option key={key} value={key}>{garment.icon} {garment.label}</option>
                               ))}
+                              <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                             </select>
                             
                             {/* Fabric Dropdown (shown when garment selected and not NONE) */}
-                            {selectedUpperGarment && selectedUpperGarment !== 'none' && Object.keys(upperBodyFabrics).length > 0 && (
+                            {selectedUpperGarment && selectedUpperGarment !== 'none' && (Object.keys(upperBodyFabrics).length > 0 || Object.keys(customUpperFabrics).length > 0) && (
                               <select
                                 value={selectedUpperFabric || ""}
-                                onChange={(e) => setSelectedUpperFabric(e.target.value || null)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === 'add_new') {
+                                        handleOpenAddDialog('upperFabric', 'Upper Fabric');
+                                    } else {
+                                        setSelectedUpperFabric(val || null);
+                                    }
+                                }}
                                 disabled={isLoading}
                                 className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select fabric"
                               >
                                 <option value="">Select Fabric...</option>
-                                {Object.entries(upperBodyFabrics).map(([key, fabric]) => (
+                                {Object.entries({...upperBodyFabrics, ...customUpperFabrics}).map(([key, fabric]) => (
                                   <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
                                 ))}
+                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                               </select>
                             )}
                             
                             {/* Print Dropdown (shown when fabric selected) */}
-                            {selectedUpperGarment && selectedUpperGarment !== 'none' && selectedUpperFabric && Object.keys(upperBodyPrints).length > 0 && (
+                            {selectedUpperGarment && selectedUpperGarment !== 'none' && selectedUpperFabric && (Object.keys(upperBodyPrints).length > 0 || Object.keys(customUpperPrints).length > 0) && (
                               <select
                                 value={selectedUpperPrint || ""}
-                                onChange={(e) => setSelectedUpperPrint(e.target.value || null)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === 'add_new') {
+                                        handleOpenAddDialog('upperPrint', 'Upper Print');
+                                    } else {
+                                        setSelectedUpperPrint(val || null);
+                                    }
+                                }}
                                 disabled={isLoading}
                                 className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select print/pattern"
                               >
                                 <option value="">Select Print...</option>
-                                {Object.entries(upperBodyPrints).map(([key, print]) => (
+                                {Object.entries({...upperBodyPrints, ...customUpperPrints}).map(([key, print]) => (
                                   <option key={key} value={key}>{print.icon} {print.label}</option>
                                 ))}
+                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                               </select>
                             )}
                           </div>
@@ -3023,14 +3192,22 @@ const CreateSection = () => {
                               <div className="flex items-center gap-2">
                                 <select
                                   value={selectedLowerColor}
-                                  onChange={(e) => setSelectedLowerColor(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('lowerColor', 'Lower Body Color', true);
+                                      } else {
+                                          setSelectedLowerColor(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Lower body color"
                                 >
-                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
                                     <option key={key} value={key}>{color.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                               </div>
                             </div>
@@ -3041,46 +3218,70 @@ const CreateSection = () => {
                             {/* Garment Dropdown */}
                             <select
                               value={selectedLowerGarment || ""}
-                              onChange={(e) => setSelectedLowerGarment(e.target.value || null)}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === 'add_new') {
+                                  handleOpenAddDialog('lowerGarment', 'Lower Garment');
+                                } else {
+                                  setSelectedLowerGarment(val || null);
+                                }
+                              }}
                               disabled={isLoading}
                               className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[140px]"
                               title="Select lower body garment"
                             >
                               <option value="">Select Garment...</option>
-                              {Object.entries(lowerBodyGarments).map(([key, garment]) => (
+                              {Object.entries({...lowerBodyGarments, ...customLowerGarments}).map(([key, garment]) => (
                                 <option key={key} value={key}>{garment.icon} {garment.label}</option>
                               ))}
+                              <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                             </select>
                             
                             {/* Fabric Dropdown (shown when garment selected and not NONE) */}
-                            {selectedLowerGarment && selectedLowerGarment !== 'none' && Object.keys(lowerBodyFabrics).length > 0 && (
+                            {selectedLowerGarment && selectedLowerGarment !== 'none' && (Object.keys(lowerBodyFabrics).length > 0 || Object.keys(customLowerFabrics).length > 0) && (
                               <select
                                 value={selectedLowerFabric || ""}
-                                onChange={(e) => setSelectedLowerFabric(e.target.value || null)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === 'add_new') {
+                                        handleOpenAddDialog('lowerFabric', 'Lower Fabric');
+                                    } else {
+                                        setSelectedLowerFabric(val || null);
+                                    }
+                                }}
                                 disabled={isLoading}
                                 className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select fabric"
                               >
                                 <option value="">Select Fabric...</option>
-                                {Object.entries(lowerBodyFabrics).map(([key, fabric]) => (
+                                {Object.entries({...lowerBodyFabrics, ...customLowerFabrics}).map(([key, fabric]) => (
                                   <option key={key} value={key}>{fabric.icon} {fabric.label}</option>
                                 ))}
+                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                               </select>
                             )}
                             
                             {/* Print Dropdown (shown when fabric selected) */}
-                            {selectedLowerGarment && selectedLowerGarment !== 'none' && selectedLowerFabric && Object.keys(lowerBodyPrints).length > 0 && (
+                            {selectedLowerGarment && selectedLowerGarment !== 'none' && selectedLowerFabric && (Object.keys(lowerBodyPrints).length > 0 || Object.keys(customLowerPrints).length > 0) && (
                               <select
                                 value={selectedLowerPrint || ""}
-                                onChange={(e) => setSelectedLowerPrint(e.target.value || null)}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (val === 'add_new') {
+                                        handleOpenAddDialog('lowerPrint', 'Lower Print');
+                                    } else {
+                                        setSelectedLowerPrint(val || null);
+                                    }
+                                }}
                                 disabled={isLoading}
                                 className="text-sm px-3 py-2 rounded-lg bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer flex-1 min-w-[120px]"
                                 title="Select print/pattern"
                               >
                                 <option value="">Select Print...</option>
-                                {Object.entries(lowerBodyPrints).map(([key, print]) => (
+                                {Object.entries({...lowerBodyPrints, ...customLowerPrints}).map(([key, print]) => (
                                   <option key={key} value={key}>{print.icon} {print.label}</option>
                                 ))}
+                                <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                               </select>
                             )}
                           </div>
@@ -3167,26 +3368,42 @@ const CreateSection = () => {
                               <div className="flex items-center gap-2">
                                 <select
                                   value={selectedFootwearColor}
-                                  onChange={(e) => setSelectedFootwearColor(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('footwearColor', 'Footwear Color', true);
+                                      } else {
+                                          setSelectedFootwearColor(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Footwear color"
                                 >
-                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
                                     <option key={key} value={key}>{color.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                                 {/* Footwear Type Dropdown */}
                                 <select
                                   value={selectedFootwear}
-                                  onChange={(e) => setSelectedFootwear(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('footwear', 'Footwear Type');
+                                      } else {
+                                          setSelectedFootwear(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Footwear type"
                                 >
-                                  {Object.entries(footwearOptions).map(([key, { label, icon }]) => (
-                                    <option key={key} value={key}>{icon} {label}</option>
+                                  {Object.entries({...footwearOptions, ...customFootwear}).map(([key, item]) => (
+                                    <option key={key} value={key}>{item.icon} {item.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                               </div>
                             </div>
@@ -3267,26 +3484,42 @@ const CreateSection = () => {
                               <div className="flex items-center gap-2">
                                 <select
                                   value={selectedHeadwearColor}
-                                  onChange={(e) => setSelectedHeadwearColor(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('headwearColor', 'Headwear Color', true);
+                                      } else {
+                                          setSelectedHeadwearColor(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Headwear color"
                                 >
-                                  {Object.entries(COLOR_PALETTE).map(([key, color]) => (
+                                  {Object.entries({...COLOR_PALETTE, ...customColors}).map(([key, color]) => (
                                     <option key={key} value={key}>{color.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                                 {/* Headwear Type Dropdown */}
                                 <select
                                   value={selectedHeadwear}
-                                  onChange={(e) => setSelectedHeadwear(e.target.value)}
+                                  onChange={(e) => {
+                                      const val = e.target.value;
+                                      if (val === 'add_new') {
+                                          handleOpenAddDialog('headwear', 'Headwear Type');
+                                      } else {
+                                          setSelectedHeadwear(val);
+                                      }
+                                  }}
                                   disabled={isLoading}
                                   className="text-xs px-2 py-1 rounded-md bg-muted/50 border border-border hover:bg-muted transition-colors cursor-pointer"
                                   title="Headwear type"
                                 >
-                                  {Object.entries(headwearOptions).map(([key, { label, icon }]) => (
-                                    <option key={key} value={key}>{icon} {label}</option>
+                                  {Object.entries({...headwearOptions, ...customHeadwear}).map(([key, item]) => (
+                                    <option key={key} value={key}>{item.icon} {item.label}</option>
                                   ))}
+                                  <option value="add_new" className="font-medium text-primary">+ Add New...</option>
                                 </select>
                               </div>
                             </div>
@@ -3615,6 +3848,7 @@ const CreateSection = () => {
       {/* View Input Combination Modal */}
       {showInputCombination && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* ... existing modal code ... */}
           <div 
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setShowInputCombination(false)}
@@ -3672,6 +3906,15 @@ const CreateSection = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Add Custom Option Dialog */}
+      <AddOptionDialog
+        open={addDialogState.isOpen}
+        onOpenChange={(open) => setAddDialogState(prev => ({ ...prev, isOpen: open }))}
+        categoryName={addDialogState.label}
+        withColor={addDialogState.withColor}
+        onSave={handleSaveCustomOption}
+      />
     </section>
   );
 };
