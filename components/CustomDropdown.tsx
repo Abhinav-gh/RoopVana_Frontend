@@ -110,19 +110,30 @@ export const CustomDropdown: React.FC<CustomDropdownProps> = ({
               const hasCategories = options.some(([_, opt]) => opt.category);
 
               if (hasCategories) {
-                // Define category order
-                const categories = ['Indian', 'Western', 'Indo-Western'];
-                const groups: { [key: string]: typeof options } = {
-                  'Indian': [],
-                  'Western': [],
-                  'Indo-Western': [],
-                  'Other': []
-                };
+                // Get all unique categories from options
+                const uniqueCategories = Array.from(new Set(options.map(([_, opt]) => opt.category).filter(Boolean) as string[]));
+                
+                // Define preferred order for standard categories
+                const standardOrder = ['Indian', 'Western', 'Indo-Western'];
+                
+                // Sort categories: standard first, then others alphabetically
+                const categories = uniqueCategories.sort((a, b) => {
+                    const idxA = standardOrder.indexOf(a);
+                    const idxB = standardOrder.indexOf(b);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.localeCompare(b);
+                });
+
+                const groups: { [key: string]: typeof options } = {};
+                categories.forEach(cat => { groups[cat] = []; });
+                groups['Other'] = [];
 
                 // Group options
                 options.forEach(([key, opt]) => {
                   const cat = opt.category;
-                  if (cat && (cat === 'Indian' || cat === 'Western' || cat === 'Indo-Western')) {
+                  if (cat && categories.includes(cat)) {
                     groups[cat].push([key, opt]);
                   } else {
                     groups['Other'].push([key, opt]);

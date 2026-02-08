@@ -10,7 +10,8 @@ interface AddOptionDialogProps {
   onOpenChange: (open: boolean) => void;
   categoryName: string; // e.g., "Upper Garment", "Fabric"
   withColor?: boolean;
-  onSave: (data: { label: string; prompt: string; hex?: string }) => void;
+  categories?: { label: string; value: string }[]; // Optional categories for classification
+  onSave: (data: { label: string; prompt: string; hex?: string; category?: string }) => void;
 }
 
 export function AddOptionDialog({
@@ -18,11 +19,14 @@ export function AddOptionDialog({
   onOpenChange,
   categoryName,
   withColor = false,
+  categories,
   onSave,
 }: AddOptionDialogProps) {
   const [label, setLabel] = useState("");
   const [prompt, setPrompt] = useState("");
   const [hex, setHex] = useState("#000000");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [newCategory, setNewCategory] = useState("");
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -30,20 +34,38 @@ export function AddOptionDialog({
       setLabel("");
       setPrompt("");
       setHex("#000000");
+      // Default to first category if available
+      if (categories && categories.length > 0) {
+        setSelectedCategory(categories[0].value);
+      } else {
+        setSelectedCategory("");
+      }
+      setNewCategory("");
     }
-  }, [open]);
+  }, [open, categories]);
 
   const handleSave = () => {
     if (!label.trim()) return;
     
+    // Determine final category
+    let finalCategory = selectedCategory;
+    if (selectedCategory === "new_custom_category") {
+        if (!newCategory.trim()) return; // Must provide name for new category
+        finalCategory = newCategory.trim();
+    }
+
     // Construct data object
-    const data: { label: string; prompt: string; hex?: string } = {
+    const data: { label: string; prompt: string; hex?: string; category?: string } = {
       label: label.trim(),
       prompt: prompt.trim() || label.trim(), // Fallback to label if prompt is empty
     };
 
     if (withColor) {
       data.hex = hex;
+    }
+    
+    if (categories && finalCategory) {
+        data.category = finalCategory;
     }
 
     onSave(data);
@@ -60,6 +82,41 @@ export function AddOptionDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
+          
+          {/* Category Selection (Optional) */}
+          {categories && categories.length > 0 && (
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="category" className="text-right">
+                Category
+                </Label>
+                <div className="col-span-3 space-y-2">
+                    <select
+                        id="category"
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {categories.map((cat) => (
+                            <option key={cat.value} value={cat.value}>
+                                {cat.label}
+                            </option>
+                        ))}
+                        <option value="new_custom_category">+ Create New Category</option>
+                    </select>
+                    
+                    {selectedCategory === "new_custom_category" && (
+                        <Input
+                            value={newCategory}
+                            onChange={(e) => setNewCategory(e.target.value)}
+                            placeholder="Enter new category name..."
+                            className="w-full"
+                            autoFocus
+                        />
+                    )}
+                </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="name" className="text-right">
               Name
@@ -112,7 +169,7 @@ export function AddOptionDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={!label.trim()}>
+          <Button onClick={handleSave} disabled={!label.trim() || (selectedCategory === "new_custom_category" && !newCategory.trim())}>
             Save Option
           </Button>
         </DialogFooter>

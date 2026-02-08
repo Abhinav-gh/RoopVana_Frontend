@@ -858,6 +858,8 @@ const CreateSection = () => {
   
   // Custom hierarchy items (user-added categories, garments, fabrics, prints)
   const [customCategories, setCustomCategories] = useState<{ [key: string]: { label: string; icon: string } }>({});
+  // NEW: Separate categories for Custom Mode (Upper/Lower components) to avoid polluting Full Outfit mode
+  const [customComponentCategories, setCustomComponentCategories] = useState<{ [key: string]: { label: string; icon: string } }>({});
   const [customGarments, setCustomGarments] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
   const [customFabrics, setCustomFabrics] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
   const [customPrints, setCustomPrints] = useState<{ [key: string]: { label: string; icon: string; prompt: string } }>({});
@@ -878,14 +880,20 @@ const CreateSection = () => {
   const [customBodyTypes, setCustomBodyTypes] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
   const [customPostures, setCustomPostures] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
 
-  // Dialog State
+  // Add Option Dialog State
   const [addDialogState, setAddDialogState] = useState<{
     isOpen: boolean;
-    category: string; // identifier for which state to update
-    label: string; // display title
+    category: string;
+    label: string;
     withColor?: boolean;
-  }>({ isOpen: false, category: "", label: "" });
-
+    categories?: { label: string; value: string }[];
+  }>({
+    isOpen: false,
+    category: "",
+    label: "",
+    withColor: false,
+    categories: [],
+  });
   
   // Add custom item modals
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -894,6 +902,8 @@ const CreateSection = () => {
   const [showAddPrint, setShowAddPrint] = useState(false);
   const [newItemName, setNewItemName] = useState("");
   const [newItemPrompt, setNewItemPrompt] = useState("");
+  // Track selected category when adding a new garment
+  const [newItemCategory, setNewItemCategory] = useState("");
   
   // Other options
   const [selectedBodyType, setSelectedBodyType] = useState<string>("any");
@@ -1423,6 +1433,28 @@ const CreateSection = () => {
       toast.error("Please enter a garment name");
       return;
     }
+    
+    // Handle creating a new category if "new_category" is selected or typed
+    let categoryKey = newItemCategory;
+    
+    // If it's a new category (starts with 'new_:' is a convention we can use for the UI, or just check if it exists)
+    // Actually, let's assume the UI handles switching between 'select' and 'text input' for new category
+    // If the category doesn't exist in hierarchy or customCategories, add it
+    const isExistingCategory = styleHierarchy[categoryKey] || customCategories[categoryKey];
+    
+    if (!isExistingCategory && categoryKey) {
+        // It's a new category being created inline
+        const newCatKey = `custom_${categoryKey.toLowerCase().replace(/\s+/g, '_')}`;
+        
+        // Add the new category first
+        setCustomCategories(prev => ({
+            ...prev,
+            [newCatKey]: { label: categoryKey, icon: "🏷️" }
+        }));
+        
+        categoryKey = newCatKey;
+    }
+    
     const key = `custom_${newItemName.toLowerCase().replace(/\s+/g, '_')}`;
     setCustomGarments(prev => ({
       ...prev,
@@ -1430,13 +1462,21 @@ const CreateSection = () => {
         label: newItemName,
         icon: "🎨",
         prompt: newItemPrompt.trim() || newItemName,
-      }
+        category: categoryKey || selectedCategory, // Fallback to selected if empty
+      } as any // Use any to bypass strict type checking for the new 'category' field
     }));
+    
+    // Switch to the category where the item was added
+    if (categoryKey && categoryKey !== selectedCategory) {
+        setSelectedCategory(categoryKey);
+    }
+    
     setSelectedGarment(key);
     setNewItemName("");
     setNewItemPrompt("");
+    setNewItemCategory("");
     setShowAddGarment(false);
-    toast.success(`Garment "${newItemName}" added!`);
+    toast.success(`Garment "${newItemName}" added to ${isExistingCategory ? (styleHierarchy[categoryKey]?.label || customCategories[categoryKey]?.label) : categoryKey}!`);
   };
   
   // Handler for adding custom fabric
@@ -2066,19 +2106,48 @@ const CreateSection = () => {
       category,
       label,
       withColor,
+      categories: [],
+    });
+  };
+
+  const handleOpenAddDialogWithCategories = (category: string, label: string, categories: { label: string; value: string }[]) => {
+    setAddDialogState({
+      isOpen: true,
+      category,
+      label,
+      withColor: false,
+      categories,
     });
   };
 
   // Handle saving the custom option from dialog
-  const handleSaveCustomOption = (data: { label: string; prompt: string; hex?: string }) => {
+  const handleSaveCustomOption = (data: { label: string; prompt: string; hex?: string; category?: string }) => {
     const { category, withColor } = addDialogState;
     const key = `custom_${Date.now()}`;
+    
+    // Handle new category creation if applicable
+    let categoryKey = data.category;
+    if (categoryKey) {
+        // If it's a new category (not in hierarchy or customCategories), add it
+        const isExistingCategory = styleHierarchy[categoryKey] || customComponentCategories[categoryKey];
+        if (!isExistingCategory) {
+             const newCatKey = `custom_${categoryKey.toLowerCase().replace(/\s+/g, '_')}`;
+             // Add the new category
+             setCustomComponentCategories(prev => ({
+                ...prev,
+                [newCatKey]: { label: categoryKey, icon: "🏷️" }
+            }));
+            categoryKey = newCatKey; // Use the new key
+        }
+    }
+
     const newItem = {
         label: data.label,
         prompt: data.prompt,
         // Add specific fields based on category
         ...(withColor ? { hex: data.hex || "#000000" } : {}),
         icon: "✨", // Default icon
+        category: categoryKey || undefined,
     };
 
     // Update specific state and selection based on category
@@ -2762,7 +2831,12 @@ const CreateSection = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Garment Type</span>
                           <button
-                            onClick={() => { setShowAddGarment(true); setNewItemName(""); setNewItemPrompt(""); }}
+                            onClick={() => { 
+                                setShowAddGarment(true); 
+                                setNewItemName(""); 
+                                setNewItemPrompt("");
+                                setNewItemCategory(selectedCategory); // Default to current category
+                            }}
                             className="text-xs text-primary hover:underline"
                           >
                             + Add Custom
@@ -2796,7 +2870,9 @@ const CreateSection = () => {
                                 )}
                             </button>
                           ))}
-                          {Object.entries(customGarments).map(([key, item]) => (
+                          {Object.entries(customGarments)
+                            .filter(([_, item]) => (item as any).category === selectedCategory) // Filter by category
+                            .map(([key, item]) => (
                             <button
                               key={key}
                               onClick={() => setSelectedGarment(key)}
@@ -2825,24 +2901,77 @@ const CreateSection = () => {
                           ))}
                         </div>
                         {showAddGarment && (
-                          <div className="flex flex-col gap-2 mt-2">
-                            <input
-                              type="text"
-                              value={newItemName}
-                              onChange={(e) => setNewItemName(e.target.value)}
-                              placeholder="Garment name..."
-                              className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
-                            />
-                            <input
-                              type="text"
-                              value={newItemPrompt}
-                              onChange={(e) => setNewItemPrompt(e.target.value)}
-                              placeholder="Description (optional)..."
-                              className="px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground"
-                            />
-                            <div className="flex gap-2">
-                              <button onClick={handleAddCustomGarment} className="px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg">Add</button>
-                              <button onClick={() => setShowAddGarment(false)} className="px-3 py-1.5 text-sm text-muted-foreground">Cancel</button>
+                          <div className="flex flex-col gap-2 mt-2 p-3 rounded-lg bg-muted/40 border border-border/50">
+                            <span className="text-xs font-medium text-muted-foreground">Add New Garment</span>
+                            
+                            {/* Category Selection for New Garment */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-muted-foreground uppercase">Category</label>
+                                <select 
+                                    value={styleHierarchy[newItemCategory] || customCategories[newItemCategory] ? newItemCategory : "new_custom_category"}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === "new_custom_category") {
+                                            setNewItemCategory(""); // Clear to allow typing new name
+                                        } else {
+                                            setNewItemCategory(val);
+                                        }
+                                    }}
+                                    className="w-full px-2 py-1.5 text-xs bg-muted/50 rounded-md border border-border/50 mb-1"
+                                >
+                                    <optgroup label="Detailed Departments">
+                                        {Object.entries(styleHierarchy).map(([key, cat]) => (
+                                            <option key={key} value={key}>{cat.label}</option>
+                                        ))}
+                                    </optgroup>
+                                    {Object.keys(customCategories).length > 0 && (
+                                        <optgroup label="Custom Categories">
+                                            {Object.entries(customCategories).map(([key, cat]) => (
+                                                <option key={key} value={key}>{cat.label}</option>
+                                            ))}
+                                        </optgroup>
+                                    )}
+                                    <option value="new_custom_category">+ Create New Category</option>
+                                </select>
+                                
+                                {/* Input for entering a NEW category name if "Create New" is selected (or implied by state) */}
+                                {(!styleHierarchy[newItemCategory] && !customCategories[newItemCategory]) && (
+                                    <input
+                                        type="text"
+                                        value={newItemCategory}
+                                        onChange={(e) => setNewItemCategory(e.target.value)}
+                                        placeholder="Enter new category name..."
+                                        className="w-full px-2 py-1.5 text-xs bg-primary/10 rounded-md border border-primary/30 text-primary placeholder:text-primary/50 focus:outline-none focus:ring-1 focus:ring-primary"
+                                        autoFocus
+                                    />
+                                )}
+                            </div>
+
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-muted-foreground uppercase">Garment Name</label>
+                                <input
+                                type="text"
+                                value={newItemName}
+                                onChange={(e) => setNewItemName(e.target.value)}
+                                placeholder="E.g. Linen Shirt, Cargo Pants..."
+                                className="w-full px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground border border-border/30 focus:border-primary/50 focus:outline-none"
+                                />
+                            </div>
+                            
+                            <div className="space-y-1">
+                                <label className="text-[10px] text-muted-foreground uppercase">Description</label>
+                                <input
+                                type="text"
+                                value={newItemPrompt}
+                                onChange={(e) => setNewItemPrompt(e.target.value)}
+                                placeholder="Visual description for AI..."
+                                className="w-full px-3 py-1.5 text-sm bg-muted/30 rounded-lg text-foreground border border-border/30 focus:border-primary/50 focus:outline-none"
+                                />
+                            </div>
+                            
+                            <div className="flex gap-2 pt-1">
+                              <button onClick={handleAddCustomGarment} className="flex-1 px-3 py-1.5 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors">Add Garment</button>
+                              <button onClick={() => setShowAddGarment(false)} className="px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted rounded-lg transition-colors">Cancel</button>
                             </div>
                           </div>
                         )}
@@ -3468,7 +3597,14 @@ const CreateSection = () => {
                               options={Object.entries({...upperBodyGarments, ...customUpperGarments})}
                               onChange={(val) => setSelectedUpperGarment(val || null)}
                               onEdit={(key, opt) => handleEditOption('upperGarment', key, opt)}
-                              onAdd={() => handleOpenAddDialog('upperGarment', 'Upper Garment')}
+                              onAdd={() => {
+                                // Prepare categories list for Add Dialog
+                                const categoriesList = [
+                                    ...Object.entries(styleHierarchy).map(([key, cat]) => ({ label: cat.label, value: key })),
+                                    ...Object.entries(customComponentCategories).map(([key, cat]) => ({ label: cat.label, value: key }))
+                                ];
+                                handleOpenAddDialogWithCategories('upperGarment', 'Upper Garment', categoriesList);
+                              }}
                               placeholder="Select Garment..."
                               className="flex-1 min-w-[140px]"
                               disabled={isLoading}
@@ -3653,7 +3789,14 @@ const CreateSection = () => {
                               options={Object.entries({...lowerBodyGarments, ...customLowerGarments})}
                               onChange={(val) => setSelectedLowerGarment(val || null)}
                               onEdit={(key, opt) => handleEditOption('lowerGarment', key, opt)}
-                              onAdd={() => handleOpenAddDialog('lowerGarment', 'Lower Garment')}
+                              onAdd={() => {
+                                // Prepare categories list for Add Dialog
+                                const categoriesList = [
+                                    ...Object.entries(styleHierarchy).map(([key, cat]) => ({ label: cat.label, value: key })),
+                                    ...Object.entries(customComponentCategories).map(([key, cat]) => ({ label: cat.label, value: key }))
+                                ];
+                                handleOpenAddDialogWithCategories('lowerGarment', 'Lower Garment', categoriesList);
+                              }}
                               placeholder="Select Garment..."
                               className="flex-1 min-w-[140px]"
                               disabled={isLoading}
@@ -4390,6 +4533,7 @@ const CreateSection = () => {
         onOpenChange={(open) => setAddDialogState(prev => ({ ...prev, isOpen: open }))}
         categoryName={addDialogState.label}
         withColor={addDialogState.withColor}
+        categories={addDialogState.categories}
         onSave={handleSaveCustomOption}
       />
 
