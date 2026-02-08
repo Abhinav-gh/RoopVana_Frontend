@@ -1098,20 +1098,22 @@ const CreateSection = () => {
     if (!selectedUpperGarment || selectedUpperGarment === 'none') return '';
     const parts: string[] = [];
     const garment = upperBodyGarments[selectedUpperGarment];
+    const fabric = selectedUpperFabric && upperBodyFabrics ? upperBodyFabrics[selectedUpperFabric] : null;
+    const print = selectedUpperPrint && upperBodyPrints ? upperBodyPrints[selectedUpperPrint] : null; // Use memoized prints
     
-    // Add print first if selected
-    if (selectedUpperFabric && selectedUpperPrint && selectedUpperPrint !== 'any') {
-      const print = upperBodyPrints[selectedUpperPrint];
-      if (print?.prompt) parts.push(print.prompt);
+    // 1. Base Garment
+    if (garment?.prompt) parts.push(garment.prompt);
+    
+    // 2. Fabric
+    if (fabric && fabric.label !== 'Any Fabric') {
+      parts.push(`FABRIC: ${fabric.label}`);
+      if (fabric.prompt) parts.push(fabric.prompt);
     }
     
-    // Add fabric if selected
-    if (selectedUpperFabric && selectedUpperFabric !== 'any') {
-      const fabric = upperBodyFabrics[selectedUpperFabric];
-      if (fabric?.prompt) parts.push(fabric.prompt);
-    } else if (garment?.prompt) {
-      // Just add garment prompt if no specific fabric
-      parts.push(garment.prompt);
+    // 3. Print
+    if (print && print.label !== 'Any') {
+      parts.push(`PRINT: ${print.label}`);
+      if (print.prompt) parts.push(print.prompt);
     }
     
     return parts.filter(Boolean).join(', ');
@@ -1122,20 +1124,22 @@ const CreateSection = () => {
     if (!selectedLowerGarment || selectedLowerGarment === 'none') return '';
     const parts: string[] = [];
     const garment = lowerBodyGarments[selectedLowerGarment];
+    const fabric = selectedLowerFabric && lowerBodyFabrics ? lowerBodyFabrics[selectedLowerFabric] : null;
+    const print = selectedLowerPrint && lowerBodyPrints ? lowerBodyPrints[selectedLowerPrint] : null; // Use memoized prints
     
-    // Add print first if selected
-    if (selectedLowerFabric && selectedLowerPrint && selectedLowerPrint !== 'any') {
-      const print = lowerBodyPrints[selectedLowerPrint];
-      if (print?.prompt) parts.push(print.prompt);
+    // 1. Base Garment
+    if (garment?.prompt) parts.push(garment.prompt);
+    
+    // 2. Fabric
+    if (fabric && fabric.label !== 'Any Fabric') {
+      parts.push(`FABRIC: ${fabric.label}`);
+      if (fabric.prompt) parts.push(fabric.prompt);
     }
     
-    // Add fabric if selected
-    if (selectedLowerFabric && selectedLowerFabric !== 'any') {
-      const fabric = lowerBodyFabrics[selectedLowerFabric];
-      if (fabric?.prompt) parts.push(fabric.prompt);
-    } else if (garment?.prompt) {
-      // Just add garment prompt if no specific fabric
-      parts.push(garment.prompt);
+    // 3. Print
+    if (print && print.label !== 'Any') {
+      parts.push(`PRINT: ${print.label}`);
+      if (print.prompt) parts.push(print.prompt);
     }
     
     return parts.filter(Boolean).join(', ');

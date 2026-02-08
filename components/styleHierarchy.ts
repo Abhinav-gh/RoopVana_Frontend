@@ -880,9 +880,9 @@ export const FEMALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     }
   },
   shirt: {
-    label: "Shirt",
+    label: "Formal Shirt",
     icon: "👔",
-    prompt: "formal shirt, western style top",
+    prompt: "(formal shirt:1.5), button-down formal shirt, western style, high quality fabric",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
@@ -1079,9 +1079,9 @@ export const MALE_UPPER_BODY_GARMENTS: { [key: string]: Garment } = {
     }
   },
   shirt: {
-    label: "Shirt",
+    label: "Formal Shirt",
     icon: "👔",
-    prompt: "formal shirt, western style",
+    prompt: "(formal shirt:1.5), button-down formal shirt, western style, high quality fabric",
     fabrics: {
       any: { label: "Any Fabric", icon: "✨", prompt: "", prints: { ...COMMON_PRINTS } },
       cotton: { label: "Cotton", icon: "☁️", prompt: "cotton shirt", prints: { ...COMMON_PRINTS } },
