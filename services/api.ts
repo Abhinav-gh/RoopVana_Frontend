@@ -1,5 +1,7 @@
 // Frontend API Client
-// Place this in: frontend/src/services/api.ts
+// Sends Firebase ID token with every authenticated request
+
+import { auth } from '@/lib/firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -17,6 +19,7 @@ export interface GenerateImageResponse {
   generationTime: number;
   language: string;
   error?: string;
+  remainingGenerations?: number;
 }
 
 export interface SpeechToTextRequest {
@@ -43,6 +46,14 @@ export interface GenerateFromImageResponse {
   imageUrl?: string;
   generationTime: number;
   error?: string;
+  remainingGenerations?: number;
+}
+
+export interface UserQuotaResponse {
+  success: boolean;
+  generationsToday: number;
+  remainingGenerations: number;
+  maxGenerations: number;
 }
 
 class APIClient {
@@ -53,15 +64,38 @@ class APIClient {
   }
 
   /**
+   * Get the current Firebase ID token for the authenticated user.
+   * Returns null if no user is logged in.
+   */
+  private async getAuthToken(): Promise<string | null> {
+    const user = auth.currentUser;
+    if (!user) return null;
+    return await user.getIdToken();
+  }
+
+  /**
+   * Build headers with auth token
+   */
+  private async getAuthHeaders(): Promise<Record<string, string>> {
+    const token = await this.getAuthToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+  }
+
+  /**
    * Generate image from text prompt
    */
   async generateImage(request: GenerateImageRequest): Promise<GenerateImageResponse> {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.baseURL}/api/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
@@ -82,11 +116,10 @@ class APIClient {
    */
   async speechToText(request: SpeechToTextRequest): Promise<SpeechToTextResponse> {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.baseURL}/api/speech-to-text`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
@@ -107,11 +140,10 @@ class APIClient {
    */
   async generateFromImage(request: GenerateFromImageRequest): Promise<GenerateFromImageResponse> {
     try {
+      const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.baseURL}/api/generate/from-image`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
       });
 
@@ -128,7 +160,7 @@ class APIClient {
   }
 
   /**
-   * Health check
+   * Health check (no auth required)
    */
   async healthCheck(): Promise<any> {
     try {
@@ -141,7 +173,7 @@ class APIClient {
   }
 
   /**
-   * Get supported languages
+   * Get supported languages (no auth required)
    */
   async getLanguages(): Promise<any> {
     try {
@@ -149,6 +181,28 @@ class APIClient {
       return await response.json();
     } catch (error: any) {
       console.error('API Error (getLanguages):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the current user's generation quota
+   */
+  async getUserQuota(): Promise<UserQuotaResponse> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${this.baseURL}/api/user/quota`, {
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to get user quota');
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.error('API Error (getUserQuota):', error);
       throw error;
     }
   }

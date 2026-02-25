@@ -1,8 +1,19 @@
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, LogOut } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
+import { useAuth } from "@/hooks/AuthContext";
 
 const Header = () => {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -27,7 +38,6 @@ const Header = () => {
             <div>
               <h1 className="font-display text-xl font-semibold tracking-tight">
                 <span className="gradient-text">RoopVana</span>
-                {/* <span className="text-foreground">AI</span> */}
               </h1>
               <p className="text-[10px] text-muted-foreground tracking-widest uppercase">
                 Fashion Intelligence
@@ -35,24 +45,7 @@ const Header = () => {
             </div>
           </motion.div>
 
-          {/* Navigation */}
-          {/* <nav className="hidden md:flex items-center gap-8">
-            {["Create"].map((item, index) => (
-              <motion.a
-                key={item}
-                href={`#${item.toLowerCase()}`}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 relative group"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * (index + 1) }}
-              >
-                {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary group-hover:w-full transition-all duration-300" />
-              </motion.a>
-            ))}
-          </nav> */}
-
-          {/* Theme Toggle & Status */}
+          {/* Theme Toggle, User & Logout */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -64,6 +57,21 @@ const Header = () => {
               <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               <span>Gen AI Ready</span>
             </div>
+            {user && (
+              <div className="flex items-center gap-3 ml-2">
+                <span className="hidden md:inline text-xs text-muted-foreground truncate max-w-[150px]">
+                  {user.email}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200"
+                  title="Sign out"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Logout</span>
+                </button>
+              </div>
+            )}
           </motion.div>
         </div>
       </div>
@@ -72,3 +80,4 @@ const Header = () => {
 };
 
 export default Header;
+
