@@ -887,6 +887,9 @@ const CreateSection = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
   
+  // Guard flag to prevent cascading useEffect resets during history restore
+  const isRestoringRef = useRef(false);
+  
   // Primary gender selection
   const [selectedGender, setSelectedGender] = useState<'female' | 'male'>('female');
   
@@ -1437,6 +1440,7 @@ const CreateSection = () => {
   
   // Cascading reset: when category changes, reset lower levels
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedGarment(null);
     setSelectedFabric(null);
     setSelectedPrint(null);
@@ -1444,22 +1448,24 @@ const CreateSection = () => {
   
   // Cascading reset: when garment changes, reset fabric and print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedFabric(null);
     setSelectedPrint(null);
   }, [selectedGarment]);
   
   // Cascading reset: when fabric changes, reset print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedPrint(null);
   }, [selectedFabric]);
   
   // Reset hierarchy selections when gender changes
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedCategory("indian");
     setSelectedGarment(null);
     setSelectedFabric(null);
     setSelectedPrint(null);
-    // Also reset custom mode upper/lower body selections
     setSelectedUpperGarment(null);
     setSelectedUpperFabric(null);
     setSelectedUpperPrint(null);
@@ -1470,23 +1476,27 @@ const CreateSection = () => {
   
   // Cascading reset: when upper garment changes, reset upper fabric and print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedUpperFabric(null);
     setSelectedUpperPrint(null);
   }, [selectedUpperGarment]);
   
   // Cascading reset: when upper fabric changes, reset upper print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedUpperPrint(null);
   }, [selectedUpperFabric]);
   
   // Cascading reset: when lower garment changes, reset lower fabric and print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedLowerFabric(null);
     setSelectedLowerPrint(null);
   }, [selectedLowerGarment]);
   
   // Cascading reset: when lower fabric changes, reset lower print
   useEffect(() => {
+    if (isRestoringRef.current) return;
     setSelectedLowerPrint(null);
   }, [selectedLowerFabric]);
   
@@ -4555,6 +4565,8 @@ const CreateSection = () => {
                       key={item.id}
                       className="relative group cursor-pointer rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-all duration-200"
                       onClick={() => {
+                        // Set flag to suppress cascading useEffect resets
+                        isRestoringRef.current = true;
                         // Restore all selections
                         setGeneratedImage(item.imageUrl);
                         setLastPrompt(item.prompt);
@@ -4589,6 +4601,8 @@ const CreateSection = () => {
                         setCustomFootwearPrompt(item.customFootwearPrompt);
                         setCustomHeadwearPrompt(item.customHeadwearPrompt);
                         if (item.enhancedPrompt) setBackendEnhancedPrompt(item.enhancedPrompt);
+                        // Clear flag after React processes all state updates
+                        setTimeout(() => { isRestoringRef.current = false; }, 0);
                         toast.success('Settings restored from history');
                       }}
                     >
