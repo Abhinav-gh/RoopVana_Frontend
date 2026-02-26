@@ -1,17 +1,80 @@
-import { motion } from "framer-motion";
-import { Sparkles, LogOut } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Sparkles, LogOut, Coins, Send, User } from "lucide-react";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
+import { useEffect, useState, useRef } from "react";
+import apiClient from "@/services/api";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const [credits, setCredits] = useState<number | null>(null);
+  const [creditsLoading, setCreditsLoading] = useState(false);
+  const [requestingCredits, setRequestingCredits] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // Fetch credits once when user logs in
+  useEffect(() => {
+    if (user) {
+      fetchCredits();
+    } else {
+      setCredits(null);
+    }
+  }, [user]);
+
+  const fetchCredits = async () => {
+    setCreditsLoading(true);
+    try {
+      const data = await apiClient.getUserCredits();
+      setCredits(data.credits);
+    } catch (error) {
+      console.error('Failed to fetch credits:', error);
+      // Show 0 instead of hiding the badge entirely
+      setCredits(0);
+    } finally {
+      setCreditsLoading(false);
+    }
+  };
+
+  const handleRequestCredits = async () => {
+    setRequestingCredits(true);
+    try {
+      await apiClient.requestCredits();
+      setRequestSent(true);
+      setTimeout(() => setRequestSent(false), 3000);
+    } catch (error) {
+      console.error('Failed to request credits:', error);
+    } finally {
+      setRequestingCredits(false);
+    }
+  };
 
   const handleLogout = async () => {
+    setDropdownOpen(false);
     try {
       await logout();
     } catch (error) {
       console.error('Logout failed:', error);
     }
+  };
+
+  // Extract initials from email (e.g. "john.doe@gmail.com" → "JD", "alice@x.com" → "A")
+  const getInitials = (email: string): string => {
+    const name = email.split('@')[0];
+    const parts = name.split(/[._-]/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
   };
 
   return (
@@ -45,32 +108,125 @@ const Header = () => {
             </div>
           </motion.div>
 
-          {/* Theme Toggle, User & Logout */}
+          {/* Right side: Credits, Theme, Avatar Dropdown */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex items-center gap-4"
+            className="flex items-center gap-3"
           >
-            <ThemeToggle />
-            <div className="hidden sm:flex items-center gap-2 text-xs text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span>Gen AI Ready</span>
-            </div>
+            {/* Credits Badge — always visible when logged in */}
             {user && (
-              <div className="flex items-center gap-3 ml-2">
-                <span className="hidden md:inline text-xs text-muted-foreground truncate max-w-[150px]">
-                  {user.email}
-                </span>
+              <motion.div
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center"
+              >
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200"
-                  title="Sign out"
+                  onClick={fetchCredits}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer"
+                  title="Click to refresh credits"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Logout</span>
+                  <Coins className="w-3.5 h-3.5 text-primary" />
+                  {creditsLoading ? (
+                    <div className="w-4 h-3 rounded bg-primary/20 animate-pulse" />
+                  ) : (
+                    <span className="text-xs font-semibold text-primary">
+                      {credits ?? 0}
+                    </span>
+                  )}
+                  <span className="hidden sm:inline text-xs text-muted-foreground">
+                    credits
+                  </span>
                 </button>
-              </div>
+              </motion.div>
+            )}
+
+            <ThemeToggle />
+
+            {/* User Avatar + Dropdown */}
+            {user && (
+              <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-transform hover:scale-105"
+                    aria-label="User menu"
+                  >
+                    <Avatar className="h-8 w-8 cursor-pointer border border-primary/30 hover:border-primary/60 transition-colors">
+                      <AvatarFallback className="bg-gradient-button text-primary-foreground text-xs font-semibold">
+                        {getInitials(user.email || 'U')}
+                      </AvatarFallback>
+                    </Avatar>
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent align="end" className="w-56" sideOffset={8}>
+                  {/* User info */}
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">Account</p>
+                      <p className="text-xs leading-none text-muted-foreground truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Credits info inside dropdown too */}
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Coins className="w-3.5 h-3.5 text-primary" />
+                        <span className="text-sm">Credits</span>
+                      </div>
+                      <span className="text-sm font-semibold text-primary">
+                        {credits ?? 0}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+
+                  {/* Request credits */}
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleRequestCredits();
+                    }}
+                    disabled={requestingCredits}
+                    className="cursor-pointer"
+                  >
+                    <Send className="w-4 h-4 mr-2" />
+                    <AnimatePresence mode="wait">
+                      {requestSent ? (
+                        <motion.span
+                          key="sent"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          className="text-green-500 font-medium"
+                        >
+                          ✓ Request Sent!
+                        </motion.span>
+                      ) : (
+                        <motion.span key="request">
+                          {requestingCredits ? 'Sending...' : 'Request More Credits'}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator />
+
+                  {/* Logout */}
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="cursor-pointer text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </motion.div>
         </div>
@@ -80,4 +236,3 @@ const Header = () => {
 };
 
 export default Header;
-

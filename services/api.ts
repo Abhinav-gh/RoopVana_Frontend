@@ -19,7 +19,7 @@ export interface GenerateImageResponse {
   generationTime: number;
   language: string;
   error?: string;
-  remainingGenerations?: number;
+  credits?: number;
 }
 
 export interface SpeechToTextRequest {
@@ -46,14 +46,13 @@ export interface GenerateFromImageResponse {
   imageUrl?: string;
   generationTime: number;
   error?: string;
-  remainingGenerations?: number;
+  credits?: number;
 }
 
-export interface UserQuotaResponse {
+export interface UserCreditsResponse {
   success: boolean;
-  generationsToday: number;
-  remainingGenerations: number;
-  maxGenerations: number;
+  credits: number;
+  totalGenerations: number;
 }
 
 class APIClient {
@@ -186,23 +185,47 @@ class APIClient {
   }
 
   /**
-   * Get the current user's generation quota
+   * Get the current user's credit balance
    */
-  async getUserQuota(): Promise<UserQuotaResponse> {
+  async getUserCredits(): Promise<UserCreditsResponse> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${this.baseURL}/api/user/quota`, {
+      const response = await fetch(`${this.baseURL}/api/user/credits`, {
         headers,
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to get user quota');
+        const error = await response.json() as any;
+        throw new Error(error.message || 'Failed to get user credits');
       }
 
-      return await response.json();
+      return await response.json() as UserCreditsResponse;
     } catch (error: any) {
-      console.error('API Error (getUserQuota):', error);
+      console.error('API Error (getUserCredits):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Request more credits (admin will review)
+   */
+  async requestCredits(message?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${this.baseURL}/api/user/request-credits`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ message: message || 'Requesting more credits' }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json() as any;
+        throw new Error(error.message || 'Failed to request credits');
+      }
+
+      return await response.json() as { success: boolean; message: string };
+    } catch (error: any) {
+      console.error('API Error (requestCredits):', error);
       throw error;
     }
   }
