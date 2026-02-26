@@ -9,7 +9,8 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   const user = auth.currentUser;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (user) {
-    headers['Authorization'] = `Bearer ${await user.getIdToken()}`;
+    // Force refresh to avoid stale token issues
+    headers['Authorization'] = `Bearer ${await user.getIdToken(true)}`;
   }
   return headers;
 }

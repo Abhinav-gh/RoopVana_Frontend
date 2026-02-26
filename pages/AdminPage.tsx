@@ -68,6 +68,7 @@ const AdminPage = () => {
       await adminApi.setCredits(uid, val);
       toast.success(`Credits set to ${val}`);
       setCreditInputs((p) => ({ ...p, [uid]: '' }));
+      window.dispatchEvent(new CustomEvent('credits-updated'));
       await loadAllData();
     } catch (error: any) {
       toast.error(error.message);
@@ -91,6 +92,7 @@ const AdminPage = () => {
       await adminApi.reviewCreditRequest(id, status, credits);
       toast.success(`Request ${status}`);
       setApproveCredits((p) => ({ ...p, [id]: '' }));
+      window.dispatchEvent(new CustomEvent('credits-updated'));
       await loadAllData();
     } catch (error: any) {
       toast.error(error.message);
