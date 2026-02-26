@@ -818,10 +818,68 @@ type GenerationMode = 'text' | 'image';
 // Generation history type
 interface GenerationHistoryItem {
   id: string;
-  imageUrl: string;
+  imageUrl: string; // compressed thumbnail base64
   prompt: string;
   timestamp: number;
+  // Selections snapshot
+  gender: 'female' | 'male';
+  outfitMode: string;
+  style: string;
+  upperStyle: string;
+  lowerStyle: string;
+  category: string;
+  garment: string | null;
+  fabric: string | null;
+  print: string | null;
+  upperGarment: string | null;
+  upperFabric: string | null;
+  upperPrint: string | null;
+  lowerGarment: string | null;
+  lowerFabric: string | null;
+  lowerPrint: string | null;
+  personType: string;
+  bodyType: string;
+  upperColor: string;
+  lowerColor: string;
+  posture: string;
+  sleeveLength: string;
+  footwear: string;
+  footwearColor: string;
+  headwear: string;
+  headwearColor: string;
+  customUpperPrompt: string;
+  customLowerPrompt: string;
+  customFootwearPrompt: string;
+  customHeadwearPrompt: string;
+  enhancedPrompt?: string;
 }
+
+const HISTORY_KEY = 'roopvana_generation_history';
+const MAX_HISTORY = 8;
+
+/**
+ * Compress a base64 image to a JPEG thumbnail using canvas.
+ * Returns a compressed base64 data URL.
+ */
+const compressImage = (base64Url: string, maxDim = 512, quality = 0.5): Promise<string> => {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let w = img.width;
+      let h = img.height;
+      if (w > h) { h = (h / w) * maxDim; w = maxDim; }
+      else { w = (w / h) * maxDim; h = maxDim; }
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64Url); // fallback to original on error
+    img.src = base64Url;
+  });
+};
 
 const CreateSection = () => {
   const [prompt, setPrompt] = useState("");
@@ -982,8 +1040,13 @@ const CreateSection = () => {
   const [customEnhancedPrompt, setCustomEnhancedPrompt] = useState<string | null>(null);
   const [backendEnhancedPrompt, setBackendEnhancedPrompt] = useState<string | null>(null);
   
-  // Generation history (max 5 items)
-  const [generationHistory, setGenerationHistory] = useState<GenerationHistoryItem[]>([]);
+  // Generation history (max 8, persisted to localStorage)
+  const [generationHistory, setGenerationHistory] = useState<GenerationHistoryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   
   // Custom styles state
   const [customStyles, setCustomStyles] = useState<{ [key: string]: StyleDefinition }>({});
@@ -2273,16 +2336,48 @@ const CreateSection = () => {
           setBackendEnhancedPrompt(response.prompt);
         }
         
-        // Add to history (keep max 5)
+        // Add to history (keep max 8, compressed, persisted)
+        const compressedImg = await compressImage(response.imageUrl);
         const newHistoryItem: GenerationHistoryItem = {
           id: Date.now().toString(),
-          imageUrl: response.imageUrl,
-          prompt: prompt, // Store user's original prompt
+          imageUrl: compressedImg,
+          prompt: prompt,
           timestamp: Date.now(),
+          gender: selectedGender,
+          outfitMode,
+          style: selectedStyle,
+          upperStyle: selectedUpperStyle,
+          lowerStyle: selectedLowerStyle,
+          category: selectedCategory,
+          garment: selectedGarment,
+          fabric: selectedFabric,
+          print: selectedPrint,
+          upperGarment: selectedUpperGarment,
+          upperFabric: selectedUpperFabric,
+          upperPrint: selectedUpperPrint,
+          lowerGarment: selectedLowerGarment,
+          lowerFabric: selectedLowerFabric,
+          lowerPrint: selectedLowerPrint,
+          personType: selectedPersonType,
+          bodyType: selectedBodyType,
+          upperColor: selectedUpperColor,
+          lowerColor: selectedLowerColor,
+          posture: selectedPosture,
+          sleeveLength: selectedSleeveLength,
+          footwear: selectedFootwear,
+          footwearColor: selectedFootwearColor,
+          headwear: selectedHeadwear,
+          headwearColor: selectedHeadwearColor,
+          customUpperPrompt,
+          customLowerPrompt,
+          customFootwearPrompt,
+          customHeadwearPrompt,
+          enhancedPrompt: response.prompt || undefined,
         };
         setGenerationHistory(prev => {
-          const updated = [newHistoryItem, ...prev];
-          return updated.slice(0, 5); // Keep only latest 5
+          const updated = [newHistoryItem, ...prev].slice(0, MAX_HISTORY);
+          try { localStorage.setItem(HISTORY_KEY, JSON.stringify(updated)); } catch {}
+          return updated;
         });
         
         toast.success(`Design created in ${(response.generationTime / 1000).toFixed(1)}s!`);
@@ -4436,17 +4531,65 @@ const CreateSection = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-6"
               >
-                <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wider">
-                  Recent Generations ({generationHistory.length}/5)
-                </p>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                    Generation History ({generationHistory.length}/{MAX_HISTORY})
+                  </p>
+                  {generationHistory.length > 0 && (
+                    <button
+                      onClick={() => {
+                        if (confirm('Clear all generation history?')) {
+                          setGenerationHistory([]);
+                          localStorage.removeItem(HISTORY_KEY);
+                        }
+                      }}
+                      className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      Clear All
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-4 gap-2">
                   {generationHistory.map((item) => (
                     <div
                       key={item.id}
                       className="relative group cursor-pointer rounded-lg overflow-hidden border border-border/50 hover:border-primary/50 transition-all duration-200"
                       onClick={() => {
+                        // Restore all selections
                         setGeneratedImage(item.imageUrl);
                         setLastPrompt(item.prompt);
+                        setPrompt(item.prompt);
+                        setSelectedGender(item.gender);
+                        setOutfitMode(item.outfitMode as OutfitMode);
+                        setSelectedStyle(item.style);
+                        setSelectedUpperStyle(item.upperStyle);
+                        setSelectedLowerStyle(item.lowerStyle);
+                        setSelectedCategory(item.category);
+                        setSelectedGarment(item.garment);
+                        setSelectedFabric(item.fabric);
+                        setSelectedPrint(item.print);
+                        setSelectedUpperGarment(item.upperGarment);
+                        setSelectedUpperFabric(item.upperFabric);
+                        setSelectedUpperPrint(item.upperPrint);
+                        setSelectedLowerGarment(item.lowerGarment);
+                        setSelectedLowerFabric(item.lowerFabric);
+                        setSelectedLowerPrint(item.lowerPrint);
+                        setSelectedPersonType(item.personType);
+                        setSelectedBodyType(item.bodyType);
+                        setSelectedUpperColor(item.upperColor);
+                        setSelectedLowerColor(item.lowerColor);
+                        setSelectedPosture(item.posture);
+                        setSelectedSleeveLength(item.sleeveLength);
+                        setSelectedFootwear(item.footwear);
+                        setSelectedFootwearColor(item.footwearColor);
+                        setSelectedHeadwear(item.headwear);
+                        setSelectedHeadwearColor(item.headwearColor);
+                        setCustomUpperPrompt(item.customUpperPrompt);
+                        setCustomLowerPrompt(item.customLowerPrompt);
+                        setCustomFootwearPrompt(item.customFootwearPrompt);
+                        setCustomHeadwearPrompt(item.customHeadwearPrompt);
+                        if (item.enhancedPrompt) setBackendEnhancedPrompt(item.enhancedPrompt);
+                        toast.success('Settings restored from history');
                       }}
                     >
                       <img
@@ -4454,9 +4597,11 @@ const CreateSection = () => {
                         alt={item.prompt}
                         className="w-full aspect-square object-cover"
                       />
-                      {/* Hover overlay with prompt */}
-                      <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center p-2">
-                        <p className="text-xs text-foreground text-center line-clamp-3">
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-background/85 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center p-2 gap-1">
+                        <RotateCcw className="w-4 h-4 text-primary" />
+                        <span className="text-xs font-medium text-primary">Restore</span>
+                        <p className="text-[10px] text-muted-foreground text-center line-clamp-2 mt-1">
                           {item.prompt}
                         </p>
                       </div>
