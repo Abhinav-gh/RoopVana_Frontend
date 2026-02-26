@@ -2286,6 +2286,8 @@ const CreateSection = () => {
         });
         
         toast.success(`Design created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+        // Notify Header to refresh credits
+        window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
         throw new Error(response.error || 'Failed to generate image');
       }
@@ -2328,6 +2330,7 @@ const CreateSection = () => {
       if (response.success && response.imageUrl) {
         setGeneratedImage(response.imageUrl);
         toast.success(`Back view created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+        window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
         throw new Error(response.error || 'Failed to generate back view');
       }
@@ -2357,6 +2360,7 @@ const CreateSection = () => {
       if (response.success && response.imageUrl) {
         setGeneratedImage(response.imageUrl);
         toast.success(`Design created in ${(response.generationTime / 1000).toFixed(1)}s!`);
+        window.dispatchEvent(new CustomEvent('credits-updated'));
       } else {
         throw new Error(response.error || 'Failed to generate image');
       }

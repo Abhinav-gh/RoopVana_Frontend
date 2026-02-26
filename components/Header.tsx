@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, Coins, Send, User } from "lucide-react";
+import { Sparkles, LogOut, Coins, Send, User, Shield } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
 import { useEffect, useState, useRef } from "react";
@@ -16,6 +17,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Header = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [credits, setCredits] = useState<number | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(false);
   const [requestingCredits, setRequestingCredits] = useState(false);
@@ -30,6 +32,13 @@ const Header = () => {
       setCredits(null);
     }
   }, [user]);
+
+  // Re-fetch credits when a generation completes
+  useEffect(() => {
+    const handler = () => fetchCredits();
+    window.addEventListener('credits-updated', handler);
+    return () => window.removeEventListener('credits-updated', handler);
+  }, []);
 
   const fetchCredits = async () => {
     setCreditsLoading(true);
@@ -213,6 +222,15 @@ const Header = () => {
                         </motion.span>
                       )}
                     </AnimatePresence>
+                  </DropdownMenuItem>
+
+                  {/* Admin Dashboard */}
+                  <DropdownMenuItem
+                    onClick={() => { setDropdownOpen(false); navigate('/admin'); }}
+                    className="cursor-pointer"
+                  >
+                    <Shield className="w-4 h-4 mr-2" />
+                    Admin Dashboard
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
