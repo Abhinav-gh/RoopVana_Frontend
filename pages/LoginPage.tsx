@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 
 const LoginPage: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,6 +18,11 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (isSignUp && (!firstName.trim() || !lastName.trim())) {
+      setError('First name and last name are required');
+      return;
+    }
 
     if (isSignUp && password !== confirmPassword) {
       setError('Passwords do not match');
@@ -30,7 +37,7 @@ const LoginPage: React.FC = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        await signup(email, password);
+        await signup(email, password, firstName.trim(), lastName.trim());
       } else {
         await login(email, password);
       }
@@ -91,6 +98,42 @@ const LoginPage: React.FC = () => {
             >
               <span className="login-error-icon">⚠️</span>
               {error}
+            </motion.div>
+          )}
+
+          {isSignUp && (
+            <motion.div
+              className="login-name-row"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              style={{ display: 'flex', gap: '0.75rem' }}
+            >
+              <div className="login-field" style={{ flex: 1 }}>
+                <label htmlFor="firstName" className="login-label">First Name</label>
+                <input
+                  id="firstName"
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="login-input"
+                  placeholder="John"
+                  required
+                  autoComplete="given-name"
+                />
+              </div>
+              <div className="login-field" style={{ flex: 1 }}>
+                <label htmlFor="lastName" className="login-label">Last Name</label>
+                <input
+                  id="lastName"
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="login-input"
+                  placeholder="Doe"
+                  required
+                  autoComplete="family-name"
+                />
+              </div>
             </motion.div>
           )}
 
@@ -164,6 +207,8 @@ const LoginPage: React.FC = () => {
               onClick={() => {
                 setIsSignUp(!isSignUp);
                 setError('');
+                setFirstName('');
+                setLastName('');
               }}
             >
               {isSignUp ? 'Sign In' : 'Sign Up'}
