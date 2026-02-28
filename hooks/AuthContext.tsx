@@ -50,6 +50,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateProfile(userCredential.user, {
       displayName: `${firstName} ${lastName}`.trim(),
     });
+    // Force token refresh so the new displayName is included as a claim in the token sent to backend
+    await userCredential.user.getIdToken(true);
+    // Reload the user and update context to ensure local UI updates
+    await userCredential.user.reload();
+    setUser(auth.currentUser);
   };
 
   const logout = async () => {
