@@ -62,6 +62,8 @@ export interface CreditRequest {
   userId: string;
   email: string;
   message: string;
+  requestedCredits: number;
+  approvedCredits?: number;
   status: string;
   createdAt: string | null;
 }

@@ -1,16 +1,31 @@
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { ArrowLeft, Clock, CheckCircle2, XCircle, Coins } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Clock, CheckCircle2, XCircle, Coins, Send, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import apiClient, { UserCreditRequest } from "@/services/api";
 import { toast } from "sonner";
 import Header from "@/components/Header";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const CreditHistoryPage = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState<UserCreditRequest[]>([]);
   const [totalCreditsUsed, setTotalCreditsUsed] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+
+  // Dialog State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [requestMessage, setRequestMessage] = useState("I would like to request more credits for my project.");
+  const [requestAmount, setRequestAmount] = useState<number>(50);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadCreditHistory();
@@ -25,6 +40,26 @@ const CreditHistoryPage = () => {
       toast.error(error.message || "Failed to load credit history");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (requestAmount <= 0) {
+      toast.error("Please request a valid number of credits");
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
+      await apiClient.requestCredits(requestMessage, requestAmount);
+      toast.success("Credit request submitted successfully!");
+      setIsDialogOpen(false);
+      loadCreditHistory(); // reload to show the new pending request
+    } catch (error: any) {
+      toast.error(error.message || "Failed to submit request");
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -63,7 +98,7 @@ const CreditHistoryPage = () => {
       
       <div className="container max-w-4xl mx-auto px-6 pt-32">
         {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
           <div>
             <button
               onClick={() => navigate("/")}
@@ -71,15 +106,77 @@ const CreditHistoryPage = () => {
             >
               <ArrowLeft className="w-4 h-4" /> Back to App
             </button>
-            <h1 className="text-3xl font-display font-semibold text-foreground">
+            <h1 className="text-3xl font-display font-semibold text-foreground flex items-center gap-4">
               Credit Request History
             </h1>
             <p className="text-muted-foreground mt-2">
               View your past requests for additional credits and their current status.
             </p>
+            
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <button className="mt-4 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors">
+                  <Plus className="w-4 h-4" /> Request More Credits
+                </button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleRequestSubmit}>
+                  <DialogHeader>
+                    <DialogTitle>Request Credits</DialogTitle>
+                    <DialogDescription>
+                      Ask an admin for more generation credits.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <label htmlFor="amount" className="text-sm font-medium">
+                        Number of Credits
+                      </label>
+                      <input
+                        id="amount"
+                        type="number"
+                        min="1"
+                        max="500"
+                        value={requestAmount}
+                        onChange={(e) => setRequestAmount(parseInt(e.target.value) || 0)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <label htmlFor="message" className="text-sm font-medium">
+                        Message to Admin
+                      </label>
+                      <textarea
+                        id="message"
+                        rows={3}
+                        value={requestMessage}
+                        onChange={(e) => setRequestMessage(e.target.value)}
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="ml-auto flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? (
+                        <>Sending...</>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" /> Submit Request
+                        </>
+                      )}
+                    </button>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
           </div>
 
-          <div className="glass-card border border-primary/20 bg-primary/5 rounded-xl p-4 flex items-center gap-4 shrink-0">
+          <div className="glass-card border border-primary/20 bg-primary/5 rounded-xl p-4 flex items-center gap-4 shrink-0 mt-4 md:mt-10">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <Coins className="w-6 h-6 text-primary" />
             </div>
@@ -126,22 +223,34 @@ const CreditHistoryPage = () => {
                   className="glass-card rounded-xl p-5 border border-border/50 flex flex-col md:flex-row md:items-center justify-between gap-6"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${status.bg} ${status.color} ${status.border} border`}
-                      >
-                        <StatusIcon className="w-3.5 h-3.5" />
-                        {status.label}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {request.createdAt ? new Date(request.createdAt).toLocaleDateString(undefined, {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : 'Unknown Date'}
-                      </span>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${status.bg} ${status.color} ${status.border} border`}
+                        >
+                          <StatusIcon className="w-3.5 h-3.5" />
+                          {status.label}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {request.createdAt ? new Date(request.createdAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          }) : 'Unknown Date'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="text-sm font-medium bg-secondary/50 px-3 py-1 rounded-full text-foreground/80">
+                          Requested: <span className="text-foreground">{request.requestedCredits || 0}</span>
+                        </div>
+                        {request.status === 'approved' && request.approvedCredits !== undefined && (
+                          <div className="text-sm font-medium bg-green-500/10 text-green-600 dark:text-green-400 px-3 py-1 rounded-full">
+                            Approved: <span className="font-bold">{request.approvedCredits}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <p className="text-foreground text-sm leading-relaxed mt-1">
                       "{request.message}"

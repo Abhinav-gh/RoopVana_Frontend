@@ -63,6 +63,8 @@ export interface UserCreditsResponse {
 export interface UserCreditRequest {
   id: string;
   message: string;
+  requestedCredits: number;
+  approvedCredits?: number;
   status: 'pending' | 'approved' | 'denied';
   createdAt: string | null;
   reviewedAt: string | null;
@@ -228,13 +230,16 @@ class APIClient {
   /**
    * Request more credits (admin will review)
    */
-  async requestCredits(message?: string): Promise<{ success: boolean; message: string }> {
+  async requestCredits(message?: string, requestedCredits?: number): Promise<{ success: boolean; message: string }> {
     try {
       const headers = await this.getAuthHeaders();
       const response = await fetch(`${this.baseURL}/api/user/request-credits`, {
         method: 'POST',
         headers,
-        body: JSON.stringify({ message: message || 'Requesting more credits' }),
+        body: JSON.stringify({ 
+          message: message || 'Requesting more credits',
+          requestedCredits: requestedCredits || 0
+        }),
       });
 
       if (!response.ok) {

@@ -207,34 +207,7 @@ const Header = () => {
                     </div>
                   </DropdownMenuLabel>
 
-                  {/* Request credits */}
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleRequestCredits();
-                    }}
-                    disabled={requestingCredits}
-                    className="cursor-pointer"
-                  >
-                    <Send className="w-4 h-4 mr-2" />
-                    <AnimatePresence mode="wait">
-                      {requestSent ? (
-                        <motion.span
-                          key="sent"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          className="text-green-500 font-medium"
-                        >
-                          ✓ Request Sent!
-                        </motion.span>
-                      ) : (
-                        <motion.span key="request">
-                          {requestingCredits ? 'Sending...' : 'Request More Credits'}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
 
                   {/* Credit History */}
                   <DropdownMenuItem

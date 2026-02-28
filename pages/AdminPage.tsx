@@ -404,6 +404,11 @@ const AdminPage = () => {
                       <div className="flex-1">
                         <p className="text-sm font-medium text-foreground">{r.email}</p>
                         <p className="text-xs text-muted-foreground mt-0.5">UID: {r.userId}</p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                            Requested: {r.requestedCredits || 0}
+                          </span>
+                        </div>
                         <p className="text-sm text-muted-foreground mt-2 italic">"{r.message}"</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
@@ -446,6 +451,7 @@ const AdminPage = () => {
                   <thead>
                     <tr className="border-b border-border/50 bg-muted/30">
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
+                      <th className="text-left px-4 py-3 text-muted-foreground font-medium">Amount</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Message</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Status</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Date</th>
@@ -455,6 +461,12 @@ const AdminPage = () => {
                     {creditRequests.map((r) => (
                       <tr key={r.id} className="border-b border-border/30 hover:bg-muted/20">
                         <td className="px-4 py-3 text-foreground">{r.email}</td>
+                        <td className="px-4 py-3 text-foreground font-medium">
+                          {r.requestedCredits || 0}
+                          {r.status === 'approved' && r.approvedCredits !== undefined && (
+                            <span className="text-green-500 ml-1">(Approved: {r.approvedCredits})</span>
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-muted-foreground">{r.message}</td>
                         <td className="px-4 py-3">
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${
