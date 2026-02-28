@@ -5,6 +5,8 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
 import { useEffect, useState, useRef } from "react";
 import apiClient from "@/services/api";
+import type { UserCreditsResponse } from "@/services/api";
+import CreditPopup from "./CreditPopup";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,13 +25,19 @@ const Header = () => {
   const [requestingCredits, setRequestingCredits] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [creditPopup, setCreditPopup] = useState<{
+    awarded: number;
+    capped: boolean;
+    newBalance: number;
+  } | null>(null);
 
   // Fetch credits once when user logs in
   useEffect(() => {
     if (user) {
-      fetchCredits();
+      fetchCredits(true); // show popup on login
     } else {
       setCredits(null);
+      setCreditPopup(null);
     }
   }, [user]);
 
@@ -40,14 +48,17 @@ const Header = () => {
     return () => window.removeEventListener('credits-updated', handler);
   }, []);
 
-  const fetchCredits = async () => {
+  const fetchCredits = async (showPopup = false) => {
     setCreditsLoading(true);
     try {
-      const data = await apiClient.getUserCredits();
+      const data: UserCreditsResponse = await apiClient.getUserCredits();
       setCredits(data.credits);
+      // Show popup if daily top-up happened (only on initial login fetch)
+      if (showPopup && data.creditTopUp) {
+        setCreditPopup(data.creditTopUp);
+      }
     } catch (error) {
       console.error('Failed to fetch credits:', error);
-      // Show 0 instead of hiding the badge entirely
       setCredits(0);
     } finally {
       setCreditsLoading(false);
@@ -87,6 +98,7 @@ const Header = () => {
   };
 
   return (
+    <>
     <motion.header
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
@@ -132,7 +144,7 @@ const Header = () => {
                 className="flex items-center"
               >
                 <button
-                  onClick={fetchCredits}
+                  onClick={() => fetchCredits()}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer"
                   title="Click to refresh credits"
                 >
@@ -250,6 +262,17 @@ const Header = () => {
         </div>
       </div>
     </motion.header>
+
+    {/* Credit top-up popup */}
+    {creditPopup && (
+      <CreditPopup
+        awarded={creditPopup.awarded}
+        capped={creditPopup.capped}
+        newBalance={creditPopup.newBalance}
+        onClose={() => setCreditPopup(null)}
+      />
+    )}
+    </>
   );
 };
 

@@ -53,6 +53,11 @@ export interface UserCreditsResponse {
   success: boolean;
   credits: number;
   totalGenerations: number;
+  creditTopUp?: {
+    awarded: number;
+    capped: boolean;
+    newBalance: number;
+  } | null;
 }
 
 class APIClient {

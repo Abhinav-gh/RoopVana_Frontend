@@ -41,6 +41,7 @@ interface PromptInputProps {
   onChange: (value: string) => void;
   onSubmit: () => void;
   isLoading: boolean;
+  loadingMessage?: string;
   detectedLanguage: string | null;
 }
 
@@ -85,6 +86,7 @@ const PromptInput = ({
   onChange,
   onSubmit,
   isLoading,
+  loadingMessage,
   detectedLanguage,
 }: PromptInputProps) => {
   const [isListening, setIsListening] = useState(false);
@@ -328,11 +330,14 @@ const PromptInput = ({
                   className="min-w-[140px]"
                 >
                   {isLoading ? (
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                    />
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                      />
+                      <span className="text-xs">{loadingMessage || 'Generating...'}</span>
+                    </>
                   ) : (
                     <>
                       <Sparkles className="w-4 h-4" />

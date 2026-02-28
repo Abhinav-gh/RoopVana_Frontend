@@ -884,6 +884,7 @@ const compressImage = (base64Url: string, maxDim = 512, quality = 0.5): Promise<
 const CreateSection = () => {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
   
@@ -2316,6 +2317,7 @@ const CreateSection = () => {
     }
 
     setIsLoading(true);
+    setLoadingMessage('Queuing request...');
     setLastPrompt(prompt);
 
     try {
@@ -2328,6 +2330,19 @@ const CreateSection = () => {
       console.log('Generating image with prompt:', finalPrompt);
       console.log('Style:', selectedStyle);
       console.log('Language:', languageCode);
+
+      // Check queue status for user feedback
+      try {
+        const queueRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}/api/queue-status`);
+        const queueData = await queueRes.json();
+        if (queueData.queuedCount > 0) {
+          setLoadingMessage(`Queued (${queueData.queuedCount} ahead)...`);
+        } else {
+          setLoadingMessage('Enhancing prompt...');
+        }
+      } catch {
+        setLoadingMessage('Generating design...');
+      }
 
       const response = await apiClient.generateImage({
         prompt: finalPrompt,
@@ -2401,6 +2416,7 @@ const CreateSection = () => {
       console.error('Generation error:', error);
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -2418,6 +2434,7 @@ const CreateSection = () => {
     }
 
     setIsLoading(true);
+    setLoadingMessage('Queuing request...');
 
     try {
       // Use IMAGE + TEXT conditioned generation for consistent back view
@@ -2426,6 +2443,7 @@ const CreateSection = () => {
       console.log('Generating back view conditioned on front image');
 
       // Use image-to-image with the generated front image
+      setLoadingMessage('Generating back view...');
       const response = await apiClient.generateFromImage({
         imageData: generatedImage,
         textPrompt: backViewPrompt,
@@ -2444,11 +2462,13 @@ const CreateSection = () => {
       console.error('Generation error:', error);
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
   const handleImageToImage = async (imageData: string, textPrompt: string) => {
     setIsLoading(true);
+    setLoadingMessage('Queuing request...');
     setLastPrompt(textPrompt || "Image transformation");
 
     try {
@@ -2456,6 +2476,8 @@ const CreateSection = () => {
       const fullPrompt = textPrompt || "Create a new fashion design inspired by this reference image";
       
       console.log('Generating from image with prompt:', fullPrompt);
+
+      setLoadingMessage('Generating design...');
 
       const response = await apiClient.generateFromImage({
         imageData: imageData,
@@ -2474,6 +2496,7 @@ const CreateSection = () => {
       console.error('Generation error:', error);
     } finally {
       setIsLoading(false);
+      setLoadingMessage('');
     }
   };
 
@@ -4343,11 +4366,14 @@ const CreateSection = () => {
                               }`}
                             >
                               {isLoading ? (
-                                <motion.div
-                                  animate={{ rotate: 360 }}
-                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                  className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
-                                />
+                                <>
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full"
+                                  />
+                                  <span className="text-xs">{loadingMessage || 'Generating...'}</span>
+                                </>
                               ) : (
                                 <>✨ Generate</>
                               )}
@@ -4376,6 +4402,7 @@ const CreateSection = () => {
                     }}
                     onSubmit={handleGenerate}
                     isLoading={isLoading}
+                    loadingMessage={loadingMessage}
                     detectedLanguage={detectedLanguage}
                   />
                 )}
