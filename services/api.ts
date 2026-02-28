@@ -60,6 +60,20 @@ export interface UserCreditsResponse {
   } | null;
 }
 
+export interface UserCreditRequest {
+  id: string;
+  message: string;
+  status: 'pending' | 'approved' | 'denied';
+  createdAt: string | null;
+  reviewedAt: string | null;
+}
+
+export interface UserCreditRequestsResponse {
+  success: boolean;
+  requests: UserCreditRequest[];
+  totalCreditsUsed: number;
+}
+
 class APIClient {
   private baseURL: string;
 
@@ -231,6 +245,29 @@ class APIClient {
       return await response.json() as { success: boolean; message: string };
     } catch (error: any) {
       console.error('API Error (requestCredits):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch the user's credit request history and total credits used
+   */
+  async getUserCreditRequests(): Promise<UserCreditRequestsResponse> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${this.baseURL}/api/user/credit-requests`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json() as any;
+        throw new Error(error.message || 'Failed to fetch credit requests');
+      }
+
+      return await response.json() as UserCreditRequestsResponse;
+    } catch (error: any) {
+      console.error('API Error (getUserCreditRequests):', error);
       throw error;
     }
   }

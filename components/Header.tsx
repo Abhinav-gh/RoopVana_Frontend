@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, Coins, Send, User, Shield } from "lucide-react";
+import { Sparkles, LogOut, Coins, Send, User, Shield, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
@@ -234,6 +234,15 @@ const Header = () => {
                         </motion.span>
                       )}
                     </AnimatePresence>
+                  </DropdownMenuItem>
+
+                  {/* Credit History */}
+                  <DropdownMenuItem
+                    onClick={() => { setDropdownOpen(false); navigate('/credit-history'); }}
+                    className="cursor-pointer"
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    Credit Request History
                   </DropdownMenuItem>
 
                   {/* Admin Dashboard */}
