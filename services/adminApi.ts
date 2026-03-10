@@ -40,6 +40,7 @@ export interface UsageDoc {
   credits: number;
   totalGenerations: number;
   createdAt?: string;
+  approved?: boolean;
 }
 
 export interface GenerationRequest {
@@ -97,6 +98,11 @@ export const adminApi = {
     request<{ success: boolean }>(`/api/admin/credit-requests/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ status, credits }),
+    }),
+  approveUser: (uid: string, approved: boolean, grantStartingCredits: boolean = true) =>
+    request<{ success: boolean; approved: boolean; credits?: number }>(`/api/admin/usage/${uid}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved, grantStartingCredits }),
     }),
 };
 

@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, BarChart3, Coins, Clock, ArrowLeft, Trash2,
-  Check, X, RefreshCw, Search, Shield
+  Check, X, RefreshCw, Search, Shield, UserCheck, UserX
 } from 'lucide-react';
 import adminApi, {
   AdminStats, AdminUser, UsageDoc, GenerationRequest, CreditRequest
@@ -99,10 +99,21 @@ const AdminPage = () => {
     }
   };
 
+  const handleApproveUser = async (uid: string, approve: boolean) => {
+    try {
+      await adminApi.approveUser(uid, approve, true);
+      toast.success(approve ? 'User approved (+10 starting credits)' : 'User approval revoked');
+      window.dispatchEvent(new CustomEvent('credits-updated'));
+      await loadAllData();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   // Merge users + usage
   const mergedUsers = users.map((u) => {
     const usageDoc = usage.find((d) => d.uid === u.uid);
-    return { ...u, credits: usageDoc?.credits ?? 0, totalGenerations: usageDoc?.totalGenerations ?? 0 };
+    return { ...u, credits: usageDoc?.credits ?? 0, totalGenerations: usageDoc?.totalGenerations ?? 0, approved: usageDoc?.approved ?? false };
   });
 
   const filteredUsers = mergedUsers.filter(
@@ -280,6 +291,7 @@ const AdminPage = () => {
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Credits</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Generations</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Last Sign In</th>
+                      <th className="text-left px-4 py-3 text-muted-foreground font-medium">Approved</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Set Credits</th>
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Actions</th>
                     </tr>
@@ -299,6 +311,25 @@ const AdminPage = () => {
                         <td className="px-4 py-3 text-muted-foreground">{u.totalGenerations}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">
                           {u.lastSignIn ? new Date(u.lastSignIn).toLocaleDateString() : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          {u.approved ? (
+                            <button
+                              onClick={() => handleApproveUser(u.uid, false)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium hover:bg-red-500/20 hover:text-red-400 transition-colors"
+                              title="Click to revoke approval (daily credits will stop)"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" /> Approved
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleApproveUser(u.uid, true)}
+                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 text-xs font-medium hover:bg-green-500/20 hover:text-green-400 transition-colors"
+                              title="Click to approve user (+10 starting credits + daily top-up)"
+                            >
+                              <UserX className="w-3.5 h-3.5" /> Pending
+                            </button>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
