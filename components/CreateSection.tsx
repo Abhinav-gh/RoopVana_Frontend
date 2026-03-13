@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus } from "lucide-react";
+import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
@@ -941,6 +941,11 @@ const CreateSection = () => {
   const [customSleeveLengths, setCustomSleeveLengths] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
   const [customBodyTypes, setCustomBodyTypes] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
   const [customPostures, setCustomPostures] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+
+  // Accessories section state
+  const [isAccessoriesExpanded, setIsAccessoriesExpanded] = useState(true);
+  const [customAccessories, setCustomAccessories] = useState<Record<string, { label: string; icon: string; prompt: string }>>({});
+  const [customAccessoryPrompts, setCustomAccessoryPrompts] = useState<Record<string, string>>({});
 
   // Add Option Dialog State
   const [addDialogState, setAddDialogState] = useState<{
@@ -1970,6 +1975,13 @@ const CreateSection = () => {
         ].filter(Boolean).join(", ");
         parts.push(`HEADWEAR: ${headwearParts}`);
       }
+      
+      // Custom accessories: add each custom accessory's prompt
+      Object.entries(customAccessories).forEach(([key, acc]) => {
+        const userPrompt = customAccessoryPrompts[key] || '';
+        const accParts = [acc.prompt, userPrompt].filter(Boolean).join(", ");
+        if (accParts) parts.push(`ACCESSORY (${acc.label}): ${accParts}`);
+      });
     }
     
     return parts.join(". ");
@@ -2285,6 +2297,9 @@ const CreateSection = () => {
         case 'posture': // Pose
             setCustomPostures(prev => ({ ...prev, [key]: newItem as any }));
             setSelectedPosture(key);
+            break;
+        case 'accessory':
+            setCustomAccessories(prev => ({ ...prev, [key]: newItem as any }));
             break;
     }
   };
@@ -4040,7 +4055,21 @@ const CreateSection = () => {
                           </div>
                         </div>
 
-                        {/* Footwear Section */}
+                        {/* ===== Accessories Section (Collapsible) ===== */}
+                        <div className="space-y-3">
+                          {/* Accessories Header (Toggle) */}
+                          <button
+                            onClick={() => setIsAccessoriesExpanded(!isAccessoriesExpanded)}
+                            className="flex items-center justify-between w-full px-3 py-2.5 rounded-xl bg-muted/40 border border-border/50 hover:bg-muted/60 transition-colors"
+                          >
+                            <span className="text-sm font-semibold text-foreground flex items-center gap-2">💍 Accessories</span>
+                            <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${isAccessoriesExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {isAccessoriesExpanded && (
+                            <div className="space-y-4 pl-2 border-l-2 border-primary/20 ml-2">
+
+                        {/* Footwear Subsection */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -4342,6 +4371,59 @@ const CreateSection = () => {
                               </Button>
                             )}
                           </div>
+                        </div>
+
+                        {/* Custom Accessories Subsection */}
+                        {Object.keys(customAccessories).length > 0 && (
+                          <div className="space-y-3">
+                            {Object.entries(customAccessories).map(([key, acc]) => (
+                              <div key={key} className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-sm font-medium text-foreground">{acc.icon} {acc.label}</span>
+                                  <button
+                                    onClick={() => {
+                                      setCustomAccessories(prev => {
+                                        const next = { ...prev };
+                                        delete next[key];
+                                        return next;
+                                      });
+                                      setCustomAccessoryPrompts(prev => {
+                                        const next = { ...prev };
+                                        delete next[key];
+                                        return next;
+                                      });
+                                    }}
+                                    className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                                    title="Remove accessory"
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                                <textarea
+                                  value={customAccessoryPrompts[key] || ''}
+                                  onChange={(e) => setCustomAccessoryPrompts(prev => ({ ...prev, [key]: e.target.value }))}
+                                  placeholder={`Describe ${acc.label.toLowerCase()} details...`}
+                                  rows={2}
+                                  disabled={isLoading}
+                                  className="w-full px-4 py-3 bg-muted/30 rounded-lg text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Add Custom Accessory Button */}
+                        <button
+                          onClick={() => handleOpenAddDialog('accessory', 'Accessory')}
+                          disabled={isLoading}
+                          className="flex items-center gap-2 px-3 py-2 w-full rounded-lg border border-dashed border-border/60 text-sm text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Custom Accessory
+                        </button>
+
+                            </div>
+                          )}
                         </div>
 
                         {/* Generate Button */}
