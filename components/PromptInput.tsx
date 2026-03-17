@@ -96,6 +96,16 @@ const PromptInput = ({
   const [isVoiceInput, setIsVoiceInput] = useState(false); // Track if input is from voice
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Refs for stable speech recognition (avoid useEffect re-runs)
+  const onChangeRef = useRef(onChange);
+  const baseTextRef = useRef(""); // Text that was in the box when mic started
+  const isListeningRef = useRef(false); // Intent-tracking ref (not affected by closures)
+
+  // Keep onChangeRef in sync with latest onChange prop
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   // Typing effect for placeholders
   useEffect(() => {
@@ -130,36 +140,62 @@ const PromptInput = ({
       recognitionRef.current.lang = voiceLang;
 
       recognitionRef.current.onresult = (event) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+        // Build FULL transcript from ALL results (not just from resultIndex)
+        let fullTranscript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          fullTranscript += event.results[i][0].transcript;
         }
-        onChange(transcript);
-        setIsVoiceInput(true); // Mark as voice input
+        // Append to whatever text was in the box when mic started
+        const base = baseTextRef.current;
+        const separator = base && !base.endsWith(' ') ? ' ' : '';
+        onChangeRef.current(base + separator + fullTranscript);
+        setIsVoiceInput(true);
       };
 
       recognitionRef.current.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-        
+        // Only fully stop on fatal errors
         if (event.error === 'not-allowed') {
+          isListeningRef.current = false;
+          setIsListening(false);
           alert('🚫 Microphone access denied. Please allow microphone in browser settings.');
         } else if (event.error === 'no-speech') {
-          alert('🔇 No speech detected. Please speak clearly and try again.');
+          // Don't stop — just a silence gap, auto-restart will handle it
+          console.log('No speech detected, waiting for auto-restart...');
+        } else if (event.error === 'aborted') {
+          // Aborted by the system, will auto-restart via onend
+          console.log('Speech recognition aborted, will auto-restart...');
         }
       };
 
       recognitionRef.current.onend = () => {
-        setIsListening(false);
+        // Auto-restart if user hasn't explicitly pressed stop
+        if (isListeningRef.current) {
+          console.log('Speech recognition ended, auto-restarting...');
+          try {
+            setTimeout(() => {
+              if (isListeningRef.current && recognitionRef.current) {
+                recognitionRef.current.start();
+              }
+            }, 100);
+          } catch (e) {
+            console.error('Failed to restart speech recognition:', e);
+            isListeningRef.current = false;
+            setIsListening(false);
+          }
+        } else {
+          setIsListening(false);
+        }
       };
     }
 
     return () => {
+      isListeningRef.current = false;
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
     };
-  }, [onChange, voiceLang]);
+  }, [voiceLang]); // ← Only voiceLang! onChange is accessed via ref
 
   const toggleListening = () => {
     if (!recognitionRef.current) {
@@ -168,12 +204,17 @@ const PromptInput = ({
     }
 
     if (isListening) {
+      // User explicitly pressed stop
+      isListeningRef.current = false;
       recognitionRef.current.stop();
       setIsListening(false);
     } else {
+      // Capture current text so voice input appends after it
+      baseTextRef.current = value;
+      isListeningRef.current = true;
       recognitionRef.current.start();
       setIsListening(true);
-      setIsVoiceInput(true); // Mark that we're using voice input
+      setIsVoiceInput(true);
     }
   };
 
