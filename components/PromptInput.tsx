@@ -99,13 +99,13 @@ const PromptInput = ({
   
   // Refs for stable speech recognition (avoid useEffect re-runs)
   const onChangeRef = useRef(onChange);
-  const baseTextRef = useRef(""); // Text that was in the box when mic started
+  const baseTextRef = useRef(""); // Text that was in the box when mic started (or last restart)
   const isListeningRef = useRef(false); // Intent-tracking ref (not affected by closures)
+  const valueRef = useRef(value); // Always tracks the latest prompt value
 
-  // Keep onChangeRef in sync with latest onChange prop
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+  // Keep refs in sync with latest values
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+  useEffect(() => { valueRef.current = value; }, [value]);
 
   // Typing effect for placeholders
   useEffect(() => {
@@ -171,18 +171,21 @@ const PromptInput = ({
       recognitionRef.current.onend = () => {
         // Auto-restart if user hasn't explicitly pressed stop
         if (isListeningRef.current) {
-          console.log('Speech recognition ended, auto-restarting...');
-          try {
-            setTimeout(() => {
-              if (isListeningRef.current && recognitionRef.current) {
+          // CRITICAL: Update baseText to current value before restart
+          // so the next session appends to everything spoken so far
+          baseTextRef.current = valueRef.current;
+          console.log('Speech recognition ended, auto-restarting. Base text updated to:', baseTextRef.current.substring(0, 50) + '...');
+          setTimeout(() => {
+            if (isListeningRef.current && recognitionRef.current) {
+              try {
                 recognitionRef.current.start();
+              } catch (e) {
+                console.error('Failed to restart speech recognition:', e);
+                isListeningRef.current = false;
+                setIsListening(false);
               }
-            }, 100);
-          } catch (e) {
-            console.error('Failed to restart speech recognition:', e);
-            isListeningRef.current = false;
-            setIsListening(false);
-          }
+            }
+          }, 150);
         } else {
           setIsListening(false);
         }
@@ -206,15 +209,45 @@ const PromptInput = ({
     if (isListening) {
       // User explicitly pressed stop
       isListeningRef.current = false;
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (e) {
+        console.error('Error stopping recognition:', e);
+      }
       setIsListening(false);
     } else {
+      // If somehow stuck, force-stop first
+      try {
+        recognitionRef.current.stop();
+      } catch (_) {}
+      
       // Capture current text so voice input appends after it
       baseTextRef.current = value;
       isListeningRef.current = true;
-      recognitionRef.current.start();
-      setIsListening(true);
-      setIsVoiceInput(true);
+      try {
+        recognitionRef.current.start();
+        setIsListening(true);
+        setIsVoiceInput(true);
+      } catch (e: any) {
+        console.error('Error starting recognition:', e);
+        // InvalidStateError = already running, force reset
+        isListeningRef.current = false;
+        setIsListening(false);
+        // Recreate the recognition instance to recover
+        const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognitionAPI) {
+          const oldOnResult = recognitionRef.current.onresult;
+          const oldOnError = recognitionRef.current.onerror;
+          const oldOnEnd = recognitionRef.current.onend;
+          recognitionRef.current = new SpeechRecognitionAPI();
+          recognitionRef.current.continuous = true;
+          recognitionRef.current.interimResults = true;
+          recognitionRef.current.lang = voiceLang;
+          recognitionRef.current.onresult = oldOnResult;
+          recognitionRef.current.onerror = oldOnError;
+          recognitionRef.current.onend = oldOnEnd;
+        }
+      }
     }
   };
 
@@ -233,8 +266,17 @@ const PromptInput = ({
 
   // Handle manual typing - reset voice input flag
   const handleManualChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
-    setIsVoiceInput(false); // User is typing manually
+    const newValue = e.target.value;
+    onChange(newValue);
+    setIsVoiceInput(false);
+    
+    // If mic is active and user is editing (e.g. backspace), restart the session
+    // so old speech results are cleared and new speech appends to the edited text
+    if (isListeningRef.current && recognitionRef.current) {
+      baseTextRef.current = newValue;
+      try { recognitionRef.current.stop(); } catch (_) {}
+      // onend auto-restart will kick in with the updated baseTextRef
+    }
   };
 
   return (

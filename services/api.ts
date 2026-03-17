@@ -9,6 +9,7 @@ export interface GenerateImageRequest {
   prompt: string;
   language: string;
   style?: 'traditional' | 'modern' | 'fusion' | 'bridal' | 'casual';
+  outfitMode?: 'full' | 'custom';
 }
 
 export interface GenerateImageResponse {
