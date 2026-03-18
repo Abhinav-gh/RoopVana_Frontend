@@ -39,6 +39,7 @@ export interface GenerationHistoryItem {
 export interface GenerationHistoryResponse {
   success: boolean;
   history: GenerationHistoryItem[];
+  totalGenerations: number;
 }
 
 export interface SpeechToTextRequest {
@@ -299,10 +300,14 @@ class APIClient {
   /**
    * Fetch the user's generated image history
    */
-  async getGenerationHistory(): Promise<GenerationHistoryResponse> {
+  async getGenerationHistory(cursor?: string): Promise<GenerationHistoryResponse> {
     try {
       const headers = await this.getAuthHeaders();
-      const response = await fetch(`${this.baseURL}/api/user/generation-history`, {
+      const url = cursor 
+        ? `${this.baseURL}/api/user/generation-history?cursor=${encodeURIComponent(cursor)}`
+        : `${this.baseURL}/api/user/generation-history`;
+
+      const response = await fetch(url, {
         method: 'GET',
         headers,
       });

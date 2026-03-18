@@ -18,6 +18,9 @@ const GenerationHistoryPage = () => {
   const navigate = useNavigate();
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
 
   // Dialog state
   const [selectedImage, setSelectedImage] = useState<GenerationHistoryItem | null>(null);
@@ -30,10 +33,29 @@ const GenerationHistoryPage = () => {
     try {
       const data = await apiClient.getGenerationHistory();
       setHistory(data.history);
+      setTotalCount(data.totalGenerations || 0);
+      setHasMore(data.history.length === 10);
     } catch (error: any) {
       toast.error(error.message || "Failed to load generation history");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!hasMore || loadingMore || history.length === 0) return;
+    setLoadingMore(true);
+    try {
+      const lastItem = history[history.length - 1];
+      if (!lastItem.id) return;
+      
+      const data = await apiClient.getGenerationHistory(lastItem.id);
+      setHistory((prev) => [...prev, ...data.history]);
+      setHasMore(data.history.length === 10);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to load more generations");
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -97,7 +119,7 @@ const GenerationHistoryPage = () => {
             <div>
               <p className="text-sm font-medium text-muted-foreground">Total Generations</p>
               <p className="text-2xl font-bold text-foreground font-mono">
-                {loading ? "..." : history.length}
+                {loading ? "..." : totalCount}
               </p>
             </div>
           </div>
@@ -177,6 +199,26 @@ const GenerationHistoryPage = () => {
                 </div>
               </motion.div>
             ))}
+            
+            {/* Load More Button */}
+            {hasMore && (
+              <div className="flex justify-center mt-6">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-2.5 bg-secondary text-secondary-foreground text-sm font-medium rounded-xl hover:bg-secondary/80 transition-colors pointer-cursor flex items-center gap-2 disabled:opacity-50"
+                >
+                  {loadingMore ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    "Load More"
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
