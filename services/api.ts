@@ -23,6 +23,24 @@ export interface GenerateImageResponse {
   credits?: number;
 }
 
+export interface GenerationHistoryItem {
+  id: string;
+  type: 'text-to-image' | 'image-to-image';
+  prompt: string;
+  improvedPrompt: string;
+  language: string;
+  style: string | null;
+  outfitMode: string | null;
+  generatedImageUrl: string | null;
+  generationTimeMs: number;
+  timestamp: string | null;
+}
+
+export interface GenerationHistoryResponse {
+  success: boolean;
+  history: GenerationHistoryItem[];
+}
+
 export interface SpeechToTextRequest {
   audioData: string;
   languageCode: string;
@@ -274,6 +292,29 @@ class APIClient {
       return await response.json() as UserCreditRequestsResponse;
     } catch (error: any) {
       console.error('API Error (getUserCreditRequests):', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch the user's generated image history
+   */
+  async getGenerationHistory(): Promise<GenerationHistoryResponse> {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${this.baseURL}/api/user/generation-history`, {
+        method: 'GET',
+        headers,
+      });
+
+      if (!response.ok) {
+        const error = await response.json() as any;
+        throw new Error(error.message || 'Failed to fetch generation history');
+      }
+
+      return await response.json() as GenerationHistoryResponse;
+    } catch (error: any) {
+      console.error('API Error (getGenerationHistory):', error);
       throw error;
     }
   }

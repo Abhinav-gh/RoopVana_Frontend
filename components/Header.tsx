@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, Coins, Send, User, Shield, Clock } from "lucide-react";
+import { Sparkles, LogOut, Coins, Send, User, Shield, Clock, ImageIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
@@ -208,6 +208,15 @@ const Header = () => {
                   </DropdownMenuLabel>
 
                   <DropdownMenuSeparator />
+
+                  {/* Generation History */}
+                  <DropdownMenuItem
+                    onClick={() => { setDropdownOpen(false); navigate('/generation-history'); }}
+                    className="cursor-pointer"
+                  >
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Generation History
+                  </DropdownMenuItem>
 
                   {/* Credit History */}
                   <DropdownMenuItem
