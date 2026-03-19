@@ -10,6 +10,7 @@ import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
 import AdminPage from "./pages/AdminPage";
 import CreditHistoryPage from "./pages/CreditHistoryPage";
+import GenerationHistoryPage from "./pages/GenerationHistoryPage";
 
 const queryClient = new QueryClient();
 
@@ -94,6 +95,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <CreditHistoryPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/generation-history"
+                element={
+                  <ProtectedRoute>
+                    <GenerationHistoryPage />
                   </ProtectedRoute>
                 }
               />
