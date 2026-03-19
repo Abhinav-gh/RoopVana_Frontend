@@ -1026,6 +1026,28 @@ const CreateSection = () => {
   const footwearRecognitionRef = useRef<any>(null);
   const headwearRecognitionRef = useRef<any>(null);
   
+  // Base text refs — capture existing text when mic starts so voice appends
+  const upperBaseTextRef = useRef("");
+  const lowerBaseTextRef = useRef("");
+  const footwearBaseTextRef = useRef("");
+  const headwearBaseTextRef = useRef("");
+  
+  // Intent-tracking refs for auto-restart
+  const isUpperListeningRef = useRef(false);
+  const isLowerListeningRef = useRef(false);
+  const isFootwearListeningRef = useRef(false);
+  const isHeadwearListeningRef = useRef(false);
+  
+  // Value-tracking refs — always hold the latest prompt value (avoids stale closures in onend)
+  const upperPromptRef = useRef(customUpperPrompt);
+  const lowerPromptRef = useRef(customLowerPrompt);
+  const footwearPromptRef = useRef(customFootwearPrompt);
+  const headwearPromptRef = useRef(customHeadwearPrompt);
+  useEffect(() => { upperPromptRef.current = customUpperPrompt; }, [customUpperPrompt]);
+  useEffect(() => { lowerPromptRef.current = customLowerPrompt; }, [customLowerPrompt]);
+  useEffect(() => { footwearPromptRef.current = customFootwearPrompt; }, [customFootwearPrompt]);
+  useEffect(() => { headwearPromptRef.current = customHeadwearPrompt; }, [customHeadwearPrompt]);
+  
   const [generationMode, setGenerationMode] = useState<GenerationMode>('text');
   
   // Track active dropdown for z-index management
@@ -1606,76 +1628,88 @@ const CreateSection = () => {
     const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
     if (SpeechRecognitionAPI) {
+      // Helper to create auto-restart onend handler
+      // getValueFn reads the latest prompt value so baseRef can be updated before restart
+      const makeOnEnd = (
+        intentRef: React.MutableRefObject<boolean>,
+        setListening: (v: boolean) => void,
+        recRef: React.MutableRefObject<any>,
+        baseRef: React.MutableRefObject<string>,
+        getValueFn: () => string
+      ) => {
+        return () => {
+          if (intentRef.current) {
+            // CRITICAL: Update baseText to current value before restart
+            baseRef.current = getValueFn();
+            setTimeout(() => {
+              if (intentRef.current && recRef.current) {
+                try { recRef.current.start(); } catch (e) {
+                  intentRef.current = false;
+                  setListening(false);
+                }
+              }
+            }, 150);
+          } else {
+            setListening(false);
+          }
+        };
+      };
+
+      // Helper to create onresult handler that appends to base text
+      const makeOnResult = (baseRef: React.MutableRefObject<string>, setter: (v: string) => void) => {
+        return (event: any) => {
+          let fullTranscript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            fullTranscript += event.results[i][0].transcript;
+          }
+          const base = baseRef.current;
+          const separator = base && !base.endsWith(' ') ? ' ' : '';
+          setter(base + separator + fullTranscript);
+        };
+      };
+
       // Upper body recognition
       upperRecognitionRef.current = new SpeechRecognitionAPI();
       upperRecognitionRef.current.continuous = true;
       upperRecognitionRef.current.interimResults = true;
       upperRecognitionRef.current.lang = voiceLang;
-      
-      upperRecognitionRef.current.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setCustomUpperPrompt(transcript);
-      };
-      
-      upperRecognitionRef.current.onerror = () => setIsUpperListening(false);
-      upperRecognitionRef.current.onend = () => setIsUpperListening(false);
+      upperRecognitionRef.current.onresult = makeOnResult(upperBaseTextRef, setCustomUpperPrompt);
+      upperRecognitionRef.current.onerror = () => {};
+      upperRecognitionRef.current.onend = makeOnEnd(isUpperListeningRef, setIsUpperListening, upperRecognitionRef, upperBaseTextRef, () => upperPromptRef.current);
       
       // Lower body recognition
       lowerRecognitionRef.current = new SpeechRecognitionAPI();
       lowerRecognitionRef.current.continuous = true;
       lowerRecognitionRef.current.interimResults = true;
       lowerRecognitionRef.current.lang = voiceLang;
-      
-      lowerRecognitionRef.current.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setCustomLowerPrompt(transcript);
-      };
-      
-      lowerRecognitionRef.current.onerror = () => setIsLowerListening(false);
-      lowerRecognitionRef.current.onend = () => setIsLowerListening(false);
+      lowerRecognitionRef.current.onresult = makeOnResult(lowerBaseTextRef, setCustomLowerPrompt);
+      lowerRecognitionRef.current.onerror = () => {};
+      lowerRecognitionRef.current.onend = makeOnEnd(isLowerListeningRef, setIsLowerListening, lowerRecognitionRef, lowerBaseTextRef, () => lowerPromptRef.current);
       
       // Footwear recognition
       footwearRecognitionRef.current = new SpeechRecognitionAPI();
       footwearRecognitionRef.current.continuous = true;
       footwearRecognitionRef.current.interimResults = true;
       footwearRecognitionRef.current.lang = voiceLang;
-      
-      footwearRecognitionRef.current.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setCustomFootwearPrompt(transcript);
-      };
-      
-      footwearRecognitionRef.current.onerror = () => setIsFootwearListening(false);
-      footwearRecognitionRef.current.onend = () => setIsFootwearListening(false);
+      footwearRecognitionRef.current.onresult = makeOnResult(footwearBaseTextRef, setCustomFootwearPrompt);
+      footwearRecognitionRef.current.onerror = () => {};
+      footwearRecognitionRef.current.onend = makeOnEnd(isFootwearListeningRef, setIsFootwearListening, footwearRecognitionRef, footwearBaseTextRef, () => footwearPromptRef.current);
       
       // Headwear recognition
       headwearRecognitionRef.current = new SpeechRecognitionAPI();
       headwearRecognitionRef.current.continuous = true;
       headwearRecognitionRef.current.interimResults = true;
       headwearRecognitionRef.current.lang = voiceLang;
-      
-      headwearRecognitionRef.current.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        setCustomHeadwearPrompt(transcript);
-      };
-      
-      headwearRecognitionRef.current.onerror = () => setIsHeadwearListening(false);
-      headwearRecognitionRef.current.onend = () => setIsHeadwearListening(false);
+      headwearRecognitionRef.current.onresult = makeOnResult(headwearBaseTextRef, setCustomHeadwearPrompt);
+      headwearRecognitionRef.current.onerror = () => {};
+      headwearRecognitionRef.current.onend = makeOnEnd(isHeadwearListeningRef, setIsHeadwearListening, headwearRecognitionRef, headwearBaseTextRef, () => headwearPromptRef.current);
     }
     
     return () => {
+      isUpperListeningRef.current = false;
+      isLowerListeningRef.current = false;
+      isFootwearListeningRef.current = false;
+      isHeadwearListeningRef.current = false;
       upperRecognitionRef.current?.stop();
       lowerRecognitionRef.current?.stop();
       footwearRecognitionRef.current?.stop();
@@ -1683,22 +1717,52 @@ const CreateSection = () => {
     };
   }, [voiceLang]);
   
+  // Helper to stop all other voice inputs
+  const stopAllListening = () => {
+    if (isUpperListeningRef.current) {
+      isUpperListeningRef.current = false;
+      try { upperRecognitionRef.current?.stop(); } catch (_) {}
+      setIsUpperListening(false);
+    }
+    if (isLowerListeningRef.current) {
+      isLowerListeningRef.current = false;
+      try { lowerRecognitionRef.current?.stop(); } catch (_) {}
+      setIsLowerListening(false);
+    }
+    if (isFootwearListeningRef.current) {
+      isFootwearListeningRef.current = false;
+      try { footwearRecognitionRef.current?.stop(); } catch (_) {}
+      setIsFootwearListening(false);
+    }
+    if (isHeadwearListeningRef.current) {
+      isHeadwearListeningRef.current = false;
+      try { headwearRecognitionRef.current?.stop(); } catch (_) {}
+      setIsHeadwearListening(false);
+    }
+  };
+
   const toggleUpperListening = () => {
     if (!upperRecognitionRef.current) {
       toast.error("Speech recognition not supported in this browser");
       return;
     }
     if (isUpperListening) {
-      upperRecognitionRef.current.stop();
+      isUpperListeningRef.current = false;
+      try { upperRecognitionRef.current.stop(); } catch (_) {}
       setIsUpperListening(false);
     } else {
-      // Stop lower if active
-      if (isLowerListening) {
-        lowerRecognitionRef.current?.stop();
-        setIsLowerListening(false);
+      stopAllListening();
+      try { upperRecognitionRef.current.stop(); } catch (_) {} // force-stop if stuck
+      upperBaseTextRef.current = customUpperPrompt;
+      isUpperListeningRef.current = true;
+      try {
+        upperRecognitionRef.current.start();
+        setIsUpperListening(true);
+      } catch (e) {
+        console.error('Error starting upper recognition:', e);
+        isUpperListeningRef.current = false;
+        setIsUpperListening(false);
       }
-      upperRecognitionRef.current.start();
-      setIsUpperListening(true);
     }
   };
   
@@ -1708,16 +1772,22 @@ const CreateSection = () => {
       return;
     }
     if (isLowerListening) {
-      lowerRecognitionRef.current.stop();
+      isLowerListeningRef.current = false;
+      try { lowerRecognitionRef.current.stop(); } catch (_) {}
       setIsLowerListening(false);
     } else {
-      // Stop upper if active
-      if (isUpperListening) {
-        upperRecognitionRef.current?.stop();
-        setIsUpperListening(false);
+      stopAllListening();
+      try { lowerRecognitionRef.current.stop(); } catch (_) {}
+      lowerBaseTextRef.current = customLowerPrompt;
+      isLowerListeningRef.current = true;
+      try {
+        lowerRecognitionRef.current.start();
+        setIsLowerListening(true);
+      } catch (e) {
+        console.error('Error starting lower recognition:', e);
+        isLowerListeningRef.current = false;
+        setIsLowerListening(false);
       }
-      lowerRecognitionRef.current.start();
-      setIsLowerListening(true);
     }
   };
   
@@ -1727,20 +1797,22 @@ const CreateSection = () => {
       return;
     }
     if (isFootwearListening) {
-      footwearRecognitionRef.current.stop();
+      isFootwearListeningRef.current = false;
+      try { footwearRecognitionRef.current.stop(); } catch (_) {}
       setIsFootwearListening(false);
     } else {
-      // Stop others if active
-      if (isUpperListening) {
-        upperRecognitionRef.current?.stop();
-        setIsUpperListening(false);
+      stopAllListening();
+      try { footwearRecognitionRef.current.stop(); } catch (_) {}
+      footwearBaseTextRef.current = customFootwearPrompt;
+      isFootwearListeningRef.current = true;
+      try {
+        footwearRecognitionRef.current.start();
+        setIsFootwearListening(true);
+      } catch (e) {
+        console.error('Error starting footwear recognition:', e);
+        isFootwearListeningRef.current = false;
+        setIsFootwearListening(false);
       }
-      if (isLowerListening) {
-        lowerRecognitionRef.current?.stop();
-        setIsLowerListening(false);
-      }
-      footwearRecognitionRef.current.start();
-      setIsFootwearListening(true);
     }
   };
   
@@ -1750,24 +1822,22 @@ const CreateSection = () => {
       return;
     }
     if (isHeadwearListening) {
-      headwearRecognitionRef.current.stop();
+      isHeadwearListeningRef.current = false;
+      try { headwearRecognitionRef.current.stop(); } catch (_) {}
       setIsHeadwearListening(false);
     } else {
-      // Stop others if active
-      if (isUpperListening) {
-        upperRecognitionRef.current?.stop();
-        setIsUpperListening(false);
+      stopAllListening();
+      try { headwearRecognitionRef.current.stop(); } catch (_) {}
+      headwearBaseTextRef.current = customHeadwearPrompt;
+      isHeadwearListeningRef.current = true;
+      try {
+        headwearRecognitionRef.current.start();
+        setIsHeadwearListening(true);
+      } catch (e) {
+        console.error('Error starting headwear recognition:', e);
+        isHeadwearListeningRef.current = false;
+        setIsHeadwearListening(false);
       }
-      if (isLowerListening) {
-        lowerRecognitionRef.current?.stop();
-        setIsLowerListening(false);
-      }
-      if (isFootwearListening) {
-        footwearRecognitionRef.current?.stop();
-        setIsFootwearListening(false);
-      }
-      headwearRecognitionRef.current.start();
-      setIsHeadwearListening(true);
     }
   };
 
@@ -2363,6 +2433,7 @@ const CreateSection = () => {
         prompt: finalPrompt,
         language: languageCode,
         style: selectedStyle as any,
+        outfitMode: outfitMode as 'full' | 'custom',
       });
 
       if (response.success && response.imageUrl) {
@@ -3798,7 +3869,13 @@ const CreateSection = () => {
                           <div className="relative">
                             <textarea
                               value={customUpperPrompt}
-                              onChange={(e) => setCustomUpperPrompt(e.target.value)}
+                              onChange={(e) => {
+                                setCustomUpperPrompt(e.target.value);
+                                if (isUpperListeningRef.current && upperRecognitionRef.current) {
+                                  upperBaseTextRef.current = e.target.value;
+                                  try { upperRecognitionRef.current.stop(); } catch (_) {}
+                                }
+                              }}
                               placeholder="Describe upper body outfit... e.g., 'A silk blouse with golden embroidery and puff sleeves'"
                               rows={3}
                               disabled={isLoading || selectedUpperGarment === 'none'}
@@ -3990,7 +4067,13 @@ const CreateSection = () => {
                           <div className="relative">
                             <textarea
                               value={customLowerPrompt}
-                              onChange={(e) => setCustomLowerPrompt(e.target.value)}
+                              onChange={(e) => {
+                                setCustomLowerPrompt(e.target.value);
+                                if (isLowerListeningRef.current && lowerRecognitionRef.current) {
+                                  lowerBaseTextRef.current = e.target.value;
+                                  try { lowerRecognitionRef.current.stop(); } catch (_) {}
+                                }
+                              }}
                               placeholder="Describe lower body outfit... e.g., 'Flared palazzo pants in matching color, ankle length'"
                               rows={3}
                               disabled={isLoading || selectedLowerGarment === 'none'}
@@ -4156,7 +4239,13 @@ const CreateSection = () => {
                           <div className="relative">
                             <textarea
                               value={customFootwearPrompt}
-                              onChange={(e) => setCustomFootwearPrompt(e.target.value)}
+                              onChange={(e) => {
+                                setCustomFootwearPrompt(e.target.value);
+                                if (isFootwearListeningRef.current && footwearRecognitionRef.current) {
+                                  footwearBaseTextRef.current = e.target.value;
+                                  try { footwearRecognitionRef.current.stop(); } catch (_) {}
+                                }
+                              }}
                               placeholder="Describe footwear... e.g., 'Embroidered golden juttis matching the outfit'"
                               rows={2}
                               disabled={isLoading || selectedFootwear === 'none'}
@@ -4308,7 +4397,13 @@ const CreateSection = () => {
                           <div className="relative">
                             <textarea
                               value={customHeadwearPrompt}
-                              onChange={(e) => setCustomHeadwearPrompt(e.target.value)}
+                              onChange={(e) => {
+                                setCustomHeadwearPrompt(e.target.value);
+                                if (isHeadwearListeningRef.current && headwearRecognitionRef.current) {
+                                  headwearBaseTextRef.current = e.target.value;
+                                  try { headwearRecognitionRef.current.stop(); } catch (_) {}
+                                }
+                              }}
                               placeholder="Describe headwear... e.g., 'Traditional maang tikka with pearl drops'"
                               rows={2}
                               disabled={isLoading}
