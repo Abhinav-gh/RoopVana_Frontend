@@ -25,6 +25,13 @@ const AdminPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [creditInputs, setCreditInputs] = useState<Record<string, string>>({});
   const [approveCredits, setApproveCredits] = useState<Record<string, string>>({});
+  
+  const [showDetailedReport, setShowDetailedReport] = useState(false);
+  const [detailedGenRequests, setDetailedGenRequests] = useState<GenerationRequest[]>([]);
+  const [detailedPage, setDetailedPage] = useState(1);
+  const [detailedCursors, setDetailedCursors] = useState<(string | undefined)[]>([undefined]);
+  const [detailedHasMore, setDetailedHasMore] = useState(false);
+  const [loadingDetailed, setLoadingDetailed] = useState(false);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -107,6 +114,40 @@ const AdminPage = () => {
       await loadAllData();
     } catch (error: any) {
       toast.error(error.message);
+    }
+  };
+
+  const loadDetailedPage = async (pageIndex: number, cursor?: string) => {
+    setLoadingDetailed(true);
+    try {
+      const res = await adminApi.getRequests(10, cursor);
+      setDetailedGenRequests(res.requests);
+      setDetailedHasMore(res.hasMore ?? false);
+      setDetailedPage(pageIndex);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load detailed report');
+    } finally {
+      setLoadingDetailed(false);
+    }
+  };
+
+  const handleNextDetailedPage = () => {
+    if (detailedGenRequests.length > 0) {
+      const nextCursor = detailedGenRequests[detailedGenRequests.length - 1].id;
+      setDetailedCursors((prev) => {
+        const newCursors = [...prev];
+        newCursors[detailedPage] = nextCursor;
+        return newCursors;
+      });
+      loadDetailedPage(detailedPage + 1, nextCursor);
+    }
+  };
+
+  const handlePrevDetailedPage = () => {
+    if (detailedPage > 1) {
+      const prevPage = detailedPage - 1;
+      const cursor = detailedCursors[prevPage - 1]; // cursor for previous page
+      loadDetailedPage(prevPage, cursor);
     }
   };
 
@@ -368,49 +409,140 @@ const AdminPage = () => {
         )}
 
         {activeTab === 'requests' && (
-          <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border/50 bg-muted/30">
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Type</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Prompt</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Improved Prompt</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Language</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Time</th>
-                    <th className="text-left px-4 py-3 text-muted-foreground font-medium">Timestamp</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {genRequests.map((r) => (
-                    <tr key={r.id} className="border-b border-border/30 hover:bg-muted/20">
-                      <td className="px-4 py-3 text-foreground truncate max-w-[120px]">{r.email}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                          r.type === 'text-to-image' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
-                        }`}>
-                          {r.type}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={r.prompt}>
-                        {r.prompt.substring(0, 50)}...
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={r.improvedPrompt}>
-                        {r.improvedPrompt.substring(0, 50)}...
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground">{r.language}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{(r.generationTimeMs / 1000).toFixed(1)}s</td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-foreground">
+                {showDetailedReport ? 'Detailed Generation Report' : 'Generations Table'}
+              </h2>
+              <button
+                onClick={() => {
+                  if (!showDetailedReport) {
+                    setDetailedPage(1);
+                    setDetailedCursors([undefined]);
+                    loadDetailedPage(1);
+                  }
+                  setShowDetailedReport(!showDetailedReport);
+                }}
+                className="px-4 py-2 rounded-lg bg-primary/20 text-primary font-medium text-sm hover:bg-primary/30 transition-colors"
+               >
+                {showDetailedReport ? 'View Simple Table' : 'Detailed Generation Report'}
+              </button>
             </div>
-            {genRequests.length === 0 && (
-              <p className="text-center py-8 text-muted-foreground">No generation requests yet</p>
+
+            {showDetailedReport ? (
+              <div className="space-y-6">
+                {loadingDetailed ? (
+                  <div className="flex justify-center py-12"><div className="login-spinner" style={{ width: 40, height: 40 }} /></div>
+                ) : detailedGenRequests.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No generations found</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {detailedGenRequests.map((r) => (
+                      <div key={r.id} className="glass-card rounded-xl border border-border/50 p-4 flex flex-col space-y-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">{r.email}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            r.type === 'text-to-image' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                          }`}>
+                            {r.type}
+                          </span>
+                        </div>
+                        <div className="space-y-2 flex-grow">
+                          <div>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Prompt</p>
+                            <p className="text-sm text-foreground">{r.prompt}</p>
+                          </div>
+                          {r.improvedPrompt && r.improvedPrompt !== r.prompt && (
+                            <div>
+                              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Improved</p>
+                              <p className="text-sm text-foreground">{r.improvedPrompt}</p>
+                            </div>
+                          )}
+                        </div>
+                        {r.generatedImageUrl ? (
+                          <div className="aspect-square rounded-lg overflow-hidden bg-muted/20 border border-border/20 mt-4 h-[300px]">
+                            <img src={r.generatedImageUrl} alt="Generated" className="w-full h-full object-cover" loading="lazy" />
+                          </div>
+                        ) : (
+                          <div className="aspect-square rounded-lg flex items-center justify-center bg-muted/20 border border-border/20 mt-4 h-[300px]">
+                            <span className="text-xs text-muted-foreground">No image available</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!loadingDetailed && detailedGenRequests.length > 0 && (
+                  <div className="flex items-center justify-between mt-6 pt-4 border-t border-border/50">
+                    <button
+                      onClick={handlePrevDetailedPage}
+                      disabled={detailedPage === 1}
+                      className="px-4 py-2 rounded-lg bg-muted border border-border/50 text-sm font-medium disabled:opacity-50 hover:bg-muted/80 transition-colors"
+                    >
+                      Previous Page
+                    </button>
+                    <span className="text-sm text-muted-foreground font-medium">Page {detailedPage}</span>
+                    <button
+                      onClick={handleNextDetailedPage}
+                      disabled={!detailedHasMore}
+                      className="px-4 py-2 rounded-lg bg-muted border border-border/50 text-sm font-medium disabled:opacity-50 hover:bg-muted/80 transition-colors"
+                    >
+                      Next Page
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border/50 bg-muted/30">
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Type</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Prompt</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Improved Prompt</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Language</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Time</th>
+                        <th className="text-left px-4 py-3 text-muted-foreground font-medium">Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {genRequests.map((r) => (
+                        <tr key={r.id} className="border-b border-border/30 hover:bg-muted/20">
+                          <td className="px-4 py-3 text-foreground truncate max-w-[120px]">{r.email}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              r.type === 'text-to-image' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                            }`}>
+                              {r.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={r.prompt}>
+                            {r.prompt.substring(0, 50)}...
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]" title={r.improvedPrompt}>
+                            {r.improvedPrompt.substring(0, 50)}...
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{r.language}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{(r.generationTimeMs / 1000).toFixed(1)}s</td>
+                          <td className="px-4 py-3 text-muted-foreground text-xs">
+                            {r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {genRequests.length === 0 && (
+                  <p className="text-center py-8 text-muted-foreground">No generation requests yet</p>
+                )}
+              </div>
             )}
           </div>
         )}
