@@ -431,6 +431,25 @@ const AdminPage = () => {
 
             {showDetailedReport ? (
               <div className="space-y-6">
+                {!loadingDetailed && detailedGenRequests.length > 0 && (
+                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-border/50">
+                    <button
+                      onClick={handlePrevDetailedPage}
+                      disabled={detailedPage === 1}
+                      className="px-4 py-2 rounded-lg bg-muted border border-border/50 text-sm font-medium disabled:opacity-50 hover:bg-muted/80 transition-colors"
+                    >
+                      Previous Page
+                    </button>
+                    <span className="text-sm text-muted-foreground font-medium">Page {detailedPage}</span>
+                    <button
+                      onClick={handleNextDetailedPage}
+                      disabled={!detailedHasMore}
+                      className="px-4 py-2 rounded-lg bg-muted border border-border/50 text-sm font-medium disabled:opacity-50 hover:bg-muted/80 transition-colors"
+                    >
+                      Next Page
+                    </button>
+                  </div>
+                )}
                 {loadingDetailed ? (
                   <div className="flex justify-center py-12"><div className="login-spinner" style={{ width: 40, height: 40 }} /></div>
                 ) : detailedGenRequests.length === 0 ? (
