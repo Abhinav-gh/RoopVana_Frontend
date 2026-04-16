@@ -12,6 +12,8 @@ import { EditOptionDialog } from './EditOptionDialog';
 import ImagePreview from "./ImagePreview";
 import ImageToImageInput from "./ImageToImageInput";
 import apiClient from "@/services/api";
+import { Steps } from 'intro.js-react';
+import 'intro.js/introjs.css';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -472,24 +474,23 @@ const getStylesByCategory = (styles: typeof STYLE_PROMPTS) => {
 
 // Gender-specific body type options
 const FEMALE_BODY_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
-  any: { label: "Any", icon: "✨", prompt: "" },
-  hourglass: { label: "Hourglass", icon: "⏳", prompt: "hourglass figure, balanced bust and hips, defined waist" },
-  pear: { label: "Pear", icon: "🍐", prompt: "pear shaped body, wider hips, narrower shoulders" },
-  apple: { label: "Apple", icon: "🍎", prompt: "apple shaped body, fuller midsection" },
-  athletic: { label: "Athletic", icon: "💪", prompt: "athletic feminine body, toned physique, fit build" },
-  petite: { label: "Petite", icon: "🌷", prompt: "petite body type, small frame, delicate feminine build" },
-  tall: { label: "Tall", icon: "📏", prompt: "tall feminine body, long legs, elegant silhouette" },
-  plus_size: { label: "Plus Size", icon: "🌸", prompt: "plus size feminine body, full figured, body positive" },
+  any: { label: "Any Size", icon: "✨", prompt: "" },
+  xs: { label: "Extra Small (XS)", icon: "🌷", prompt: "extra small size feminine body, petite build" },
+  s: { label: "Small (S)", icon: "🧍‍♀️", prompt: "small size feminine body, slim build" },
+  m: { label: "Medium (M)", icon: "👤", prompt: "medium size feminine body, regular natural build" },
+  l: { label: "Large (L)", icon: "🍎", prompt: "large size feminine body, curvy build" },
+  xl: { label: "Extra Large (XL)", icon: "🌸", prompt: "extra large size feminine body, full figured" },
+  xxl: { label: "Double XL (XXL)", icon: "✨", prompt: "plus size feminine body, full body shape" },
 };
 
 const MALE_BODY_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
-  any: { label: "Any", icon: "✨", prompt: "" },
-  athletic: { label: "Athletic", icon: "💪", prompt: "athletic male body, toned muscular physique" },
-  slim: { label: "Slim", icon: "🧍", prompt: "slim male body type, lean slender figure" },
-  muscular: { label: "Muscular", icon: "🏋️", prompt: "muscular male body, well-built, broad shoulders" },
-  average: { label: "Average", icon: "👤", prompt: "average male body type, regular build" },
-  tall: { label: "Tall", icon: "📏", prompt: "tall male body type, long limbs, commanding presence" },
-  stocky: { label: "Stocky", icon: "🧱", prompt: "stocky male body, broad sturdy build" },
+  any: { label: "Any Size", icon: "✨", prompt: "" },
+  xs: { label: "Extra Small (XS)", icon: "🧍", prompt: "extra small size male body, slender build" },
+  s: { label: "Small (S)", icon: "🧍‍♂️", prompt: "small size male body, lean build" },
+  m: { label: "Medium (M)", icon: "👤", prompt: "medium size male body, athletic athletic build" },
+  l: { label: "Large (L)", icon: "🏋️", prompt: "large size male body, broad sturdy build" },
+  xl: { label: "Extra Large (XL)", icon: "🧱", prompt: "extra large size male body, stocky build" },
+  xxl: { label: "Double XL (XXL)", icon: "✨", prompt: "double extra large size male body, big and tall build" },
 };
 
 // Keep for backwards compatibility
@@ -680,57 +681,57 @@ const POSTURE_OPTIONS: { [key: string]: { label: string; icon: string; prompt: s
 // Gender-specific person type options
 const FEMALE_PERSON_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
   woman: {
-    label: "Woman",
+    label: "Woman (25-35 years)",
     icon: "👩",
-    prompt: "adult woman, feminine fashion, women's wear",
+    prompt: "adult woman, 25 to 35 years old, feminine fashion, women's wear",
   },
   young_woman: {
-    label: "Young Woman",
+    label: "Young Woman (18-24 years)",
     icon: "👩‍🦱",
-    prompt: "young woman in her 20s, youthful feminine style, trendy fashion",
+    prompt: "young woman, 18 to 24 years old, youthful feminine style, trendy fashion",
   },
   teen_girl: {
-    label: "Girl (Teen)",
+    label: "Teen Girl (13-17 years)",
     icon: "👧",
-    prompt: "teenage girl, modest teen fashion, age-appropriate youthful style",
+    prompt: "teenage girl, 13 to 17 years old, modest teen fashion, age-appropriate youthful style",
   },
   child_girl: {
-    label: "Girl (Child)",
+    label: "Child Girl (4-12 years)",
     icon: "🧒",
-    prompt: "young girl child, kids fashion, playful modest children's wear",
+    prompt: "young girl child, 4 to 12 years old, kids fashion, playful modest children's wear",
   },
   mature_woman: {
-    label: "Mature Woman",
+    label: "Mature Woman (40+ years)",
     icon: "👵",
-    prompt: "mature elegant woman, sophisticated fashion, timeless graceful style",
+    prompt: "mature elegant woman, over 40 years old, sophisticated fashion, timeless graceful style",
   },
 };
 
 const MALE_PERSON_TYPES: { [key: string]: { label: string; icon: string; prompt: string } } = {
   man: {
-    label: "Man",
+    label: "Man (25-35 years)",
     icon: "👨",
-    prompt: "adult man, masculine fashion, men's wear",
+    prompt: "adult man, 25 to 35 years old, masculine fashion, men's wear",
   },
   young_man: {
-    label: "Young Man",
+    label: "Young Man (18-24 years)",
     icon: "👨‍🦱",
-    prompt: "young man in his 20s, youthful masculine style, contemporary fashion",
+    prompt: "young man, 18 to 24 years old, youthful masculine style, contemporary fashion",
   },
   teen_boy: {
-    label: "Boy (Teen)",
+    label: "Teen Boy (13-17 years)",
     icon: "👦",
-    prompt: "teenage boy, modest teen fashion, age-appropriate youthful style",
+    prompt: "teenage boy, 13 to 17 years old, modest teen fashion, age-appropriate youthful style",
   },
   child_boy: {
-    label: "Boy (Child)",
+    label: "Child Boy (4-12 years)",
     icon: "🧒",
-    prompt: "young boy child, kids fashion, playful modest children's wear",
+    prompt: "young boy child, 4 to 12 years old, kids fashion, playful modest children's wear",
   },
   mature_man: {
-    label: "Mature Man",
+    label: "Mature Man (40+ years)",
     icon: "👴",
-    prompt: "mature distinguished man, classic sophisticated fashion, refined style",
+    prompt: "mature distinguished man, over 40 years old, classic sophisticated fashion, refined style",
   },
 };
 
@@ -887,6 +888,37 @@ const CreateSection = () => {
   const [loadingMessage, setLoadingMessage] = useState("");
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [lastPrompt, setLastPrompt] = useState("");
+  
+  // Track if user manually edited the full mode prompt
+  const hasUserEditedPromptRef = useRef(false);
+  // Auto generated prompt string tracking
+  const autoGeneratedPromptRef = useRef("");
+  
+  // IntroJS setup
+  const [stepsEnabled, setStepsEnabled] = useState(false);
+  const [initialStep, setInitialStep] = useState(0);
+
+  // IntroJS configuration will be defined right before rendering
+  // to ensure access to all initialized state variables like outfitMode.
+
+  useEffect(() => {
+    const tutorialSeen = localStorage.getItem('roopvana_tutorial_seen');
+    if (!tutorialSeen) {
+      setStepsEnabled(true);
+    }
+    
+    const handleStartTutorial = () => {
+      setInitialStep(0);
+      setStepsEnabled(true);
+    };
+    window.addEventListener('start-roopvana-tutorial', handleStartTutorial);
+    return () => window.removeEventListener('start-roopvana-tutorial', handleStartTutorial);
+  }, []);
+
+  const onTutorialExit = () => {
+    setStepsEnabled(false);
+    localStorage.setItem('roopvana_tutorial_seen', 'true');
+  };
   
   // Guard flag to prevent cascading useEffect resets during history restore
   const isRestoringRef = useRef(false);
@@ -1842,6 +1874,33 @@ const CreateSection = () => {
   };
 
   const detectedLanguage = detectLanguage(prompt);
+
+  // Auto-generate prompt in full mode based on dropdown selections
+  useEffect(() => {
+    if (outfitMode === 'full') {
+      const parts = [];
+      const pts = selectedGender === 'female' ? FEMALE_PERSON_TYPES : MALE_PERSON_TYPES;
+      if (pts[selectedPersonType]) parts.push(pts[selectedPersonType].label);
+      
+      const bts = selectedGender === 'female' ? FEMALE_BODY_TYPES : MALE_BODY_TYPES;
+      if (bts[selectedBodyType] && selectedBodyType !== 'any') parts.push(bts[selectedBodyType].label);
+      
+      if (POSTURE_OPTIONS[selectedPosture]) parts.push(POSTURE_OPTIONS[selectedPosture].label + " pose");
+      
+      if (allStyles[selectedStyle]) parts.push("wearing " + allStyles[selectedStyle].label);
+      
+      if (selectedUpperColor && selectedUpperColor !== 'any') parts.push((COLOR_PALETTE[selectedUpperColor]?.label || selectedUpperColor).replace(/^[^\w\s]+\s/, '') + " color");
+      
+      let simplePrompt = parts.join(", ");
+      if (!simplePrompt) simplePrompt = "A fashionable outfit";
+      
+      autoGeneratedPromptRef.current = simplePrompt;
+      
+      if (!hasUserEditedPromptRef.current) {
+        setPrompt(simplePrompt);
+      }
+    }
+  }, [outfitMode, selectedGender, selectedPersonType, selectedBodyType, selectedPosture, selectedStyle, selectedUpperColor, allStyles]);
   
   // Compute the enhanced prompt preview (user prompt first, then modifiers)
   const computeEnhancedPrompt = () => {
@@ -2399,6 +2458,11 @@ const CreateSection = () => {
         toast.error("Please enter a description");
         return;
       }
+      if (prompt === autoGeneratedPromptRef.current && !hasUserEditedPromptRef.current) {
+        if (!window.confirm("You are generating with the default auto-generated prompt. Do you want to continue without adding your own custom details?")) {
+           return;
+        }
+      }
     }
 
     setIsLoading(true);
@@ -2586,8 +2650,43 @@ const CreateSection = () => {
     }
   };
 
+  // Build tutorial steps dynamically based on current mode
+  const introSteps = [
+    { element: '#gender-selector', intro: 'Start here! Choose to design for a male or female model.' },
+    { element: '#outfit-mode-selector', intro: 'Choose Full Outfit for a single combined style, or Custom Mode to individually define upper, lower, and accessories!' },
+    { element: '#persona-selector', intro: 'Select the age group and persona characteristics.' },
+    { element: '#body-type-selector', intro: 'Pick a body size to get the right fit.' },
+    { element: '#style-selector', intro: outfitMode === 'full' ? 'Choose a style for the overall outfit! This affects the design dramatically.' : 'Select specific details for each individual garment piece here!' },
+    ...(outfitMode === 'full' 
+      ? [{ element: '#prompt-input', intro: 'Notice the auto-generated prompt here! You can further refine it directly and then click Generate to create your masterpiece!' }]
+      : [{ element: '#custom-prompts-guide', intro: 'Since you are in custom mode, use the boxes below each piece to add hyper-specific details to your upper and lower garments.' }]),
+    { element: '#user-profile-btn', intro: 'Here is your profile! Access Generation History, Admin tools, request more credits, or log out.' },
+    { element: '#theme-toggle-btn', intro: 'Toggle between dark and light modes according to your preference.' },
+    { element: '#tutorial-btn', intro: 'Click here anytime to view this tutorial again.' },
+  ];
+
+  const handleStepChange = (nextStepIndex: number) => {
+    if (introSteps[nextStepIndex]?.element === '#style-selector') {
+      if (outfitMode === 'full') setIsStyleExpanded(true);
+    }
+  };
+
   return (
     <section id="create" className="relative py-24">
+      <Steps
+        enabled={stepsEnabled}
+        steps={introSteps}
+        initialStep={initialStep}
+        onExit={onTutorialExit}
+        onComplete={onTutorialExit}
+        onBeforeChange={handleStepChange}
+        options={{ 
+          disableInteraction: false,
+          showSkipButton: true,
+          skipLabel: 'Skip Tutorial',
+          doneLabel: 'Done'
+        }}
+      />
       {/* Background pattern */}
       <div className="absolute inset-0 pattern-overlay opacity-50" />
       
@@ -2658,7 +2757,7 @@ const CreateSection = () => {
             className="flex flex-col items-center mb-8 space-y-6"
           >
             {/* Step 1: Gender Selection - Big prominent buttons */}
-            <div className="flex flex-col items-center gap-3">
+            <div id="gender-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 1: Select Gender</span>
               <div className="flex gap-4">
                 <button
@@ -2689,7 +2788,7 @@ const CreateSection = () => {
             </div>
 
             {/* Step 2: Outfit Mode Toggle */}
-            <div className="flex flex-col items-center gap-3">
+            <div id="outfit-mode-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 2: Outfit Type</span>
               <div className="flex gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
                 <button
@@ -2725,7 +2824,7 @@ const CreateSection = () => {
                  <span className="text-sm font-medium text-muted-foreground">Step 3: Model Details</span>
                  <div className="flex flex-wrap justify-center gap-3">
                     {/* Age/Person Type */}
-                    <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                    <NavigationMenu id="persona-selector" className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
                       <NavigationMenuList>
                         <NavigationMenuItem>
                           <NavigationMenuTrigger 
@@ -2760,7 +2859,7 @@ const CreateSection = () => {
                     </NavigationMenu>
 
                     {/* Body Type */}
-                    <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
+                    <NavigationMenu id="body-type-selector" className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
                       <NavigationMenuList>
                         <NavigationMenuItem>
                           <NavigationMenuTrigger 
@@ -2905,7 +3004,7 @@ const CreateSection = () => {
               </div>
 
               {/* Step 4: Choose Style (Renamed) */}
-              <div className="flex flex-col items-center gap-3 w-full">
+              <div id="style-selector" className="flex flex-col items-center gap-3 w-full">
               <span className="text-sm font-medium text-muted-foreground">Step 4: Choose Style</span>
               
               {outfitMode === 'full' ? (
@@ -3720,6 +3819,9 @@ const CreateSection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="w-full max-w-3xl mx-auto"
                   >
+                    <div id="custom-prompts-guide" className="mb-6 text-sm text-muted-foreground text-center bg-muted/30 p-4 rounded-xl border border-border/50">
+                      💡 <strong>Add Specific Details:</strong> We process your dropdown selections into an outfit. However, if you want to add intricate details like specific embroidery patterns, fabric textures, or sleeve lengths, please describe them in the prompt boxes under each garment section below!
+                    </div>
                     <div className="gradient-border">
                       <div className="relative bg-card rounded-xl p-4 space-y-4">
                         {/* Upper Body Prompt with Color Dropdown */}
@@ -4570,18 +4672,26 @@ const CreateSection = () => {
                   </motion.div>
                 ) : (
                   /* Full Outfit Mode - Regular PromptInput */
-                  <PromptInput
-                    value={prompt}
-                    onChange={(val) => {
-                      setPrompt(val);
-                      // Reset custom prompt when user types new input
-                      setCustomEnhancedPrompt(null);
-                    }}
-                    onSubmit={handleGenerate}
-                    isLoading={isLoading}
-                    loadingMessage={loadingMessage}
-                    detectedLanguage={detectedLanguage}
-                  />
+                  <div className="w-full">
+                    <div className="mb-6 text-sm text-muted-foreground text-center bg-muted/30 p-4 rounded-xl border border-border/50 max-w-3xl mx-auto">
+                      💡 <strong>Add Specific Details:</strong> We process your dropdown selections into an outfit. However, if you want to add intricate details like specific embroidery patterns, fabric textures, or sleeve lengths, please describe them in the prompt box below!
+                    </div>
+                    <div id="prompt-input">
+                      <PromptInput
+                      value={prompt}
+                      onChange={(val) => {
+                        setPrompt(val);
+                        hasUserEditedPromptRef.current = true;
+                        // Reset custom prompt when user types new input
+                        setCustomEnhancedPrompt(null);
+                      }}
+                      onSubmit={handleGenerate}
+                      isLoading={isLoading}
+                      loadingMessage={loadingMessage}
+                      detectedLanguage={detectedLanguage}
+                    />
+                  </div>
+                  </div>
                 )}
                 
                 {/* Advanced Options */}
