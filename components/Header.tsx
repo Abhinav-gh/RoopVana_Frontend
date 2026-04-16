@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, Coins, Send, User, Shield, Clock, ImageIcon } from "lucide-react";
+import { Sparkles, LogOut, Coins, Send, User, Shield, Clock, ImageIcon, HelpCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
@@ -163,13 +163,27 @@ const Header = () => {
               </motion.div>
             )}
 
-            <ThemeToggle />
+            {user && (
+              <button
+                id="tutorial-btn"
+                onClick={() => window.dispatchEvent(new Event('start-roopvana-tutorial'))}
+                className="flex items-center justify-center h-8 w-8 rounded-md transition-colors hover:bg-muted text-muted-foreground hover:text-foreground"
+                title="View Tutorial"
+              >
+                <HelpCircle className="w-5 h-5" />
+              </button>
+            )}
+
+            <div id="theme-toggle-btn">
+              <ThemeToggle />
+            </div>
 
             {/* User Avatar + Dropdown */}
             {user && (
               <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
+                    id="user-profile-btn"
                     className="flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-transform hover:scale-105"
                     aria-label="User menu"
                   >

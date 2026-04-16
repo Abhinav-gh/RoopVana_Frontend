@@ -354,23 +354,28 @@ const PromptInput = ({
                 </select>
 
                 {/* Voice input button */}
-                <Button
-                  variant="glass"
-                  size="icon"
-                  onClick={toggleListening}
-                  disabled={isLoading}
-                  className={`relative ${isListening ? "text-primary" : ""}`}
-                  title={isListening ? "Stop listening" : `Start voice input (${voiceLang})`}
-                >
-                  {isListening ? (
-                    <>
-                      <MicOff className="w-4 h-4" />
-                      <span className="absolute inset-0 rounded-lg border-2 border-primary animate-pulse-ring" />
-                    </>
-                  ) : (
+                {isListening ? (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={toggleListening}
+                    className="animate-pulse flex items-center gap-2 px-3"
+                    title="Stop listening"
+                  >
+                    <MicOff className="w-4 h-4" />
+                    <span className="text-xs font-semibold">Stop Recording</span>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="glass"
+                    size="icon"
+                    onClick={toggleListening}
+                    disabled={isLoading}
+                    title={`Start voice input (${voiceLang})`}
+                  >
                     <Mic className="w-4 h-4" />
-                  )}
-                </Button>
+                  </Button>
+                )}
 
                 {/* Clear button */}
                 <AnimatePresence>

@@ -53,6 +53,7 @@ export interface GenerationRequest {
   language: string;
   style: string | null;
   inputImageProvided: boolean;
+  generatedImageUrl?: string;
   generationTimeMs: number;
   success: boolean;
   timestamp: string | null;
@@ -90,8 +91,10 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ credits }),
     }),
-  getRequests: (limit = 50) =>
-    request<{ success: boolean; requests: GenerationRequest[] }>(`/api/admin/requests?limit=${limit}`),
+  getRequests: (limit = 50, cursor?: string) =>
+    request<{ success: boolean; requests: GenerationRequest[]; hasMore?: boolean }>(
+      `/api/admin/requests?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`
+    ),
   getCreditRequests: () =>
     request<{ success: boolean; requests: CreditRequest[] }>('/api/admin/credit-requests'),
   reviewCreditRequest: (id: string, status: 'approved' | 'denied', credits?: number) =>
