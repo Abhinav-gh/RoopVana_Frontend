@@ -297,7 +297,7 @@ const PromptInput = ({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20"
+                  className="absolute top-3 left-3 sm:top-4 sm:left-4 flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20"
                 >
                   <Globe className="w-3 h-3 text-primary" />
                   <span className="text-xs text-primary font-medium">
@@ -314,16 +314,16 @@ const PromptInput = ({
               onChange={handleManualChange}
               onKeyDown={handleKeyDown}
               placeholder={currentPlaceholder}
-              rows={4}
-              className={`w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none p-6 ${
+              rows={3}
+              className={`w-full bg-transparent text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none p-4 sm:p-6 text-sm sm:text-base leading-6 ${
                 detectedLanguage && !isVoiceInput ? "pt-14" : ""
               }`}
               disabled={isLoading}
             />
 
             {/* Bottom action bar */}
-            <div className="flex items-center justify-between px-4 pb-4">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 px-4 pb-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Audio label box */}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50">
                   <Mic className="w-3.5 h-3.5 text-muted-foreground" />
@@ -337,7 +337,7 @@ const PromptInput = ({
                   value={voiceLang}
                   onChange={(e) => setVoiceLang(e.target.value)}
                   disabled={isLoading}
-                  className="text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
+                  className="w-full sm:w-auto text-xs px-2 py-1 rounded-md bg-background/50 border border-border hover:bg-background/80 transition-colors cursor-pointer"
                   title="Voice input language"
                 >
                   <option value="en-IN">🇮🇳 English</option>
@@ -359,7 +359,7 @@ const PromptInput = ({
                     variant="destructive"
                     size="sm"
                     onClick={toggleListening}
-                    className="animate-pulse flex items-center gap-2 px-3"
+                    className="animate-pulse flex w-full sm:w-auto items-center justify-center gap-2 px-3"
                     title="Stop listening"
                   >
                     <MicOff className="w-4 h-4" />
@@ -401,7 +401,7 @@ const PromptInput = ({
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="text-xs text-primary ml-2"
+                    className="w-full text-xs text-primary sm:ml-2"
                   >
                     Listening in {voiceLang.split('-')[0].toUpperCase()}...
                   </motion.span>
@@ -409,13 +409,13 @@ const PromptInput = ({
               </div>
 
               {/* Generate button with pricing */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                 <Button
                   variant="hero"
                   size="lg"
                   onClick={onSubmit}
                   disabled={!value.trim() || isLoading}
-                  className="min-w-[140px]"
+                  className="w-full sm:w-auto min-w-0 sm:min-w-[140px]"
                 >
                   {isLoading ? (
                     <>

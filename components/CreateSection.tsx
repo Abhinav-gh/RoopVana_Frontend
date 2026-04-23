@@ -2672,7 +2672,7 @@ const CreateSection = () => {
   };
 
   return (
-    <section id="create" className="relative py-24">
+    <section id="create" className="relative py-16 sm:py-20 lg:py-24">
       <Steps
         enabled={stepsEnabled}
         steps={introSteps}
@@ -2690,20 +2690,20 @@ const CreateSection = () => {
       {/* Background pattern */}
       <div className="absolute inset-0 pattern-overlay opacity-50" />
       
-      <div className="container mx-auto px-6 relative z-10">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10">
         {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="text-center mb-12"
+          className="text-center mb-10 sm:mb-12"
         >
-          <h2 className="font-display text-3xl md:text-5xl font-bold mb-4">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-5xl font-bold mb-4">
             <span className="text-foreground">Create Your</span>{" "}
             <span className="gradient-text">Masterpiece</span>
           </h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-2 sm:px-0">
             Describe your dream fashion design in any Indian language. 
             Our AI understands your vision and brings it to life.
           </p>
@@ -2715,11 +2715,11 @@ const CreateSection = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.3 }}
-          className="flex justify-center gap-2 mb-8"
+          className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-2 mb-8"
         >
           <button
             onClick={() => setGenerationMode('text')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+            className={`w-full sm:w-auto px-5 py-3 rounded-xl font-medium transition-all duration-300 ${
               generationMode === 'text'
                 ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                 : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -2729,7 +2729,7 @@ const CreateSection = () => {
           </button>
           <button
             onClick={() => setGenerationMode('image')}
-            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 ${
+            className={`w-full sm:w-auto px-5 py-3 rounded-xl font-medium transition-all duration-300 ${
               generationMode === 'image'
                 ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
                 : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -2754,16 +2754,16 @@ const CreateSection = () => {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="flex flex-col items-center mb-8 space-y-6"
+            className="flex flex-col items-center mb-8 space-y-5 sm:space-y-6"
           >
             {/* Step 1: Gender Selection - Big prominent buttons */}
             <div id="gender-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 1: Select Gender</span>
-              <div className="flex gap-4">
+              <div className="flex w-full flex-col sm:flex-row gap-3 sm:gap-4">
                 <button
                   onClick={() => handleGenderChange('female')}
                   disabled={isLoading}
-                  className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
+                  className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
                     selectedGender === 'female'
                       ? 'bg-pink-500/20 text-pink-400 border-2 border-pink-500 shadow-lg shadow-pink-500/20'
                       : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
@@ -2775,7 +2775,7 @@ const CreateSection = () => {
                 <button
                   onClick={() => handleGenderChange('male')}
                   disabled={isLoading}
-                  className={`px-8 py-4 rounded-2xl font-semibold text-lg transition-all duration-300 flex items-center gap-3 ${
+                  className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
                     selectedGender === 'male'
                       ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500 shadow-lg shadow-blue-500/20'
                       : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
@@ -2790,11 +2790,11 @@ const CreateSection = () => {
             {/* Step 2: Outfit Mode Toggle */}
             <div id="outfit-mode-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 2: Outfit Type</span>
-              <div className="flex gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
+              <div className="flex w-full flex-col sm:flex-row gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
                 <button
                   onClick={() => setOutfitMode('full')}
                   disabled={isLoading}
-                  className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                     outfitMode === 'full'
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -2805,7 +2805,7 @@ const CreateSection = () => {
                 <button
                   onClick={() => setOutfitMode('custom')}
                   disabled={isLoading}
-                  className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
                     outfitMode === 'custom'
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -3011,21 +3011,21 @@ const CreateSection = () => {
                 /* Full Outfit Mode - Single Expandable Hierarchical Style Selector */
                 <div className="w-full max-w-4xl mx-auto">
                   {/* Main Style Button - Click to expand */}
-                  <div className="flex justify-center items-center gap-2">
+                  <div className="flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-2">
                     <button
                       onClick={() => setIsStyleExpanded(!isStyleExpanded)}
                       disabled={isLoading}
-                      className={`flex-1 max-w-2xl px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-between gap-3 ${
+                      className={`w-full sm:flex-1 sm:max-w-2xl px-4 sm:px-6 py-3 rounded-xl font-medium transition-all duration-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
                         isStyleExpanded
                           ? 'bg-primary text-primary-foreground shadow-md'
                           : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <span className="text-xl">
                             {currentCategoryGarments[selectedGarment || ""]?.icon || customGarments[selectedGarment || ""]?.icon || "👗"}
                         </span>
-                        <span className="text-left">
+                        <span className="text-left text-sm sm:text-base leading-snug min-w-0">
                             {selectedGarment 
                             ? (
                                 <span className="flex items-center flex-wrap gap-1">
@@ -3050,11 +3050,11 @@ const CreateSection = () => {
                             }
                         </span>
                       </div>
-                      <span className={`transition-transform ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
+                      <span className={`transition-transform self-end sm:self-auto ${isStyleExpanded ? 'rotate-180' : ''}`}>▼</span>
                     </button>
                     
                     {/* Edit/Reset Buttons */}
-                    <div className="flex gap-1">
+                    <div className="flex justify-center gap-1">
                         {customEnhancedPrompt && (
                             <button
                                 onClick={handleResetEditedPrompt}
@@ -3086,7 +3086,7 @@ const CreateSection = () => {
                             + Add Custom
                           </button>
                         </div>
-                        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                           {Object.entries(styleHierarchy).map(([key, cat]) => (
                             <button
                               key={key}
@@ -3159,7 +3159,7 @@ const CreateSection = () => {
                             + Add Custom
                           </button>
                         </div>
-                        <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
                           {Object.entries(currentCategoryGarments).map(([key, garment]) => (
                             <button
                               key={key}
@@ -3308,7 +3308,7 @@ const CreateSection = () => {
                                 + Add Custom
                               </button>
                             </div>
-                            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
                               {Object.entries(currentGarmentFabrics).map(([key, fabric]) => (
                                 <button
                                   key={key}
@@ -3404,7 +3404,7 @@ const CreateSection = () => {
                                 + Add Custom
                               </button>
                             </div>
-                            <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3 max-h-48 overflow-y-auto">
                               {Object.entries(currentFabricPrints).map(([key, print]) => (
                                 <button
                                   key={key}
@@ -3501,12 +3501,12 @@ const CreateSection = () => {
               ) : (
                 /* Custom Mode - Upper + Lower Style Selection with expandable panels */
                 <div className="w-full">
-                  <div className="flex flex-wrap justify-center gap-4 mb-2">
+                  <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 mb-2">
                     {/* Upper Body Style Button */}
                     <button
                       onClick={() => setIsUpperStyleExpanded(!isUpperStyleExpanded)}
                       disabled={isLoading}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                      className={`w-full sm:w-auto px-5 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                         isUpperStyleExpanded
                           ? 'bg-primary text-primary-foreground shadow-md'
                           : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
@@ -3521,7 +3521,7 @@ const CreateSection = () => {
                     <button
                       onClick={() => setIsLowerStyleExpanded(!isLowerStyleExpanded)}
                       disabled={isLoading}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                      className={`w-full sm:w-auto px-5 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                         isLowerStyleExpanded
                           ? 'bg-primary text-primary-foreground shadow-md'
                           : 'bg-muted/50 border border-border/50 hover:bg-muted hover:border-border'
@@ -3549,7 +3549,7 @@ const CreateSection = () => {
                               <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
                                 {categoryInfo.label}
                               </h3>
-                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                                 {categoryStyles.map(([key, style]) => (
                                   <button
                                     key={key}
@@ -3587,7 +3587,7 @@ const CreateSection = () => {
                               <h3 className="text-sm font-semibold text-foreground mb-2 pb-1 border-b border-border/50">
                                 {categoryInfo.label}
                               </h3>
-                              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-7 gap-3">
                                 {categoryStyles.map(([key, style]) => (
                                   <button
                                     key={key}
@@ -3616,9 +3616,9 @@ const CreateSection = () => {
 
             {/* Step 4: Additional Options (Custom Mode Only) */}
             {outfitMode === 'custom' && (
-            <div className="flex flex-wrap justify-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
+            <div className="flex flex-col sm:flex-row justify-center gap-3 p-3 rounded-xl bg-muted/20 border border-border/30">
               {/* Person Type Dropdown */}
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+              <div className="flex w-full sm:w-auto items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
                 <span className="text-xs text-muted-foreground">Age:</span>
                 <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
                   <NavigationMenuList>
@@ -3656,7 +3656,7 @@ const CreateSection = () => {
               </div>
 
               {/* Body Type Dropdown - Gender Specific */}
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+              <div className="flex w-full sm:w-auto items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
                 <span className="text-xs text-muted-foreground">Body:</span>
                 <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
                   <NavigationMenuList>
@@ -3704,7 +3704,7 @@ const CreateSection = () => {
 
 
               {/* Posture Dropdown */}
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
+              <div className="flex w-full sm:w-auto items-center gap-2 p-2 rounded-lg bg-card border border-border/50">
                 <span className="text-xs text-muted-foreground">Pose:</span>
                 <NavigationMenu className="relative" onValueChange={(value: string) => setIsDropdownOpen(!!value)}>
                   <NavigationMenuList>
@@ -3758,7 +3758,7 @@ const CreateSection = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-4 w-full max-w-md p-4 rounded-xl bg-card border border-border/50"
+                className="mt-4 w-full max-w-full sm:max-w-md p-4 rounded-xl bg-card border border-border/50"
               >
                 <h4 className="text-sm font-medium text-foreground mb-3">Create Custom Style</h4>
                 <div className="space-y-3">
