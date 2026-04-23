@@ -44,7 +44,7 @@ const ImagePreview = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
+    <div className="w-full max-w-full px-4 sm:px-0 sm:max-w-2xl lg:max-w-3xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -53,7 +53,7 @@ const ImagePreview = ({
       >
         <div className="bg-card rounded-xl overflow-hidden">
           {/* Image container */}
-          <div className="relative aspect-square bg-muted/50 flex items-center justify-center overflow-hidden">
+          <div className="relative aspect-square max-h-[400px] sm:max-h-none bg-muted/50 flex items-center justify-center overflow-hidden">
             <AnimatePresence mode="wait">
               {isLoading ? (
                 <motion.div
@@ -156,39 +156,39 @@ const ImagePreview = ({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 10 }}
-                className="p-4 border-t border-border/50"
+                className="p-3 md:p-4 border-t border-border/50"
               >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+                  <p className="text-xs md:text-sm text-muted-foreground truncate max-w-full md:max-w-[200px]">
                     {prompt}
                   </p>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 md:gap-3">
                     {onGenerateBack && (
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={onGenerateBack}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground md:px-3"
                       >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Back View
+                        <RotateCcw className="w-4 h-4 md:mr-2" />
+                        <span className="hidden md:inline">Back View</span>
                       </Button>
                     )}
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={onRegenerate}
-                      className="text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground md:px-3"
                     >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Regenerate
+                      <RefreshCw className="w-4 h-4 md:mr-2" />
+                      <span className="hidden md:inline">Regenerate</span>
                     </Button>
                     <Button variant="ghost" size="icon" onClick={handleShare}>
                       <Share2 className="w-4 h-4" />
                     </Button>
-                    <Button variant="accent" size="sm" onClick={handleDownload}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
+                    <Button variant="accent" size="sm" onClick={handleDownload} className="md:px-3">
+                      <Download className="w-4 h-4 md:mr-2" />
+                      <span className="hidden md:inline">Download</span>
                     </Button>
                   </div>
                 </div>
