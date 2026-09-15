@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
+import SewingPatternStudio, { SilaiGarment } from "./SewingPatternStudio";
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
 import { EditOptionDialog } from './EditOptionDialog';
 import ImagePreview from "./ImagePreview";
@@ -2671,6 +2672,40 @@ const CreateSection = () => {
     }
   };
 
+  // --- SILAI pattern studio: garment detection -----------------------------
+  // There's no dedicated "blouse"/"trousers" style key in allStyles (blouse/
+  // trousers show up either as a saree's paired blouse, as part of a
+  // composite outfit like a salwar kameez, or as whatever the person typed
+  // into the free-text upper/lower body prompt), so this checks the
+  // free-text prompts too rather than only the fixed style keys.
+  const [showPatternStudio, setShowPatternStudio] = useState(false);
+
+  const isKurtiSelected =
+    (selectedStyle?.toLowerCase().includes("kurti")) ||
+    (selectedUpperStyle?.toLowerCase().includes("kurti"));
+
+  const upperText = `${selectedStyle} ${selectedUpperStyle} ${customUpperPrompt || ""}`.toLowerCase();
+  const lowerText = `${selectedStyle} ${selectedLowerStyle} ${customLowerPrompt || ""}`.toLowerCase();
+  const isSleevelessSelected = /sleeveless|tank top|sleeveless kurti/.test(upperText);
+  const isBlouseSelected =
+    upperText.includes("blouse") ||
+    selectedStyle === "traditional_saree" ||
+    selectedStyle === "modern_saree";
+  const TROUSER_STYLE_KEYS = ["palazzo_suit", "salwar_kameez", "sharara", "dhoti_kurta", "jodhpuri", "business_casual", "formal_suit"];
+  const isTrouserSelected =
+    TROUSER_STYLE_KEYS.includes(selectedStyle) ||
+    /trouser|palazzo|salwar|dhoti|churidar|pyjama|pajama/.test(lowerText);
+
+  const isSilaiGarmentSelected = isKurtiSelected || isBlouseSelected || isTrouserSelected;
+  const silaiGarment: SilaiGarment = isKurtiSelected
+    ? (isSleevelessSelected ? "kurta_sleeveless" : "kurta_sleeve")
+    : isBlouseSelected
+    ? "blouse"
+    : isTrouserSelected
+    ? "trousers"
+    : "kurta_sleeve";
+  // ---------------------------------------------------------------------------
+
   return (
     <section id="create" className="relative py-16 sm:py-20 lg:py-24">
       <Steps
@@ -4658,6 +4693,16 @@ const CreateSection = () => {
                               )}
                             </button>
                           </div>
+                          {isSilaiGarmentSelected && (
+                            <div className="flex justify-end mt-2">
+                              <button
+                                onClick={() => setShowPatternStudio(true)}
+                                className="px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                              >
+                                🧵 Generate Sewing Pattern
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Prompt Preview */}
@@ -5023,6 +5068,13 @@ const CreateSection = () => {
         currentValue={editDialog.currentPrompt}
         onSave={handleSaveEditedPrompt}
         onReset={handleResetEditedPrompt}
+      />
+
+      {/* SILAI parametric pattern studio */}
+      <SewingPatternStudio
+        open={showPatternStudio}
+        onClose={() => setShowPatternStudio(false)}
+        garment={silaiGarment}
       />
     </section>
   );

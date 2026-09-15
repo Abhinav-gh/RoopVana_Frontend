@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Silai · DAG Studio</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#0d0d0f;--surface:#151519;--panel:#1b1b21;--panel2:#212129;--border:#26262f;--border-soft:#1f1f26;
+    --accent:#f59e0b;--accent2:#fbbf24;--accent-dim:rgba(245,158,11,.12);
+    --red:#f0524a;--blue:#4a90f5;--green:#2fc774;--purple:#b062f2;
+    --text:#eeeef4;--text2:#9393a8;--text3:#57576a;
+    --grid-line:#20202a;--sheet-border:#33333d;--form-text:#a6a6bd;--dim-text:#f0f1f8;--garment-line:#3a3a44;
+    --dot-color:rgba(255,255,255,.035);
+    --ease:cubic-bezier(.22,.85,.32,1);--ease-fast:cubic-bezier(.3,.9,.4,1);
+    --radius:12px;--radius-sm:8px;
+  }
+  body.light{
+    --bg:#f7f6f4;--surface:#ffffff;--panel:#f1efec;--panel2:#ffffff;--border:#e0ddd6;--border-soft:#ebe9e4;
+    --accent:#d97706;--accent2:#b45309;--accent-dim:rgba(217,119,6,.10);
+    --red:#dc2626;--blue:#2563eb;--green:#16a34a;--purple:#7c3aed;
+    --text:#181613;--text2:#69625a;--text3:#9c9488;
+    --grid-line:#e8e4dc;--sheet-border:#d9d3c7;--form-text:#746a5c;--dim-text:#221e18;--garment-line:#c9c2b3;
+    --dot-color:rgba(20,16,10,.05);
+  }
+  body{transition:background .25s var(--ease),color .25s var(--ease)}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;border:2px solid var(--surface)}
+  ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+  header{height:56px;background:linear-gradient(180deg,var(--surface),var(--bg));border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 18px;gap:14px;flex-shrink:0;backdrop-filter:blur(6px)}
+  .logo{font-weight:700;font-size:15px;letter-spacing:.06em;color:var(--accent)}
+  .logo span{color:var(--text2);font-weight:400}
+
+  .garment-label{font-size:13px;font-weight:600;color:var(--text);background:var(--panel);border:1px solid var(--border);
+    padding:7px 14px;border-radius:9px}
+
+  .tag{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;border:1px solid var(--border);padding:4px 9px;border-radius:6px}
+  .spacer{margin-left:auto}
+
+  /* names toggle — pill switch */
+  .names-toggle{display:flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--panel);padding:5px 10px 5px 5px;border-radius:20px;cursor:pointer;color:var(--text2);font-family:inherit;font-size:11.5px;font-weight:600;transition:border-color .2s var(--ease),color .2s var(--ease)}
+  .names-toggle:hover{border-color:var(--accent);color:var(--text)}
+  .nt-track{width:30px;height:17px;border-radius:20px;background:var(--bg);border:1px solid var(--border);position:relative;transition:background .22s var(--ease)}
+  .nt-thumb{position:absolute;top:1px;left:1px;width:13px;height:13px;border-radius:50%;background:var(--text3);transition:transform .24s var(--ease),background .22s var(--ease)}
+  .names-toggle.on .nt-track{background:rgba(245,158,11,.18);border-color:var(--accent)}
+  .names-toggle.on .nt-thumb{transform:translateX(13px);background:var(--accent)}
+  .names-toggle.on{color:var(--accent2)}
+
+  .theme-toggle{width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--panel);
+    color:var(--text2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    transition:border-color .18s var(--ease),color .18s var(--ease),transform .12s var(--ease-fast)}
+  .theme-toggle:hover{border-color:var(--accent);color:var(--accent2)}
+  .theme-toggle:active{transform:scale(.92)}
+
+  /* Custom language switcher — our own styled dropdown, no Google banner or
+     cross-origin iframe involved. Translates only the instruction panel
+     (the "How to draft & sew" text), via a plain fetch call. */
+  .lang-wrap{position:relative;display:flex;align-items:center}
+  .lang-toggle{display:flex;align-items:center;gap:7px;height:32px;padding:0 10px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--text2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:border-color .18s var(--ease),color .18s var(--ease)}
+  .lang-toggle:hover{border-color:var(--accent);color:var(--text)}
+  .lang-wrap.open .lang-toggle{border-color:var(--accent);color:var(--accent2)}
+  .lang-caret{font-size:9px;color:var(--text3);transition:transform .18s var(--ease)}
+  .lang-wrap.open .lang-caret{transform:rotate(180deg)}
+  .lang-menu{position:fixed;z-index:80;display:none;
+    max-height:290px;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);
+    border-radius:11px;padding:6px;box-shadow:0 14px 34px rgba(0,0,0,.5);
+    opacity:0;transform:translateY(-4px);transition:opacity .16s var(--ease),transform .16s var(--ease)}
+  .lang-wrap.open .lang-menu{display:block;opacity:1;transform:none}
+  .lang-menu.open{display:block;opacity:1;transform:none}
+  .lang-opt{display:block;width:100%;text-align:left;padding:7px 10px;border-radius:7px;border:none;background:none;color:var(--text2);font-family:inherit;font-size:12.5px;cursor:pointer;transition:background .13s var(--ease)}
+  .lang-opt:hover{background:var(--panel)}
+  .lang-opt.active{background:var(--accent-dim);color:var(--accent2);font-weight:600}
+  .lang-loading{opacity:.6;pointer-events:none}
+
+  .progress-rail{height:2.5px;background:var(--border-soft);flex-shrink:0}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .38s var(--ease)}
+
+  .app{display:flex;flex:1;overflow:hidden}
+  aside.dag{width:314px;background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0;padding:14px 0}
+  .dag-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text3);font-weight:600;padding:0 18px 10px}
+  .phase-hdr{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:700;padding:14px 18px 7px;display:flex;align-items:center;gap:8px}
+  .phase-hdr .pl{height:1px;flex:1;background:var(--border)}
+
+  .node{position:relative;margin:0 12px 4px;padding:11px 12px 11px 44px;border-radius:var(--radius-sm);cursor:pointer;transition:background .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease-fast);border:1px solid transparent}
+  .node:hover{background:var(--panel);transform:translateX(1px)}
+  .node.active{background:var(--accent-dim);border-color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
+  .node.done .num{background:var(--accent);color:#000;border-color:var(--accent)}
+  .node.locked{opacity:.45}
+  .num{position:absolute;left:12px;top:11px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text2);z-index:2;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease)}
+  .node.active .num{border-color:var(--accent);color:var(--accent)}
+  .node::before{content:'';position:absolute;left:22.5px;top:-4px;width:1.5px;height:15px;background:var(--border)}
+  .node.first::before{display:none}
+  .node .hi{font-size:13px;font-weight:600;color:var(--text);line-height:1.3}
+  .node .formula{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--accent);opacity:.9;margin-top:6px;max-height:0;overflow:hidden;transition:max-height .22s var(--ease),margin-top .22s var(--ease)}
+  .node.active .formula{display:block;max-height:40px;margin-top:6px}
+  .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:7px}
+  .chip{font-family:'JetBrains Mono',monospace;font-size:9px;padding:2px 6px;border-radius:5px;background:var(--bg);border:1px solid var(--border);color:var(--text3)}
+  .chip.dep{color:var(--blue);border-color:rgba(74,144,245,.35)}
+  .chip.man{color:var(--purple);border-color:rgba(176,98,242,.4)}
+  .chip.cross{color:var(--green);border-color:rgba(47,199,116,.4)}
+  .badge-man{position:absolute;right:11px;top:11px;font-size:11px;color:var(--purple)}
+
+  main{flex:1;display:flex;flex-direction:column;background:
+       radial-gradient(circle at 30% 0%,rgba(245,158,11,.04),transparent 45%) , var(--bg);overflow:hidden}
+  .canvas-wrap{flex:1.35;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:26px;
+    background-image:radial-gradient(var(--dot-color) 1px,transparent 1px);background-size:22px 22px}
+  .stage-row{flex:1;display:flex;overflow:hidden;border-bottom:1px solid var(--border)}
+  .preview-wrap{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:22px 26px;gap:12px;border-left:1px solid var(--border);
+    background-image:radial-gradient(var(--dot-color) 1px,transparent 1px);background-size:22px 22px}
+  .preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text3);font-weight:600}
+  .preview-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;
+    box-shadow:0 18px 44px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;
+    transition:width .38s var(--ease),height .38s var(--ease)}
+  .canvas-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px;
+    box-shadow:0 22px 55px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.02);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+    transition:width .38s var(--ease),height .38s var(--ease)}
+  #stage{width:100%;height:100%;display:block}
+
+  @keyframes stepIn{from{opacity:.35;transform:translateY(5px) scale(.995)}to{opacity:1;transform:none}}
+  .step-in{animation:stepIn .34s var(--ease)}
+
+  .controls{height:58px;border-top:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:12px;padding:0 18px;flex-shrink:0}
+  .step-readout{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text2)}
+  .step-readout b{color:var(--accent)}
+  .dots{display:flex;gap:5px;margin:0 6px;flex-wrap:wrap;max-width:280px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--border);cursor:pointer;transition:background .18s var(--ease),transform .15s var(--ease-fast)}
+  .dot:hover{transform:scale(1.3)}
+  .dot.on{background:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.2)}
+  .dot.done{background:var(--text3)}
+  .dot.sep{margin-left:7px}
+
+  .btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:border-color .18s var(--ease),color .18s var(--ease),transform .12s var(--ease-fast)}
+  .btn:hover{border-color:var(--accent);color:var(--accent)}
+  .btn:active{transform:scale(.96)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#000}
+  .btn.primary:hover{background:var(--accent2);color:#000}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
+
+  .anchor{fill:var(--accent);stroke:#000;stroke-width:1.2;transition:r .15s var(--ease)}
+  .anchor.dim{fill:var(--text3);opacity:.55}
+  .anchor.small{fill:var(--blue)}
+  .alabel{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:var(--accent2);paint-order:stroke;stroke:var(--bg);stroke-width:2.6px;stroke-linejoin:round}
+  .alabel.dim{fill:var(--text2);opacity:.75}
+  .aform{font-family:'JetBrains Mono',monospace;font-size:7.5px;fill:var(--form-text);paint-order:stroke;stroke:var(--bg);stroke-width:2.2px;stroke-linejoin:round}
+  .dimtxt{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;fill:var(--dim-text);paint-order:stroke;stroke:var(--bg);stroke-width:2.8px;stroke-linejoin:round}
+
+  aside.info{width:304px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+  .sec{padding:16px 17px;border-bottom:1px solid var(--border)}
+  .sec-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text3);margin-bottom:12px;font-weight:600}
+
+  .preset-row{display:flex;gap:6px;margin-bottom:12px}
+  .preset{flex:1;padding:7px 0;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:border-color .18s var(--ease),color .18s var(--ease),background .18s var(--ease)}
+  .preset:hover{border-color:var(--accent);color:var(--accent)}
+  .preset.active{background:var(--accent);border-color:var(--accent);color:#000}
+
+  .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .field{margin:0}
+  .field label{display:flex;justify-content:space-between;font-size:10.5px;color:var(--text2);margin-bottom:4px}
+  .field label .ex{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--accent);opacity:.8}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:12px;transition:border-color .18s var(--ease)}
+  .field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.12)}
+
+  .garment{display:flex;align-items:center;justify-content:center;width:100%;height:100%}
+  .garment-cap{font-size:11px;color:var(--text2);line-height:1.6;text-align:center;max-width:340px}
+
+  .instr-head{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--accent);text-transform:uppercase;letter-spacing:.1em;margin-bottom:11px}
+  .instr-list{margin:0;padding-left:17px}
+  .instr-list li{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:7px}
+  .instr-list li::marker{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:11px}
+  .instr-sew{margin-top:12px;padding:10px 12px;border-radius:9px;background:rgba(47,199,116,.08);border:1px solid rgba(47,199,116,.28);font-size:11px;color:var(--text2);line-height:1.55}
+  .instr-sew b{color:var(--green);font-weight:600;margin-right:4px}
+  .instr-tip{margin-top:9px;padding:10px 12px;border-radius:9px;background:var(--accent-dim);border:1px solid rgba(245,158,11,.28);font-size:11px;color:var(--text2);line-height:1.55}
+  .instr-tip b{color:var(--accent2);font-weight:600;margin-right:4px}
+  .instr-warn{margin-top:9px;padding:10px 12px;border-radius:9px;background:rgba(240,82,74,.09);border:1px solid rgba(240,82,74,.32);font-size:11px;color:var(--text2);line-height:1.55}
+
+  @media (max-width:900px){
+    aside.dag{width:230px}
+    aside.info{width:230px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">SILAI<span>·studio</span></div>
+  <div class="garment-label" id="garment-label">Kurta Sleeve</div>
+  <div class="tag" id="tag">parametric · live L·S·C</div>
+  <div class="spacer"></div>
+  <button class="names-toggle" id="names-toggle" title="Switch between point letters and their plain-English names">
+    <span class="nt-track"><span class="nt-thumb"></span></span>
+    <span class="nt-label" id="names-toggle-label">Component Name</span>
+  </button>
+  <button class="theme-toggle" id="theme-toggle" title="Switch between dark and light mode">🌙</button>
+  <div class="lang-wrap" id="lang-wrap">
+    <button class="lang-toggle" id="lang-toggle" title="Translate the instructions">
+      🌐 <span id="lang-current">English</span> <span class="lang-caret">▾</span>
+    </button>
+    <div class="lang-menu" id="lang-menu">
+      <button class="lang-opt active" data-lang="en" data-label="English">English</button>
+      <button class="lang-opt" data-lang="hi" data-label="हिन्दी">हिन्दी · Hindi</button>
+      <button class="lang-opt" data-lang="bn" data-label="বাংলা">বাংলা · Bengali</button>
+      <button class="lang-opt" data-lang="ta" data-label="தமிழ்">தமிழ் · Tamil</button>
+      <button class="lang-opt" data-lang="te" data-label="తెలుగు">తెలుగు · Telugu</button>
+      <button class="lang-opt" data-lang="mr" data-label="मराठी">मराठी · Marathi</button>
+      <button class="lang-opt" data-lang="gu" data-label="ગુજરાતી">ગુજરાતી · Gujarati</button>
+      <button class="lang-opt" data-lang="kn" data-label="ಕನ್ನಡ">ಕನ್ನಡ · Kannada</button>
+      <button class="lang-opt" data-lang="ml" data-label="മലയാളം">മലയാളം · Malayalam</button>
+      <button class="lang-opt" data-lang="pa" data-label="ਪੰਜਾਬੀ">ਪੰਜਾਬੀ · Punjabi</button>
+      <button class="lang-opt" data-lang="ur" data-label="اردو">اردو · Urdu</button>
+      <button class="lang-opt" data-lang="as" data-label="অসমীয়া">অসমীয়া · Assamese</button>
+      <button class="lang-opt" data-lang="or" data-label="ଓଡ଼ିଆ">ଓଡ଼ିଆ · Odia</button>
+      <button class="lang-opt" data-lang="es" data-label="Español">Español · Spanish</button>
+      <button class="lang-opt" data-lang="fr" data-label="Français">Français · French</button>
+      <button class="lang-opt" data-lang="pt" data-label="Português">Português · Portuguese</button>
+      <button class="lang-opt" data-lang="ar" data-label="العربية">العربية · Arabic</button>
+      <button class="lang-opt" data-lang="sw" data-label="Kiswahili">Kiswahili · Swahili</button>
+      <button class="lang-opt" data-lang="id" data-label="Indonesia">Bahasa Indonesia</button>
+      <button class="lang-opt" data-lang="zh-CN" data-label="中文">中文 · Chinese</button>
+    </div>
+  </div>
+</header>
+<div class="progress-rail"><div class="progress-fill" id="progress-fill"></div></div>
+<div class="app">
+  <aside class="dag"><div class="dag-title" id="dag-title">Drafting DAG</div><div id="dag-nodes"></div></aside>
+  <main>
+    <div class="stage-row">
+      <div class="canvas-wrap"><div class="canvas-card" id="canvas-card"><svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg></div></div>
+      <div class="preview-wrap">
+        <div class="preview-title" id="garment-title">Finished kurti — this step</div>
+        <div class="preview-card" id="preview-card"><div class="garment" id="garment"></div></div>
+        <div class="garment-cap" id="garment-cap"></div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn" id="prev-btn">← Prev</button>
+      <div class="dots" id="dots"></div>
+      <button class="btn primary" id="next-btn">Next →</button>
+      <div class="step-readout" id="readout"></div>
+    </div>
+  </main>
+  <aside class="info">
+    <div class="sec">
+      <div class="sec-title" id="sec-title-basebody">Base body size — variables L·S·C…</div>
+      <div id="measure"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title" id="sec-title-howto">How to draft &amp; sew — this step</div>
+      <div id="instr"></div>
+    </div>
+  </aside>
+</div>
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   SILAI DAG STUDIO — fully parametric.
+   Fixed formulas & angles; the variables L,S,C,H,W,SL,B drive everything.
+   Base-size presets (Small/Medium/Large) from the corpus measurement chart, or
+   edit any field. Every point, curve, dimension and instruction recomputes.
+   ═══════════════════════════════════════════════════════════════════ */
+const ALL_FIELDS = [
+  {id:'C', label:'Chest (C)',     ex:'C',  def:36, tip:'Used in formulas as C — e.g. C/4+1, C/6'},
+  {id:'S', label:'Shoulder (S)',  ex:'S',  def:15, tip:'Used in formulas as S — e.g. S/2'},
+  {id:'H', label:'Hip (H)',       ex:'H',  def:38, tip:'Used in formulas as H — e.g. H/4+1'},
+  {id:'W', label:'Waist (W)',     ex:'W',  def:30, tip:'Used in formulas as W — e.g. W/4+1.25'},
+  {id:'L', label:'Length (L)',    ex:'L',  def:38, tip:'Used in formulas as L — sets the fold length directly'},
+  {id:'FL',label:'Full length (FL)',ex:'FL',def:39, tip:'Used in formulas as FL — the full trouser length'},
+  {id:'BL',label:'Belt length (BL)',ex:'BL',def:1.5, tip:'Used in formulas as BL — the belt/waistband depth'},
+  {id:'SL',label:'Sleeve len',    ex:'SL', def:7, tip:'Used in formulas as SL — sleeve length, added below the armhole'},
+  {id:'Bm',label:'Armhole (B)',   ex:'B',  def:12, tip:'Used in formulas as B — the armhole depth'},
+  {id:'PL',label:'Pocket length (PL)',ex:'PL',def:13, tip:'Used in formulas as PL — the pocket opening length'},
+  {id:'Wd',label:'Waist drop',    ex:'A→G',def:15, tip:'A drafting constant — how far the waist nips in from the side seam'},
+];
+// Corpus measurement chart (Chapter 8). Wd (waist drop) is a drafting constant.
+const SIZE_CHART = {
+  small:  {C:32, S:14,   H:34, W:26, L:36, SL:6,   Bm:11,   Wd:15},
+  medium: {C:34, S:14.5, H:36, W:28, L:37, SL:6.5, Bm:11.5, Wd:15},
+  large:  {C:36, S:15,   H:38, W:30, L:38, SL:7,   Bm:12,   Wd:15},
+};
+// The host page (RoopVana) sets window.SILAI_INITIAL_PART before this script
+// runs — e.g. 'blouse', 'trousers', 'kurta_sleeveless' — so the studio opens
+// straight into the garment the person actually generated, no switcher needed.
+// A ?part= query string works the same way, for when this is embedded via a
+// plain <iframe src="...?part=blouse"> instead of an injected global.
+const VALID_PARTS = ['kurta_sleeve','kurta_sleeveless','blouse','trousers'];
+const qsPart = new URLSearchParams(location.search).get('part');
+const requestedPart = qsPart || window.SILAI_INITIAL_PART;
+const INITIAL_PART = VALID_PARTS.includes(requestedPart) ? requestedPart : 'kurta_sleeve';
+const state = { part:INITIAL_PART, m:{...SIZE_CHART.large}, step:1, size:'large', namesMode:false, lang:'en' };
+
+/* ═══ INSTRUCTION TRANSLATION ══════════════════════════════════════════
+   Own dropdown UI (no Google banner, no cross-origin iframe to fight with).
+   Tries Google's public translate endpoint first (no API key), falls back
+   to MyMemory's free API if that fails, and only then gives up and shows
+   English with a visible warning — it never fails silently. Results are
+   cached per (lang,text) so re-visiting a step never re-fetches. */
+const TCACHE = {};
+let lastTranslateError = null;
+async function tryGoogle(text, lang){
+  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=${encodeURIComponent(lang)}&dt=t&q=${encodeURIComponent(text)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`google endpoint ${res.status}`);
+  const data = await res.json();
+  const out = (data[0]||[]).map(chunk=>chunk[0]).join('');
+  if(!out) throw new Error('google endpoint returned empty result');
+  return out;
+}
+async function tryMyMemory(text, lang){
+  const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${encodeURIComponent(lang)}`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error(`mymemory endpoint ${res.status}`);
+  const data = await res.json();
+  const out = data && data.responseData && data.responseData.translatedText;
+  if(!out) throw new Error('mymemory endpoint returned empty result');
+  return out;
+}
+async function translateText(text, lang){
+  if(!text || lang==='en') return text;
+  TCACHE[lang] = TCACHE[lang] || {};
+  if(TCACHE[lang][text] !== undefined) return TCACHE[lang][text];
+  try{
+    const out = await tryGoogle(text, lang);
+    TCACHE[lang][text] = out;
+    lastTranslateError = null;
+    return out;
+  }catch(err1){
+    console.warn('[SILAI translate] Google endpoint failed, trying MyMemory:', err1);
+    try{
+      const out = await tryMyMemory(text, lang);
+      TCACHE[lang][text] = out;
+      lastTranslateError = null;
+      return out;
+    }catch(err2){
+      console.error('[SILAI translate] both translation providers failed:', err2);
+      lastTranslateError = (location.protocol==='file:')
+        ? 'Translation needs this page served over http(s) — opening it as a local file (file://) blocks the network request in most browsers. Try running a tiny local server (e.g. "npx serve" in this folder) and opening it from http://localhost instead, or host it anywhere and open it from a URL.'
+        : `Both translation services are unreachable right now (${err2.message}). Showing English instead.`;
+      return text;
+    }
+  }
+}
+
+const fmt = (x)=>{ const r = Math.round(x*100)/100; return (r%1===0? r.toFixed(0) : String(r)); };
+// derived values — the single source of truth for formulas
+function V(m){ return {
+  L:m.L, S:m.S, C:m.C, H:m.H, W:m.W, SL:m.SL, B:m.Bm, Wd:m.Wd,
+  width:m.H/4+1, tira:m.S/2, chestStart:m.C/4-1, chestWidth:m.C/4+1, waist:m.W/4+1,
+  hipDrop:7, neckDepth:m.C/6, neckWidth:m.C/12, backNeck:4, shoulderSlope:m.C/36-0.2,
+  bicep:m.C/4-0.5, cap:m.C/12, mori:m.Bm/2,
+  FL:m.FL, BL:m.BL, PL:m.PL,
+  tLen:m.FL-m.BL, tHipPt:m.H/3-1, tHipF:m.H/4+2, tHipB:m.H/4+2+m.H/16,
+  tWaistF:m.W/4+0.5, tWaistB:m.W/4+1.5, tBelt1:m.W/2+1, tBelt2:m.W/2+2.5,
+  tFly:m.H/6+2, tMori:m.Bm/4, tKneeAdd:m.H/36, tShape:m.H/12, tDart:m.H/6-1,
+  bNeckWidth:m.C/12+0.5, bShoulderSlope:m.C/36-0.3, bWaist:m.W/4+1.25, bBackNeck:m.C/8, mainDart:m.C/4+1, thirdDart:m.C/8,
+};}
+
+const BASE_SIL       = `M 61 19 C 57 21 52 22 47 23 C 39 28 33 35 30 44 C 36 50 43 53 49 54 C 50 80 51 94 51 108 C 51 126 47 140 45 150 C 44 165 41 176 40 186 Q 70 191 100 186 C 99 176 96 165 95 150 C 93 140 89 126 89 108 C 89 94 90 80 91 54 C 97 53 104 50 110 44 C 107 35 101 28 93 23 C 88 22 83 21 79 19 C 77 28 63 28 61 19 Z`;
+const SLEEVELESS_SIL = `M 61 19 C 57 21 51 22 47 22 C 52 34 52 46 49 54 C 50 80 51 94 51 108 C 51 126 47 140 45 150 C 44 165 41 176 40 186 Q 70 191 100 186 C 99 176 96 165 95 150 C 93 140 89 126 89 108 C 89 94 90 80 91 54 C 88 46 88 34 93 22 C 89 22 83 21 79 19 C 77 28 63 28 61 19 Z`;
+
+function dimH(x1,x2,y,label){const t=3;
+  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<line x1="${x1}" y1="${y-t}" x2="${x1}" y2="${y+t}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<line x1="${x2}" y1="${y-t}" x2="${x2}" y2="${y+t}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<text class="dimtxt" x="${(x1+x2)/2}" y="${y-3}" text-anchor="middle">${label}</text>`;}
+function dimV(x,y1,y2,label){const t=3;
+  return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<line x1="${x-t}" y1="${y1}" x2="${x+t}" y2="${y1}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<line x1="${x-t}" y1="${y2}" x2="${x+t}" y2="${y2}" stroke="var(--text3)" stroke-width=".8"/>`
+   +`<text class="dimtxt" x="${x+4}" y="${(y1+y2)/2}" transform="rotate(-90 ${x+4} ${(y1+y2)/2})" text-anchor="middle">${label}</text>`;}
+// Catmull-Rom spline through points → smooth French-curve path (for the sleeve cap)
+function crPath(pts,g0,g1){
+  if(pts.length<2) return '';
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i-1]||g0||pts[i], p1=pts[i], p2=pts[i+1], p3=pts[i+2]||g1||pts[i+1];
+    const c1={x:p1.x+(p2.x-p0.x)/6, y:p1.y+(p2.y-p0.y)/6};
+    const c2={x:p2.x-(p3.x-p1.x)/6, y:p2.y-(p3.y-p1.y)/6};
+    d += ` C ${c1.x.toFixed(2)} ${c1.y.toFixed(2)} ${c2.x.toFixed(2)} ${c2.y.toFixed(2)} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+  }
+  return d;
+}
+
+// per-point label placement — direction → offset + anchor (avoids collisions)
+const LAB = {
+  r:{dx:7,dy:-2,a:'start'}, l:{dx:-7,dy:-2,a:'end'},
+  u:{dx:0,dy:-8,a:'middle'}, d:{dx:0,dy:15,a:'middle'},
+  ur:{dx:5,dy:-6,a:'start'}, ul:{dx:-5,dy:-6,a:'end'},
+  dr:{dx:5,dy:14,a:'start'}, dl:{dx:-5,dy:14,a:'end'},
+};
+
+/* ═══ ORIGINAL-NAME MODE ══════════════════════════════════════════════
+   Every drafted point already carries a corpus-accurate `note` (e.g.
+   'chest·fold', 'shoulder tip'). Instead of hand-writing a second copy of
+   every instruction, we derive a human name from that same note and
+   substitute it into the instruction prose wherever a point letter is
+   referenced in an unambiguous pattern (after "point/mark/Join/From/at/to",
+   inside parentheses, or either side of a "→"/"–"). Bare letters used mid
+   -sentence in a way we can't safely disambiguate from ordinary English are
+   left as-is — this keeps the substitution 100% safe against misfires like
+   turning the word "A" (article) or "I" (pronoun) into a garment point. */
+function shortNameForNote(note){
+  if(!note) return null;
+  const main = note.split('·')[0].trim();
+  if(/^(ref|box)$/i.test(main)) return null;
+  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+  return note.split('·').map(s=>cap(s.trim())).join(' · ');
+}
+function nameForNote(note){
+  if(!note) return null;
+  const parts = note.split('·').map(s=>s.trim()).filter(Boolean);
+  if(!parts.length) return null;
+  let main = parts[0], qual = parts[1];
+  if(/^(ref|box)$/i.test(main)) return null;
+  main = main.replace(/\bctr\b/gi,'center');
+  const cap = s => s.charAt(0).toUpperCase()+s.slice(1);
+  const noun = /point|apex|corner|tip|seam|curve|dart|line|width|depth/i;
+  let base = noun.test(main) ? cap(main) : `${cap(main)} point`;
+  if(qual) base += /side/i.test(qual) ? ` (${qual})` : ` (${qual} side)`;
+  return base;
+}
+function buildNames(ph, pt){
+  const names={};
+  Object.entries(ph.letters||{}).forEach(([key,disp])=>{
+    const p = pt[key]; if(!p) return;
+    const nm = nameForNote(p.note);
+    if(nm) names[disp]=nm;
+  });
+  return names;
+}
+function humanize(text, names){
+  if(!text || !names || !Object.keys(names).length) return text;
+  const tok = '([A-Z]{1,2}[0-9]?)';
+  const decap = s => s.charAt(0).toLowerCase()+s.slice(1);
+  let out = text;
+  // "chest point F" / "the waist point H" — the landmark noun already duplicates
+  // the name we're about to substitute, so swallow noun+point together first.
+  out = out.replace(new RegExp(`\\b(chest|waist|hip|shoulder|neck|hem|underarm|fold|side|back|front)\\s+point\\s*\\(?${tok}\\)?`,'gi'),
+    (m,noun,a)=> names[a] ? decap(names[a]) : m);
+  out = out.replace(new RegExp(`\\bJoin ${tok}[–-]${tok}\\b`,'g'), (m,a,b)=> (names[a]&&names[b]) ? `Join the ${names[a]} to the ${names[b]}` : m);
+  out = out.replace(new RegExp(`\\bmark point ${tok}\\b`,'g'), (m,a)=> names[a] ? `mark the ${names[a]}` : m);
+  out = out.replace(new RegExp(`\\bpoint ${tok}\\b`,'g'), (m,a)=> names[a] ? `the ${names[a]}` : m);
+  out = out.replace(new RegExp(`\\bmark ${tok}\\b`,'g'), (m,a)=> names[a] ? `mark the ${names[a]}` : m);
+  out = out.replace(new RegExp(`\\bFrom ${tok},`,'g'), (m,a)=> names[a] ? `From the ${names[a]},` : m);
+  out = out.replace(new RegExp(`${tok}→${tok}`,'g'), (m,a,b)=> (names[a]&&names[b]) ? `${names[a]} → ${names[b]}` : m);
+  // Compact derivation shorthand like "A↓8″(C/4-1)→D" or "←10″(C/4+1)→E" — a
+  // bare letter sitting directly against any of the four arrows. Arrows never
+  // sit next to bare capital letters in ordinary English, so this is safe.
+  out = out.replace(new RegExp(`${tok}(?=[↓↑←→])`,'g'), (m,a)=> names[a] ? names[a] : m);
+  out = out.replace(new RegExp(`(?<=[↓↑←→])${tok}\\b`,'g'), (m,a)=> names[a] ? names[a] : m);
+  out = out.replace(new RegExp(`\\b${tok}–${tok}\\b`,'g'), (m,a,b)=> (names[a]&&names[b]) ? `${names[a]}–${names[b]}` : m);
+  out = out.replace(new RegExp(`\\b(at|to|toward|near) ${tok}\\b`,'g'), (m,w,a)=> names[a] ? `${w} the ${names[a]}` : m);
+  out = out.replace(new RegExp(`\\(${tok}\\)`,'g'), (m,a)=> names[a] ? `(${names[a]})` : m);
+  return out;
+}
+
+/* ═══ PHASE: KURTA BODY (9 steps) ═════════════════════════════════════ */
+const BODY_STEPS = [
+  {n:1,en:'Fold the sheet',deps:[],formula:'sheet = L × (H/4+1)',man:false},
+  {n:2,en:'Corners & shoulder pt',deps:['sheet'],formula:'B = L · C = H/4+1 · D = S/2',man:false},
+  {n:3,en:'Chest line',deps:['A'],formula:'E = C/4−1 · F = C/4+1',man:false},
+  {n:4,en:'Waist line',deps:['A'],formula:'G = A→G · H = W/4+1',man:false},
+  {n:5,en:'Hip line + side seam',deps:['G','F','C'],formula:'I = G+7 · J = H/4+1',man:true},
+  {n:6,en:'Neck box',deps:['A'],formula:'K = C/6 · M = C/12',man:false},
+  {n:7,en:'Neck curves',deps:['M','K','A'],formula:'N = 4″ · french M→K, M→N',man:true},
+  {n:8,en:'Shoulder slope',deps:['D','M'],formula:'P = C/36 − 0.2',man:false},
+  {n:9,en:'Armhole',deps:['P','F'],formula:'french P→F · 0.5″ split',man:true},
+];
+const BODY = {
+  name:'Part 1 · Kurta body',
+  scale:15, pad:34, mr:66, mb:16, foldDx:62,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',Hh:'H',I:'I',J:'J',K:'K',M:'M',Lp:'L',N:'N',Pp:'P',Q:'Q'},
+  labs:{A:'r',B:'r',C:'l',D:'u',E:'r',F:'l',G:'r',Hh:'l',I:'r',J:'l',K:'r',M:'u',Lp:'l',N:'r',Pp:'l',Q:'l'},
+  small:{},
+  sheet:(m)=>({W:m.H/4+1, H:m.L}),
+  points:(m)=>{ const SW=m.H/4+1, SH=m.L, x=v=>SW-v; return {
+    A:{x:SW,y:0,s:2,gov:'on fold',note:'fold top'}, B:{x:SW,y:SH,s:2,gov:'L',note:'fold hem'},
+    C:{x:0,y:SH,s:2,gov:'H/4+1',note:'side hem'}, D:{x:x(m.S/2),y:0,s:2,gov:'S/2',note:'tira'},
+    E:{x:SW,y:m.C/4-1,s:3,gov:'C/4−1',note:'chest·fold'}, F:{x:x(m.C/4+1),y:m.C/4-1,s:3,gov:'C/4+1',note:'chest·side'},
+    G:{x:SW,y:m.Wd,s:4,gov:'A→G',note:'waist·fold'}, Hh:{x:x(m.W/4+1),y:m.Wd,s:4,gov:'W/4+1',note:'waist·side'},
+    I:{x:SW,y:m.Wd+7,s:5,gov:'G+7',note:'hip·fold'}, J:{x:0,y:m.Wd+7,s:5,gov:'H/4+1',note:'HBL·side'},
+    K:{x:SW,y:m.C/6,s:6,gov:'C/6',note:'neck depth'}, M:{x:x(m.C/12),y:0,s:6,gov:'C/12',note:'neck width'},
+    Lp:{x:x(m.C/12),y:m.C/6,s:6,gov:'box',note:'neck corner'}, N:{x:SW,y:4,s:7,gov:'A↓4',note:'back neck'},
+    Pp:{x:x(m.S/2),y:m.C/36-0.2,s:8,gov:'C/36−0.2',note:'shoulder tip'}, Q:{x:x(m.S/2),y:m.C/4-1,s:8,gov:'ref',note:'D→chest'},
+  };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+    // neck French curves — vertical tangent at M, horizontal into K / N (corpus quarter-round)
+    const wF = pt.K.x-pt.M.x, wB = pt.N.x-pt.M.x;
+    const frontNeck = `M ${pt.M.x} ${pt.M.y} C ${pt.M.x} ${(pt.M.y+(pt.K.y-pt.M.y)*0.55).toFixed(2)} ${(pt.K.x-wF*0.45).toFixed(2)} ${pt.K.y} ${pt.K.x} ${pt.K.y}`;
+    const backNeck  = `M ${pt.M.x} ${pt.M.y} C ${pt.M.x} ${(pt.M.y+(pt.N.y-pt.M.y)*0.5).toFixed(2)} ${(pt.N.x-wB*0.4).toFixed(2)} ${pt.N.y} ${pt.N.x} ${pt.N.y}`;
+    // armhole (Step 9): concave French curve P→F, split by the D–Q vertical.
+    // front (straight arm) sits RIGHT of D–Q, back (reverse arm) LEFT, 0.5″ apart.
+    const aP=pt.Pp, aF=pt.F, ax=aF.x-aP.x, ay=aF.y-aP.y, al=Math.hypot(ax,ay)||1, aux=ax/al, auy=ay/al;
+    let anx=auy, anry=-aux; if(anx<0){anx=-anx;anry=-anry;}
+    const ach=(t)=>({x:aP.x+t*ax, y:aP.y+t*ay}), ac1=ach(0.30), ac2=ach(0.72);
+    const afc1={x:ac1.x+1.0*anx,y:ac1.y+1.0*anry}, afc2={x:ac2.x+0.7*anx,y:ac2.y+0.7*anry};
+    const abc1={x:afc1.x-0.5*anx,y:afc1.y-0.5*anry}, abc2={x:afc2.x-0.5*anx,y:afc2.y-0.5*anry};
+    const frontArm=`M ${aP.x} ${aP.y} C ${afc1.x.toFixed(2)} ${afc1.y.toFixed(2)} ${afc2.x.toFixed(2)} ${afc2.y.toFixed(2)} ${aF.x} ${aF.y}`;
+    const backArm =`M ${aP.x} ${aP.y} C ${abc1.x.toFixed(2)} ${abc1.y.toFixed(2)} ${abc2.x.toFixed(2)} ${abc2.y.toFixed(2)} ${aF.x} ${aF.y}`;
+    return [
+    {id:'fold_edge',s:2,color:'var(--purple)',from:'A',to:'B',d:L(pt.A,pt.B),gov:'on fold'},
+    {id:'hem_edge',s:2,color:'var(--green)',from:'C',to:'B',d:L(pt.C,pt.B),gov:'H/4+1'},
+    {id:'chest_line',s:3,color:'var(--accent)',from:'F',to:'E',d:L(pt.F,pt.E),gov:'C/4+1'},
+    {id:'waist_line',s:4,color:'var(--accent)',from:'Hh',to:'G',d:L(pt.Hh,pt.G),gov:'W/4+1'},
+    {id:'hbl_line',s:5,color:'var(--accent)',from:'J',to:'I',d:L(pt.J,pt.I),gov:'H/4+1'},
+    {id:'side_seam',s:5,color:'var(--red)',from:'F',to:'C',man:true,
+      d:`M ${pt.F.x} ${pt.F.y} L ${pt.Hh.x} ${pt.Hh.y} C ${pt.Hh.x-1.2} ${pt.Hh.y+3} ${pt.J.x+0.2} ${pt.J.y-3.2} ${pt.J.x} ${pt.J.y} L ${pt.C.x} ${pt.C.y}`,gov:'F–H join · H–J hip · J–C'},
+    {id:'neck_width',s:6,color:'var(--text3)',from:'M',to:'A',d:L(pt.M,pt.A),gov:'C/12'},
+    {id:'neck_box_left',s:6,color:'var(--text3)',from:'M',to:'Lp',dash:true,d:L(pt.M,pt.Lp),gov:'box · M→L'},
+    {id:'neck_box_bottom',s:6,color:'var(--text3)',from:'Lp',to:'K',dash:true,d:L(pt.Lp,pt.K),gov:'box · L→K'},
+    {id:'front_neck',s:7,color:'var(--red)',from:'M',to:'K',man:true,d:frontNeck,gov:'french · front M→K'},
+    {id:'back_neck',s:7,color:'var(--blue)',from:'M',to:'N',man:true,d:backNeck,gov:'french · back M→N'},
+    {id:'dq_reference',s:8,color:'var(--text3)',from:'D',to:'Q',dash:true,d:L(pt.D,pt.Q),gov:'armhole split ref'},
+    {id:'shoulder_seam',s:8,color:'var(--accent)',from:'M',to:'Pp',d:L(pt.M,pt.Pp),gov:'M→P · slope C/36−0.2'},
+    {id:'front_armhole',s:9,color:'var(--red)',from:'Pp',to:'F',man:true,
+      d:frontArm,gov:'straight · right of D–Q'},
+    {id:'back_armhole',s:9,color:'var(--blue)',from:'Pp',to:'F',man:true,
+      d:backArm,gov:'reverse · left of D–Q · 0.5″'},
+  ];},
+  steps:BODY_STEPS,
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g=''; const foldX=sx(SW);
+    if(cur>=2){ g+=dimH(sx(pt.D.x),sx(pt.A.x),sy(0)-16,`S/2 = ${fmt(m.S/2)}″`);
+                g+=dimH(sx(pt.C.x),sx(pt.B.x),sy(SH)+18,`H/4+1 = ${fmt(m.H/4+1)}″`); }
+    if(cur===2) g+=dimV(foldX+30,sy(0),sy(SH),`L = ${fmt(m.L)}″`);
+    if(cur===3){ g+=dimV(foldX+16,sy(0),sy(pt.E.y),`C/4−1 = ${fmt(m.C/4-1)}″`);
+                 g+=dimH(sx(pt.F.x),sx(pt.E.x),sy(pt.E.y)-9,`C/4+1 = ${fmt(m.C/4+1)}″`); }
+    if(cur===4){ g+=dimV(foldX+16,sy(0),sy(pt.G.y),`A→G = ${fmt(m.Wd)}″`);
+                 g+=dimH(sx(pt.Hh.x),sx(pt.G.x),sy(pt.G.y)-9,`W/4+1 = ${fmt(m.W/4+1)}″`); }
+    if(cur===5){ g+=dimV(foldX+16,sy(pt.G.y),sy(pt.I.y),`G→I = 7″`);
+                 g+=dimH(sx(pt.J.x),sx(pt.I.x),sy(pt.I.y)+13,`H/4+1 = ${fmt(m.H/4+1)}″`); }
+    if(cur===6){ g+=dimV(foldX+16,sy(0),sy(pt.K.y),`C/6 = ${fmt(m.C/6)}″`);
+                 g+=dimH(sx(pt.M.x),sx(pt.A.x),sy(0)-26,`C/12 = ${fmt(m.C/12)}″`); }
+    if(cur===7) g+=dimV(foldX+16,sy(0),sy(pt.N.y),`A→N = 4″`);
+    if(cur===8) g+=`<text class="dimtxt" x="${sx(pt.D.x)-9}" y="${sy(pt.Pp.y)+16}" text-anchor="end" fill="var(--accent2)">= ${fmt(m.C/36-0.2)}″</text>`;
+    if(cur===9) g+=`<text class="dimtxt" x="${sx(pt.F.x)+16}" y="${sy(pt.F.y)-26}" fill="var(--purple)">0.5″ split (front vs back)</text>`;
+    return g; },
+};
+
+/* ═══ PHASE: SLEEVE (4 steps) ═════════════════════════════════════════ */
+function makeSleeve(name, capSplit){ return {
+  name, capSplit,
+  scale:26, pad:36, mr:34, mb:24, foldDx:34,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',H:'H',I:'I',J:'J'},
+  labs:{A:'r',B:'l',C:'r',D:'l',E:'dl',F:'dr',G:'u',H:'ul',I:'u',J:'dl'},
+  small:{F:1,G:1,H:1,I:1,J:1},
+  sheet:(m)=>({W:m.C/4-0.5, H:m.SL}),
+  points:(m)=>{ const W=m.C/4-0.5, SL=m.SL, cap=m.C/12, mori=m.Bm/2;
+    const A={x:W,y:0},B={x:0,y:0},C={x:W,y:SL},D={x:0,y:cap},E={x:W-mori,y:SL};
+    const dvx=D.x-A.x,dvy=D.y-A.y,dl=Math.hypot(dvx,dvy)||1, nx=-dvy/dl,ny=dvx/dl;
+    const along=t=>({x:A.x+t*dvx,y:A.y+t*dvy}); const F=along(.25),G=along(.5),H=along(.75);
+    const I={x:F.x+.5*nx,y:F.y+.5*ny}, J={x:H.x-.4*nx,y:H.y-.4*ny};
+    return {
+      A:{...A,s:2,gov:'on fold',note:'cap peak'}, B:{...B,s:2,gov:'corner',note:'top outer'},
+      C:{...C,s:2,gov:'SL',note:'hem·fold'}, D:{...D,s:3,gov:'C/12',note:'underarm'},
+      E:{...E,s:3,gov:'B/2',note:'hem outer'}, F:{...F,s:4,gov:'¼ A–D',note:'sleeve cap quarter point'},
+      G:{...G,s:4,gov:'½ A–D',note:'curve thru'}, H:{...H,s:4,gov:'¾ A–D',note:'sleeve cap three-quarter point'},
+      I:{...I,s:4,gov:'+0.5″',note:'bulge'}, J:{...J,s:4,gov:'−0.4″',note:'scoop'}, _n:{nx,ny},
+    };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${a.x} ${a.y} L ${b.x} ${b.y}`; const n=pt._n;
+    // EXACT corpus construction — every point derived from the measurements:
+    // A–D quartered → F,G,H ; I = F + 0.5″⊥ (crown) ; J = H − 0.4″⊥ (scoop).
+    // 4.5 front cap runs A · I · G · J · D — I (+0.5″ at F) is what crowns it.
+    // 4.6 back cap is drawn A · G · D, held capSplit deeper at J. It is never
+    // pulled out to I, so above G it rides the quarter point F — i.e. the A–D
+    // chord itself. That gap against the front crown is the lens the manual
+    // draws, and both curves converge into the corner A.
+    const Jb = {x: pt.J.x - capSplit*n.nx, y: pt.J.y - capSplit*n.ny};
+    const front = crPath([pt.A, pt.I, pt.G, pt.J, pt.D]);
+    const back  = crPath([pt.A, pt.F, pt.G, Jb, pt.D]);   // rides F, i.e. the chord
+    return [
+      {id:'top_guide',s:2,color:'var(--text3)',from:'B',to:'A',dash:true,d:L(pt.B,pt.A),gov:'C/4−0.5 (construction)'},
+      {id:'sleeve_fold',s:2,color:'var(--purple)',from:'A',to:'C',d:L(pt.A,pt.C),gov:'SL · on fold'},
+      {id:'left_guide',s:3,color:'var(--text3)',from:'B',to:'D',dash:true,d:L(pt.B,pt.D),gov:'C/12 (construction)'},
+      {id:'underarm_seam',s:3,color:'var(--red)',from:'D',to:'E',d:L(pt.D,pt.E),gov:'D→E underarm'},
+      {id:'sleeve_hem',s:3,color:'var(--green)',from:'E',to:'C',d:L(pt.E,pt.C),gov:'mori B/2'},
+      {id:'ad_chord',s:4,color:'var(--text3)',from:'A',to:'D',dash:true,d:L(pt.A,pt.D),gov:'quarter reference'},
+      {id:'front_cap',s:4,color:'var(--accent)',from:'A',to:'D',man:true,d:front,gov:'french · straight-arm (A·I·G·J·D)'},
+      {id:'back_cap',s:4,color:'var(--blue)',from:'A',to:'D',man:true,d:back,gov:`french · reverse +${capSplit}″ at J`},
+    ];},
+  steps:[
+    {n:1,en:'Fold the sheet',deps:[],formula:'17 × 7  →  folded 8.5 × 7'},
+    {n:2,en:'Length & width',deps:['sheet'],formula:'A→C = SL · A→B = C/4−0.5'},
+    {n:3,en:'Shape & mori',deps:['B','C'],formula:'D = C/12 · E = mori (B/2)'},
+    {n:4,en:'Armhole (cap)',deps:['A','D'],formula:`¼ A–D · I +0.5″ · J −0.4″ · ${capSplit}″ split`,man:true},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g='';
+    if(cur>=2){ g+=dimH(sx(pt.B.x),sx(pt.A.x),sy(0)-16,`C/4−0.5 = ${fmt(m.C/4-0.5)}″`);
+                g+=dimV(sx(pt.A.x)+16,sy(0),sy(pt.C.y),`SL = ${fmt(m.SL)}″`); }
+    if(cur===3){ g+=dimV(sx(pt.B.x)-32,sy(0),sy(pt.D.y),`C/12 = ${fmt(m.C/12)}″`);
+                 g+=dimH(sx(pt.E.x),sx(pt.C.x),sy(pt.C.y)+30,`B/2 = ${fmt(m.Bm/2)}″`); }
+    if(cur===4){ g+=`<text class="dimtxt" x="${sx(SW*0.62)}" y="${sy(SH*0.78)}" fill="var(--accent2)" text-anchor="middle">I +0.5″ · J −0.4″ · split ${capSplit}″</text>`; }
+    return g; },
+};}
+const SLEEVE = makeSleeve('Part 2 · Sleeve', 0.2);
+
+const SLEEVELESS_BODY = Object.assign({}, BODY, {
+  name:'Kurta body · sleeveless',
+  steps: BODY_STEPS.map(s => s.n===9 ? {...s, en:'Armhole (finished edge)'} : {...s}),
+});
+
+/* ═══ GARMENT HIGHLIGHTS ══════════════════════════════════════════════ */
+const SLEEVED_HL = {
+  length:`M 70 33 L 70 184`, shoulder:`M 61 19 C 57 21 52 22 47 23 M 79 19 C 83 21 88 22 93 23`,
+  chest:`M 50 65 L 90 65`, waist:`M 51 108 L 89 108`, hip:`M 45 150 L 95 150`,
+  neckline:`M 61 19 C 63 28 77 28 79 19`, backneck:`M 61 19 C 63 24.5 77 24.5 79 19`,
+  armhole:`M 48 25 C 54 34 54 46 49 54 M 92 25 C 86 34 86 46 91 54`,
+  side:`M 49 54 C 50 80 51 94 51 108 C 51 126 47 140 45 150 C 44 165 41 176 40 186 M 91 54 C 90 80 89 94 89 108 C 89 126 93 140 95 150 C 96 165 99 176 100 186`,
+  sleeve:`M 47 23 C 39 28 33 35 30 44 C 36 50 43 53 49 54 M 93 23 C 101 28 107 35 110 44 C 104 50 97 53 91 54`,
+  hem:`M 30 44 C 36 50 43 53 49 54 M 110 44 C 104 50 97 53 91 54`,
+  cap:`M 47 23 C 39 28 33 35 30 44 M 93 23 C 101 28 107 35 110 44`,
+};
+const SLEEVELESS_HL = {
+  length:`M 70 33 L 70 184`, shoulder:`M 61 19 C 57 21 51 22 47 22 M 79 19 C 83 21 89 22 93 22`,
+  chest:`M 50 65 L 90 65`, waist:`M 51 108 L 89 108`, hip:`M 45 150 L 95 150`,
+  neckline:`M 61 19 C 63 28 77 28 79 19`, backneck:`M 61 19 C 63 24.5 77 24.5 79 19`,
+  armhole:`M 47 22 C 52 34 52 46 49 54 M 93 22 C 88 34 88 46 91 54`,
+  side:`M 49 54 C 50 80 51 94 51 108 C 51 126 47 140 45 150 C 44 165 41 176 40 186 M 91 54 C 90 80 89 94 89 108 C 89 126 93 140 95 150 C 96 165 99 176 100 186`,
+};
+
+/* ═══ INSTRUCTIONS (functions of the live values) ═════════════════════ */
+const INSTR_BODY = {
+  1:{draft:(v)=>[
+      `Take a sheet of pattern paper at least ${fmt(v.L)}″ long and ${fmt(v.width*2)}″ wide — the full front width of the kurti with a little working margin.`,
+      `Fold it in half lengthwise so it becomes ${fmt(v.L)}″ × ${fmt(v.width)}″. The folded edge is now the centre-front line, and every measurement is taken from this fold outward.`,
+      "Keep the paper flat and square — a set-square along the fold keeps the top edge at a true right angle, because errors here get doubled when the piece opens out."],
+     sew:()=>"You draft on the folded half only. When you cut fabric, place this fold on the fabric's own fold, so the front opens out perfectly symmetric.",
+     tip:()=>"Use a sharp pencil and the longest ruler you have; a smooth, accurate fold line is the backbone of the whole pattern."},
+  2:{draft:(v)=>[
+      "Mark point A at the very top, sitting on the fold — the centre-front neck corner and the origin for everything that follows.",
+      `From A, measure straight down the fold ${fmt(v.L)}″ (the full Length L) and mark B at the hem.`,
+      `From B, measure ${fmt(v.width)}″ (H/4+1) horizontally toward the open side and mark C, the outer hem corner.`,
+      `From A, measure ${fmt(v.tira)}″ (S/2) along the top toward the open edge and mark D, the shoulder point (tira).`],
+     sew:null,
+     tip:(v)=>`The ${fmt(v.width)}″ is Hip ÷ 4 + 1″ of ease — the extra inch lets the kurti skim rather than cling.`},
+  3:{draft:(v)=>[
+      `From A, measure ${fmt(v.chestStart)}″ (C/4−1) straight down the fold and mark E. This decides how deep the armhole will sit.`,
+      `From E, rule a horizontal line ${fmt(v.chestWidth)}″ (C/4+1) toward the open edge and mark F.`,
+      "The line E–F is the chest (bust) line — keep it dead parallel to the top edge, because the armhole and side seam are built off it."],
+     sew:()=>"A construction guide, not a seam. It locates the underarm point (F) and fixes the armhole depth; nothing is stitched along it.",
+     tip:()=>"For a fuller bust, drop E a little lower — a slightly deeper armhole is far more comfortable than a tight one."},
+  4:{draft:(v)=>[
+      `From A, measure ${fmt(v.Wd)}″ straight down the fold and mark G — the natural waist level (shoulder-to-waist length).`,
+      `From G, measure ${fmt(v.waist)}″ (W/4+1) toward the open edge and mark H.`,
+      "Join G–H — the waist line. H sits closer to the fold than the chest point F; that inward step is what nips the kurti in at the waist."],
+     sew:null,
+     tip:(v)=>`Waist width ${fmt(v.waist)}″ = Waist ÷ 4 + 1″. Bump the +1 to +1.5 or +2 for a looser, straighter silhouette.`},
+  5:{draft:(v)=>[
+      `From G, measure ${fmt(v.hipDrop)}″ straight down the fold and mark I, the hip level.`,
+      `From I, measure ${fmt(v.width)}″ (H/4+1) toward the open edge and mark J. The line I–J is the hip line (HBL).`,
+      "Shape the side seam in three parts: F→H is a gentle straight join, H→J is a soft outward hip curve, and J→C drops straight to the hem."],
+     sew:()=>"Stitch the side seam right sides together, underarm F down to hem C, 1 cm allowance. Sew the hip curve slowly so it stays smooth, then press toward the back.",
+     tip:()=>"Snip a few millimetres into the seam allowance at the deepest point of the hip curve so it lies flat when turned out."},
+  6:{draft:(v)=>[
+      `From A, measure ${fmt(v.neckDepth)}″ (C/6) straight down the fold and mark K — the front neck depth.`,
+      `From A, measure ${fmt(v.neckWidth)}″ (C/12) toward the open edge and mark M — the neck width.`,
+      "Square down from M and across from K to close the rectangle M–A–K–L. The neckline curve lives inside this box."],
+     sew:null,
+     tip:()=>"Depth (K) is the easy thing to change for taste — but keep the width (M) sensible so the shoulder still covers a bra strap."},
+  7:{draft:(v)=>[
+      "With a French curve, draw a smooth concave line from the shoulder-neck point M down to the centre-front depth K — the front neckline. It leaves M vertically and meets K flat.",
+      `For the back neck, measure ${fmt(v.backNeck)}″ down from A and mark N — the back sits higher and shallower than the front.`,
+      "Draw a second, gentler French-curve line from M to N — the back neckline."],
+     sew:()=>"Finish the neck edge with a 1 cm bias binding or a shaped facing. Stay-stitch just inside the cut edge first so the curve can't stretch.",
+     tip:()=>"Front and back necklines both start at M, so they meet cleanly at the shoulder seam when the pieces join."},
+  8:{draft:(v)=>[
+      `Real shoulders slope downward. From D, measure ${fmt(v.shoulderSlope)}″ (C/36−0.2) straight down and mark P.`,
+      "Join M→P with a straight line — the finished shoulder seam, sloping gently from neck to shoulder tip."],
+     sew:()=>"Join front and back at the shoulders along M–P, right sides together, 1 cm allowance; press open so it lies flat under the neckline binding.",
+     tip:(v)=>`That small ${fmt(v.shoulderSlope)}″ drop stops the kurti standing up stiffly around the neck — subtle, but don't leave it out.`},
+  9:{draft:()=>[
+      "With a French curve, draw the armhole from the shoulder tip P down to the underarm F.",
+      "Draw it twice, 0.5″ apart: the tighter inner curve is the front (straight-arm) armhole, the fuller curve is the back (reverse-arm). The D–Q line marks the split.",
+      "The back armhole is a touch deeper so the arm can swing forward comfortably."],
+     sew:()=>"This curve is where the sleeve sets in — go to Part 2 and draft a sleeve whose cap length matches this armhole exactly.",
+     tip:()=>"Cut a small notch at the underarm and shoulder tip now; they become the marks that make setting the sleeve in painless."},
+};
+const INSTR_SLEEVE = {
+  1:{draft:(v)=>[
+      `Take a sheet ${fmt(v.SL)}″ long and ${fmt(v.bicep*2)}″ wide.`,
+      `Fold it in half lengthwise → ${fmt(v.SL)}″ × ${fmt(v.bicep)}″. The fold is the centre of the sleeve, with the straight grain down it.`,
+      "As with the body, you draft on the folded half so the sleeve opens out symmetric."],
+     sew:null,
+     tip:()=>"Aligning the fold with the fabric grain keeps the sleeve hanging straight rather than twisting on the arm."},
+  2:{draft:(v)=>[
+      "Mark A at the top, on the fold — the peak of the sleeve cap.",
+      `From A, measure ${fmt(v.SL)}″ (SL) straight down the fold and mark C, the sleeve hem on the fold.`,
+      `From A, measure ${fmt(v.bicep)}″ (C/4−0.5) toward the open edge and mark B; this fixes the bicep width.`],
+     sew:null,
+     tip:(v)=>`${fmt(v.bicep)}″ = Chest ÷ 4 − 0.5. The −0.5 keeps the sleeve trim at the bicep instead of ballooning.`},
+  3:{draft:(v)=>[
+      `From B, measure ${fmt(v.cap)}″ (C/12) down and mark D — the underarm point where the sleeve meets the body.`,
+      `From C, measure ${fmt(v.mori)}″ (B/2) toward the open edge and mark E — half the sleeve-hem (mori) width.`,
+      "Join D–E; this straight line is the underarm seam of the sleeve."],
+     sew:()=>"The underarm seam D–E is closed after the cap is eased into the armhole — usually in the same pass as the body side seam.",
+     tip:()=>"Widen C→E for a looser, flared short sleeve; narrow it for a neat, fitted cap sleeve."},
+  4:{draft:()=>[
+      "Rule the straight line A–D and divide it into 4 equal parts, marking the three quarter points.",
+      "At the upper quarter push the curve out +0.5″ (point I) for the rounded crown; at the lower quarter scoop it in −0.4″ (point J) for the underarm hollow.",
+      "With a French curve, draw the S-shaped cap A → I → G → J → D — it meets the corner A itself, not the top edge.",
+      "Draw it twice: the second pass runs deeper at J by the split shown on the diagram — that is the back cap.",
+      "Measure along the finished cap — its length must equal the body armhole from Part 1, or the sleeve won't sit in cleanly."],
+     sew:()=>"Ease the cap into the armhole: match the sleeve centre-top to the shoulder seam, spread the small extra length evenly, then stitch. Close the underarm and side seam in one line.",
+     tip:()=>"Run long gathering stitches along the cap first — you can then draw the fullness in gently until the cap matches the armhole, with no puckers."},
+};
+const INSTR_SLEEVELESS = Object.assign({}, INSTR_BODY, {
+  9:{draft:()=>[
+      "With a French curve, draw the shoulder-to-underarm armhole curve P→F — the shape is identical to the sleeved version.",
+      "Because no sleeve is set in, this curve is a finished edge of the garment, so draw it clean and smooth.",
+      "A single tidy line is enough — you don't need the front/back 0.5″ split, since the edge is simply bound."],
+     sew:()=>"Bind the raw armhole: cut a 1″-wide bias strip, fold and press it over the edge, and stitch it down — applied directly, no sleeve. Stay-stitch first so the curve can't stretch.",
+     tip:()=>"Cut the binding on the true bias (45° to the grain) so it stretches smoothly around the curve without puckering."},
+});
+BODY.instr = INSTR_BODY;
+SLEEVE.instr = INSTR_SLEEVE;
+SLEEVELESS_BODY.instr = INSTR_SLEEVELESS;
+
+/* ═══ PARTS ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════ BLOUSE (USHA Chapter 15) ═══════════════════════ */
+const BLOUSE_CHART = {
+  small:  {C:32,S:14,  W:26,L:14,SL:7,  Bm:11},
+  medium: {C:34,S:14.5,W:28,L:14,SL:6.5,Bm:11.5},
+  large:  {C:36,S:15,  W:30,L:15,SL:7,  Bm:12},
+};
+const BLOUSE_SIL = `M 54 48 C 58 67 82 67 86 48 C 88 44 91 42 95 42 C 107 42 119 47 127 56 C 128 58 127 60 126 62 C 124 70 122 78 120 85 C 114 85 107 83 101 80 C 98 79 96 79 94 79 C 93 101 92 126 91 150 L 49 150 C 48 126 47 101 46 79 C 44 79 42 79 39 80 C 33 83 26 85 20 85 C 18 78 16 70 14 62 C 13 60 12 58 13 56 C 21 47 33 42 45 42 C 49 42 52 44 54 48 Z`;
+const BLOUSE_HL = {
+  length:`M 70 67 L 70 148`,
+  neckline:`M 54 48 C 58 67 82 67 86 48`,
+  backneck:`M 57 48 C 60 59 80 59 83 48`,
+  shoulder:`M 54 48 C 51 45 48 43 45 42 M 86 48 C 89 45 92 43 95 42`,
+  chest:`M 46 79 L 94 79`,
+  waist:`M 49 150 L 91 150`,
+  armhole:`M 47 44 C 51 56 51 69 47 79 M 93 44 C 89 56 89 69 93 79`,
+  side:`M 47 79 C 48 101 49 126 49 150 M 93 79 C 92 101 91 126 91 150`,
+  sleeve:`M 95 42 C 107 42 119 47 127 56 C 124 70 122 78 120 85 C 114 85 107 83 101 80 M 45 42 C 33 42 21 47 13 56 C 16 70 18 78 20 85 C 26 85 33 83 39 80`,
+  cap:`M 95 42 C 107 42 119 47 127 56 M 45 42 C 33 42 21 47 13 56`,
+  belt:`M 50 141 L 90 141`,
+  darts:`M 78 83 L 76 145 M 62 83 L 64 145`,
+};
+
+/* front armhole cubic M→E (leans right of C–L) — shared by points() and edges() */
+function bArm(M,E){ const ax=E.x-M.x, ay=E.y-M.y, al=Math.hypot(ax,ay)||1, aux=ax/al, auy=ay/al;
+  let nx=auy, ny=-aux; if(nx<0){nx=-nx;ny=-ny;}
+  const at=(t)=>({x:M.x+t*ax,y:M.y+t*ay}), c1=at(0.30), c2=at(0.72);
+  return {nx,ny, f1:{x:c1.x+1.0*nx,y:c1.y+1.0*ny}, f2:{x:c2.x+0.7*nx,y:c2.y+0.7*ny},
+                 b1:{x:c1.x+0.5*nx,y:c1.y+0.5*ny}, b2:{x:c2.x+0.2*nx,y:c2.y+0.2*ny}}; }
+function bezAt(p0,c1,c2,p3,t){ const u=1-t;
+  return {x:u*u*u*p0.x+3*u*u*t*c1.x+3*u*t*t*c2.x+t*t*t*p3.x,
+          y:u*u*u*p0.y+3*u*u*t*c1.y+3*u*t*t*c2.y+t*t*t*p3.y}; }
+// 7.8 · the "most slanted point" — where a curve leans furthest from its chord
+function maxLean(p0,c1,c2,p3){ const dx=p3.x-p0.x, dy=p3.y-p0.y, L=Math.hypot(dx,dy)||1;
+  let best={d:-1,p:p0};
+  for(let i=1;i<200;i++){ const t=i/200, q=bezAt(p0,c1,c2,p3,t);
+    const d=Math.abs((q.x-p0.x)*dy-(q.y-p0.y)*dx)/L;
+    if(d>best.d) best={d,p:q}; }
+  return best.p; }
+// stitching-allowance legs: offset ±d square to the dart at its wide end, back to the apex
+function dartLegs(tip,base,d,axis){ const dx=tip.x-base.x, dy=tip.y-base.y, l=Math.hypot(dx,dy)||1;
+  let ox=-dy/l*d, oy=dx/l*d;                       // default: square to the dart
+  if(axis==='v'){ ox=0; oy=d; }                    // point sits on a vertical edge
+  if(axis==='h'){ ox=d; oy=0; }                    // point sits on the hem
+  const f=(n)=>n.toFixed(2);
+  return `M ${f(tip.x+ox)} ${f(tip.y+oy)} L ${f(base.x)} ${f(base.y)} `
+       + `M ${f(tip.x-ox)} ${f(tip.y-oy)} L ${f(base.x)} ${f(base.y)}`; }
+
+const BLOUSE_FRONT_STEPS = [
+  {n:1,en:'Corners & tira',deps:[],formula:'sheet 15×10 · C = S/2'},
+  {n:2,en:'Chest & waist lines',deps:['A'],formula:'D = C/4−1 · E = C/4+1 · F = W/4+1.25'},
+  {n:3,en:'Neck box',deps:['A'],formula:'G = C/6 · H = C/12+0.5 · J = C/8'},
+  {n:4,en:'Neck curves',deps:['H','G','J'],formula:'french H→G, H→J',man:true},
+  {n:5,en:'Shoulder slope',deps:['C','H'],formula:'M = C/36−0.3',man:false},
+  {n:6,en:'Armhole',deps:['M','E'],formula:'french M→E · split C–L · 0.5″',man:true},
+  {n:7,en:'Bust & waist darts',deps:['P','E'],formula:'P = C/4+1 · 4 darts',man:true},
+  {n:8,en:'Dart stitching area',deps:['P','V','W','T'],formula:'P,V,W ±1″ · T ±1.25″'},
+  {n:9,en:'Belt (optional)',deps:['T','V'],formula:'T↑2.5 → T2 · Y↑0.5 → Z'},
+];
+const BLOUSE_FRONT = {
+  name:'Part 1 · Blouse front',
+  scale:22, pad:38, mr:64, mb:22, foldDx:54,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',H:'H',I:'I',J:'J',K:'K',Lp:'L',M:'M',P:'P',Q:'Q',R:'R',S:'S',T:'T',U:'U',V:'V',W:'W',X:'X',T2:'T2',Y:'Y',Z:'Z'},
+  labs:{A:'r',B:'r',C:'u',D:'r',E:'l',F:'dl',G:'r',H:'u',I:'dl',J:'r',K:'ul',Lp:'dl',M:'ul',P:'r',Q:'u',R:'ul',S:'ur',T:'d',U:'dl',V:'l',W:'ul',X:'ur',T2:'dl',Y:'dr',Z:'ur'},
+  small:{I:1,K:1,R:1,S:1,U:1,W:1,X:1,T2:1,Y:1},
+  sheet:(m)=>({W:m.C/4+1, H:m.L}),
+  points:(m)=>{ const SW=m.C/4+1, x=v=>SW-v, bn=m.C/8, Cx=x(m.S/2), chestY=m.C/4-1, nw=m.C/12+0.5;
+    const P={x:SW,y:m.C/4+1}, Q={x:x(3.5),y:m.C/4+1}, R={x:x(3.5)-1.5,y:m.C/4+1}, S={x:x(3.5)+1.5,y:m.C/4+1};
+    const E={x:x(m.C/4+1),y:chestY}, V={x:E.x,y:E.y+m.C/8};
+    const M={x:Cx,y:m.C/36-0.3}, arm=bArm(M,E);
+    const Wp=maxLean(M,arm.f1,arm.f2,E);                       // 7.8
+    const T={x:Q.x,y:m.L}, T2={x:Q.x,y:m.L-2.5};               // 9.1
+    const tY=(SW-V.x)/((T2.x-V.x)||1), Y={x:SW,y:V.y+tY*(T2.y-V.y)};   // 9.2
+    const Z={x:SW,y:Y.y-0.5};                                  // 9.3
+    return {
+      A:{x:SW,y:0,s:1,gov:'on fold',note:'top·fold'}, B:{x:SW,y:m.L,s:1,gov:'L',note:'hem·fold'}, C:{x:Cx,y:0,s:1,gov:'S/2',note:'tira'},
+      D:{x:SW,y:chestY,s:2,gov:'C/4−1',note:'chest·fold'}, E:{...E,s:2,gov:'C/4+1',note:'chest·side'}, F:{x:x(m.W/4+1.25),y:m.L,s:2,gov:'W/4+1.25',note:'waist·side'},
+      G:{x:SW,y:m.C/6,s:3,gov:'C/6',note:'front neck'}, H:{x:x(nw),y:0,s:3,gov:'C/12+0.5',note:'neck width'}, I:{x:x(nw),y:m.C/6,s:3,gov:'box',note:'front neck box corner'},
+      J:{x:SW,y:bn,s:3,gov:'C/8',note:'back neck'}, K:{x:x(nw),y:bn,s:3,gov:'box',note:'back neck box corner'},
+      Lp:{x:Cx,y:chestY,s:5,gov:'C↓chest',note:'split ref'}, M:{...M,s:5,gov:'C/36−0.3',note:'shoulder tip'},
+      P:{...P,s:7,gov:'C/4+1',note:'bust apex'}, Q:{...Q,s:7,gov:'P←3.5',note:'dart ctr'}, R:{...R,s:7,gov:'Q−1.5',note:'side dart leg'}, S:{...S,s:7,gov:'Q+1.5',note:'bust dart leg'},
+      T:{...T,s:7,gov:'↓hem',note:'waist dart'}, U:{x:Q.x,y:P.y+1,s:7,gov:'Q↓1',note:'waist dart leg'},
+      V:{...V,s:7,gov:'E↓C/8',note:'side dart'}, W:{...Wp,s:7,gov:'lean · M→E',note:'fourth dart'}, X:{x:(Wp.x+Q.x)/2,y:(Wp.y+Q.y)/2,s:7,gov:'mid W–Q',note:'fourth dart tip'},
+      T2:{...T2,s:9,gov:'T↑2.5',note:'belt'}, Y:{...Y,s:9,gov:'V–T2 → fold',note:'belt fold reference'}, Z:{...Z,s:9,gov:'Y↑0.5',note:'belt end'},
+    };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${a.x} ${a.y} L ${b.x} ${b.y}`;
+    const wF=pt.G.x-pt.H.x, wB=pt.J.x-pt.H.x;
+    const frontNeck=`M ${pt.H.x} ${pt.H.y} C ${pt.H.x} ${(pt.H.y+(pt.G.y-pt.H.y)*0.55).toFixed(2)} ${(pt.G.x-wF*0.45).toFixed(2)} ${pt.G.y} ${pt.G.x} ${pt.G.y}`;
+    const backNeck =`M ${pt.H.x} ${pt.H.y} C ${pt.H.x} ${(pt.H.y+(pt.J.y-pt.H.y)*0.5).toFixed(2)} ${(pt.J.x-wB*0.4).toFixed(2)} ${pt.J.y} ${pt.J.x} ${pt.J.y}`;
+    const aP=pt.M, aF=pt.E, arm=bArm(aP,aF), f=(n)=>n.toFixed(2);
+    const frontArm=`M ${aP.x} ${aP.y} C ${f(arm.f1.x)} ${f(arm.f1.y)} ${f(arm.f2.x)} ${f(arm.f2.y)} ${aF.x} ${aF.y}`;
+    const backArm =`M ${aP.x} ${aP.y} C ${f(arm.b1.x)} ${f(arm.b1.y)} ${f(arm.b2.x)} ${f(arm.b2.y)} ${aF.x} ${aF.y}`;
+    return [
+      {id:'fold',s:1,color:'var(--purple)',from:'A',to:'B',d:L(pt.A,pt.B),gov:'on fold'},
+      {id:'top_edge',s:1,color:'var(--text3)',from:'C',to:'A',d:L(pt.C,pt.A),gov:'S/2'},
+      {id:'chest_line',s:2,color:'var(--accent)',from:'E',to:'D',d:L(pt.E,pt.D),gov:'C/4+1'},
+      {id:'waist_line',s:2,color:'var(--green)',from:'F',to:'B',d:L(pt.F,pt.B),gov:'W/4+1.25'},
+      {id:'neck_box_l',s:3,color:'var(--text3)',from:'H',to:'I',dash:true,d:L(pt.H,pt.I),gov:'box'},
+      {id:'back_box',s:3,color:'var(--text3)',from:'J',to:'K',dash:true,d:L(pt.J,pt.K),gov:'back box'},
+      {id:'front_neck',s:4,color:'var(--red)',from:'H',to:'G',man:true,d:frontNeck,gov:'french front H→G'},
+      {id:'back_neck',s:4,color:'var(--blue)',from:'H',to:'J',man:true,d:backNeck,gov:'french back H→J'},
+      {id:'cl_vertical',s:5,color:'var(--text3)',from:'C',to:'Lp',dash:true,d:L(pt.C,pt.Lp),gov:'C–L split ref'},
+      {id:'shoulder',s:5,color:'var(--accent)',from:'H',to:'M',d:L(pt.H,pt.M),gov:'slope C/36−0.3'},
+      {id:'front_armhole',s:6,color:'var(--red)',from:'M',to:'E',man:true,d:frontArm,gov:'front · right of C–L'},
+      {id:'back_armhole',s:6,color:'var(--blue)',from:'M',to:'E',man:true,d:backArm,gov:'back · left of C–L · 0.5″'},
+      {id:'side_seam',s:7,color:'var(--red)',from:'E',to:'F',d:L(pt.E,pt.F),gov:'E→F side seam'},
+      {id:'dart_bust',s:7,color:'var(--accent2)',from:'S',to:'P',d:L(pt.S,pt.P),gov:'bust dart S→P'},
+      {id:'dart_side',s:7,color:'var(--accent2)',from:'R',to:'V',d:L(pt.R,pt.V),gov:'side dart R→V'},
+      {id:'dart_waist',s:7,color:'var(--accent2)',from:'U',to:'T',d:L(pt.U,pt.T),gov:'waist dart U→T'},
+      {id:'dart_four',s:7,color:'var(--accent2)',from:'W',to:'X',d:L(pt.W,pt.X),gov:'4th dart W→X'},
+      // Step #8 · stitching area — allowance on each dart
+      {id:'sew_bust',s:8,color:'var(--accent)',from:'P',to:'S',dash:true,d:dartLegs(pt.P,pt.S,1,'v'),gov:'P ±1″ → S'},
+      {id:'sew_side',s:8,color:'var(--accent)',from:'V',to:'R',dash:true,d:dartLegs(pt.V,pt.R,1,'v'),gov:'V ±1″ → R'},
+      {id:'sew_fourth',s:8,color:'var(--accent)',from:'W',to:'X',dash:true,d:dartLegs(pt.W,pt.X,1),gov:'W ±1″ → X'},
+      {id:'sew_waist',s:8,color:'var(--accent)',from:'T',to:'Q',dash:true,d:dartLegs(pt.T,pt.Q,1.25,'h'),gov:'T ±1.25″ → Q'},
+      // Step #9 · belt (South India) — optional
+      {id:'belt_rise',s:9,color:'var(--text3)',from:'T',to:'T2',dash:true,d:L(pt.T,pt.T2),gov:'T ↑2.5″'},
+      {id:'belt_line',s:9,color:'var(--green)',from:'V',to:'Z',d:`M ${pt.V.x} ${pt.V.y} L ${pt.T2.x} ${pt.T2.y} L ${pt.Z.x} ${pt.Z.y}`,gov:'V → T2 → Z'},
+      {id:'belt_edge',s:9,color:'var(--text3)',from:'Y',to:'Z',dash:true,d:L(pt.Y,pt.Z),gov:'Y ↑0.5″'},
+    ];},
+  steps:BLOUSE_FRONT_STEPS,
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g=''; const foldX=sx(SW);
+    if(cur>=1) g+=dimH(sx(pt.C.x),sx(pt.A.x),sy(0)-16,`S/2 = ${fmt(m.S/2)}″`);
+    if(cur===1) g+=dimV(foldX+30,sy(0),sy(SH),`L = ${fmt(m.L)}″`);
+    if(cur===2){ g+=dimV(foldX+16,sy(0),sy(pt.D.y),`C/4−1 = ${fmt(m.C/4-1)}″`);
+      g+=dimH(sx(pt.E.x),sx(pt.D.x),sy(pt.D.y)-9,`C/4+1 = ${fmt(m.C/4+1)}″`);
+      g+=dimH(sx(pt.F.x),sx(pt.B.x),sy(SH)+16,`W/4+1.25 = ${fmt(m.W/4+1.25)}″`); }
+    if(cur===3){ g+=dimV(foldX+16,sy(0),sy(pt.G.y),`C/6 = ${fmt(m.C/6)}″`);
+      g+=dimH(sx(pt.H.x),sx(pt.A.x),sy(0)-28,`C/12+0.5 = ${fmt(m.C/12+0.5)}″`); }
+    if(cur===5) g+=`<text class="dimtxt" x="${sx(pt.M.x)-6}" y="${sy(pt.M.y)-6}" text-anchor="end" fill="var(--accent2)">C/36−0.3 = ${fmt(m.C/36-0.3)}″</text>`;
+    if(cur===6) g+=`<text class="dimtxt" x="${sx(SW*0.55)}" y="${sy(SH*0.35)}" fill="var(--purple)" text-anchor="middle">armhole split ≤ 0.5″ at C–L</text>`;
+    if(cur===7){ g+=dimV(foldX+16,sy(0),sy(pt.P.y),`C/4+1 = ${fmt(m.C/4+1)}″`);
+      g+=`<text class="dimtxt" x="${sx(pt.Q.x)}" y="${sy(pt.P.y)+22}" text-anchor="middle" fill="var(--accent2)">4 darts · dart-to-dart 3.5″</text>`; }
+    if(cur===8) g+=`<text class="dimtxt" x="${sx(SW*0.5)}" y="${sy(SH)+16}" text-anchor="middle" fill="var(--accent)">stitching area · P,V,W ±1″ · T ±1.25″</text>`;
+    if(cur===9){ g+=dimV(sx(pt.T.x)-14,sy(pt.T2.y),sy(pt.T.y),`2.5″`);
+      g+=`<text class="dimtxt" x="${sx(pt.V.x)+8}" y="${sy(pt.V.y)-8}" fill="var(--green)">belt · optional (South India)</text>`; }
+    return g; },
+};
+
+const BLOUSE_BACK = {
+  name:'Part 2 · Blouse back',
+  scale:22, pad:38, mr:60, mb:22, foldDx:52,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',H:'H',I:'I',J:'J',K:'K',Lp:'L',M:'M',P:'P',Q:'Q',T:'T'},
+  labs:{A:'r',B:'r',C:'u',D:'r',E:'l',F:'dl',G:'r',H:'u',I:'dl',J:'r',K:'ul',Lp:'dl',M:'ul',P:'r',Q:'u',T:'d'},
+  small:{Q:1,I:1,K:1},
+  sheet:(m)=>({W:m.C/4+0.5, H:m.L-1}),                 // back: −0.5 width, −1 length
+  points:(m)=>{ const SW=m.C/4+0.5, x=v=>SW-v, LB=m.L-1, nw=m.C/12+0.5, Cx=x(m.S/2), chestY=m.C/4-1;
+    return {
+      A:{x:SW,y:0,s:1,gov:'on fold',note:'top·fold'}, B:{x:SW,y:LB,s:1,gov:'L−1',note:'hem·fold'}, C:{x:Cx,y:0,s:1,gov:'S/2',note:'tira'},
+      D:{x:SW,y:chestY,s:1,gov:'C/4−1',note:'chest·fold'}, E:{x:x(m.C/4+0.5),y:chestY,s:1,gov:'C/4+0.5',note:'chest·side'}, F:{x:x(m.W/4+1.25),y:LB,s:1,gov:'W/4+1.25',note:'waist·side'},
+      // traced across from Part 1 — the back sheet carries the same neck box,
+      // neck curves, shoulder slope and armhole (Part 2, Step #2 figure)
+      H:{x:x(nw),y:0,s:1,gov:'C/12+0.5',note:'neck width'}, G:{x:SW,y:m.C/6,s:1,gov:'C/6',note:'front neck'},
+      I:{x:x(nw),y:m.C/6,s:1,gov:'box',note:'front neck box corner'}, J:{x:SW,y:m.C/8,s:1,gov:'C/8',note:'back neck'},
+      K:{x:x(nw),y:m.C/8,s:1,gov:'box',note:'back neck box corner'},
+      M:{x:Cx,y:m.C/36-0.3,s:1,gov:'C/36−0.3',note:'shoulder tip'}, Lp:{x:Cx,y:chestY,s:1,gov:'C↓chest',note:'split ref'},
+      P:{x:SW,y:m.C/4+1,s:2,gov:'C/4+1',note:'dart apex'}, Q:{x:x(3.5),y:m.C/4+1,s:2,gov:'P←3.5',note:'dart ctr'}, T:{x:x(3.5),y:LB,s:2,gov:'↓hem',note:'waist dart'},
+    };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${a.x} ${a.y} L ${b.x} ${b.y}`, f=(n)=>n.toFixed(2);
+    const wF=pt.G.x-pt.H.x, wB=pt.J.x-pt.H.x;
+    const frontNeck=`M ${pt.H.x} ${pt.H.y} C ${pt.H.x} ${(pt.H.y+(pt.G.y-pt.H.y)*0.55).toFixed(2)} ${(pt.G.x-wF*0.45).toFixed(2)} ${pt.G.y} ${pt.G.x} ${pt.G.y}`;
+    const backNeck =`M ${pt.H.x} ${pt.H.y} C ${pt.H.x} ${(pt.H.y+(pt.J.y-pt.H.y)*0.5).toFixed(2)} ${(pt.J.x-wB*0.4).toFixed(2)} ${pt.J.y} ${pt.J.x} ${pt.J.y}`;
+    const arm=bArm(pt.M,pt.E);
+    const frontArm=`M ${pt.M.x} ${pt.M.y} C ${f(arm.f1.x)} ${f(arm.f1.y)} ${f(arm.f2.x)} ${f(arm.f2.y)} ${pt.E.x} ${pt.E.y}`;
+    const backArm =`M ${pt.M.x} ${pt.M.y} C ${f(arm.b1.x)} ${f(arm.b1.y)} ${f(arm.b2.x)} ${f(arm.b2.y)} ${pt.E.x} ${pt.E.y}`;
+    return [
+      {id:'fold',s:1,color:'var(--purple)',from:'A',to:'B',d:L(pt.A,pt.B),gov:'on fold'},
+      {id:'top_edge',s:1,color:'var(--text3)',from:'C',to:'A',d:L(pt.C,pt.A),gov:'S/2'},
+      {id:'chest_line',s:1,color:'var(--accent)',from:'E',to:'D',d:L(pt.E,pt.D),gov:'C/4+0.5'},
+      {id:'waist_line',s:1,color:'var(--green)',from:'F',to:'B',d:L(pt.F,pt.B),gov:'W/4+1.25'},
+      {id:'side_seam',s:1,color:'var(--red)',from:'E',to:'F',d:L(pt.E,pt.F),gov:'E→F side'},
+      {id:'neck_box_l',s:1,color:'var(--text3)',from:'H',to:'I',dash:true,d:L(pt.H,pt.I),gov:'box'},
+      {id:'back_box',s:1,color:'var(--text3)',from:'J',to:'K',dash:true,d:L(pt.J,pt.K),gov:'back box'},
+      {id:'front_neck',s:1,color:'var(--red)',from:'H',to:'G',man:true,d:frontNeck,gov:'french front H→G'},
+      {id:'back_neck',s:1,color:'var(--blue)',from:'H',to:'J',man:true,d:backNeck,gov:'french back H→J'},
+      {id:'cl_vertical',s:1,color:'var(--text3)',from:'C',to:'Lp',dash:true,d:L(pt.C,pt.Lp),gov:'C–L split ref'},
+      {id:'shoulder',s:1,color:'var(--accent)',from:'H',to:'M',d:L(pt.H,pt.M),gov:'slope C/36−0.3'},
+      {id:'front_armhole',s:1,color:'var(--red)',from:'M',to:'E',man:true,d:frontArm,gov:'front · right of C–L'},
+      {id:'back_armhole',s:1,color:'var(--blue)',from:'M',to:'E',man:true,d:backArm,gov:'back · left of C–L · 0.5″'},
+      {id:'dart_ctr',s:2,color:'var(--accent2)',from:'Q',to:'T',d:L(pt.Q,pt.T),gov:'waist dart Q→T'},
+      {id:'dart_l',s:2,color:'var(--accent2)',from:'Q',to:'T',dash:true,d:`M ${(pt.Q.x-1.25).toFixed(2)} ${pt.B.y} L ${pt.Q.x} ${pt.Q.y}`,gov:'−1.25″'},
+      {id:'dart_r',s:2,color:'var(--accent2)',from:'Q',to:'T',dash:true,d:`M ${(pt.Q.x+1.25).toFixed(2)} ${pt.B.y} L ${pt.Q.x} ${pt.Q.y}`,gov:'+1.25″'},
+    ];},
+  steps:[
+    {n:1,en:'Frame & traced lines',deps:[],formula:'−1 len · −0.5 wid · neck · shoulder · armhole',man:true},
+    {n:2,en:'Back waist dart',deps:['D'],formula:'Q = P←3.5 · T ±1.25 → Q',man:true},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g=''; const foldX=sx(SW);
+    if(cur>=1){ g+=dimH(sx(pt.C.x),sx(pt.A.x),sy(0)-16,`S/2 = ${fmt(m.S/2)}″`);
+      g+=dimV(foldX+30,sy(0),sy(SH),`L−1 = ${fmt(m.L-1)}″`);
+      g+=dimH(sx(pt.E.x),sx(pt.D.x),sy(pt.D.y)-9,`C/4+0.5 = ${fmt(m.C/4+0.5)}″`); }
+    if(cur===2) g+=`<text class="dimtxt" x="${sx(pt.Q.x)}" y="${sy(pt.B.y)+14}" text-anchor="middle" fill="var(--accent2)">±1.25″ waist dart</text>`;
+    return g; },
+};
+
+const BLOUSE_SLEEVE = makeSleeve('Part 3 · Sleeve', 0.5);   // Part 3, Step #4.6
+
+/* ── blouse instructions (functions of live values) ── */
+const INSTR_BFRONT = {
+  1:{draft:(v)=>[`Take a sheet ${fmt(v.L)}″ long and ${fmt(v.chestWidth)}″ wide (C/4+1). The right edge is the centre-front fold.`,
+      "Mark A at the top on the fold — the origin.",
+      `A ↓ ${fmt(v.L)}″ (Length) → B. A ← ${fmt(v.tira)}″ (S/2) → C, the tira (shoulder point).`],
+     sew:()=>"The blouse front is drafted flat on the fold; cut the front on the fabric fold so it opens symmetric.",
+     tip:()=>"A blouse is short — the whole length here is only the bodice, not a full kurti."},
+  2:{draft:(v)=>[`A ↓ ${fmt(v.chestStart)}″ (C/4−1) → D. From D, ← ${fmt(v.chestWidth)}″ (C/4+1) → E: the chest line D–E.`,
+      `B ← ${fmt(v.bWaist)}″ (W/4+1.25) → F: the waist line B–F.`,
+      "The blouse nips in from chest (10″) to waist (8.75″) — that shaping is taken out later as darts."],
+     sew:()=>"Chest and waist lines are references; the side seam runs E→F and the darts do the fitting.",
+     tip:(v)=>`Waist ${fmt(v.bWaist)}″ = W/4 + 1.25 — a touch more ease than the kurti's W/4 + 1.`},
+  3:{draft:(v)=>[`A ↓ ${fmt(v.neckDepth)}″ (C/6) → G (front neck depth). A ← ${fmt(v.bNeckWidth)}″ (C/12+0.5) → H (neck width).`,
+      `Drop H to G's level → I, and join H–I (neck box). A ↓ ${fmt(v.bBackNeck)}″ (C/8) → J (back neck depth); J ← ${fmt(v.bNeckWidth)}″ → K.`],
+     sew:()=>null,
+     tip:()=>"Blouse neck width is C/12 + 0.5 — half an inch wider than the kurti, for the deeper blouse neckline."},
+  4:{draft:()=>["French curve H → G — the front neckline (leaves H vertically, meets G flat).",
+      "French curve H → J — the back neckline (shallower, since J is higher than G)."],
+     sew:()=>"Finish both neck edges with bias binding or a facing; stay-stitch first so the curve can't stretch.",
+     tip:()=>"Front and back necklines share H, so they meet cleanly at the shoulder seam."},
+  5:{draft:(v)=>[`From C, drop a line to the chest line → L (this vertical is the armhole split reference).`,
+      `C ↓ ${fmt(v.bShoulderSlope)}″ (C/36−0.3) → M (shoulder tip). Join H → M — the shoulder seam.`],
+     sew:()=>"Join front & back shoulders along H–M; press the seam toward the back.",
+     tip:(v)=>`The blouse shoulder drop is ${fmt(v.bShoulderSlope)}″ (C/36−0.3) — a hair more than the kurti's C/36−0.2.`},
+  6:{draft:()=>["French curve M → E for the armhole.",
+      "Draw it twice, split by the C–L vertical: front (straight arm) to the right of C–L, back (reverse arm) to the left.",
+      "Keep the two curves no more than 0.5″ apart — that is the standard difference."],
+     sew:()=>"The sleeve cap (Part 3) eases into this armhole. Notch the shoulder tip and underarm to match.",
+     tip:()=>"Same rule as the kurti armhole — front rides the fold side of the split line, back the arm side."},
+  7:{draft:(v)=>[`A ↓ ${fmt(v.mainDart)}″ (C/4+1) → P — the bust apex. P ← 3.5″ → Q (dart-to-dart); Q ± 1.5″ → R, S.`,
+      `Q ↓ to hem → T, Q ↓ 1″ → U: the waist dart U–T. E ↓ ${fmt(v.thirdDart)}″ (C/8) → V.`,
+      "Draw the four darts: bust S→P, side R→V, waist U→T, and W→X (W = C–L ∩ R–V, X = mid W–Q)."],
+     sew:()=>"Fold and stitch each dart toward its apex (the bust point P), then press bust/side darts down and the waist dart toward centre. Darts give the blouse its shape.",
+     tip:()=>"All darts point at the bust apex P — that is what turns a flat panel into a fitted blouse."},
+};
+const INSTR_BBACK = {
+  1:{draft:(v)=>[`Fold a sheet ${fmt(v.L-1)}″ × ${fmt(v.C/4+0.5)}″ — 1″ shorter and 0.5″ narrower than the front. Mark the chest line C/4+0.5 and the waist W/4+1.25.`,
+      `Now trace the Part-1 construction across onto this sheet: the neck box (A ↓ C/6 → G, A ← ${fmt(v.bNeckWidth)}″ → H, A ↓ C/8 → J), both neck curves from H, the C–L vertical and the shoulder slope H → M.`,
+      `Carry the armhole over too — French curve M → E, front and back split by C–L. The back panel needs all of it to match the front at the seams.`],
+     sew:()=>"Cut the back on the fold; the reduced width keeps the side seams matching the front.",
+     tip:()=>"Back length = front − 1″; back chest = C/4 + 0.5 (vs front C/4 + 1) — hence 0.5″ narrower."},
+  2:{draft:()=>["Mark the dart centre Q (P ← 3.5″) and drop Q → T at the hem.",
+      "At the hem, measure 1.25″ each side of T and taper both up to Q — the back waist dart."],
+     sew:()=>"Stitch the back waist dart toward Q and press toward centre-back.",
+     tip:()=>"One clean waist dart is usually enough at the back — the shaping there is gentler than the front."},
+};
+BLOUSE_FRONT.instr = INSTR_BFRONT;
+BLOUSE_BACK.instr  = INSTR_BBACK;
+BLOUSE_SLEEVE.instr = INSTR_SLEEVE;
+
+/* ── parametric blouse-preview generator (drives the finished-blouse illustration) ── */
+function fmt2(p){return `${p.x.toFixed(2)} ${p.y.toFixed(2)}`;}
+function blouseGarment(m){
+  const C=m.C,W=m.W,S=m.S,L=m.L,SL=m.SL,B=m.Bm;
+  const NWd=C/12+0.5, ND=C/6, BND=C/8, SH=S/2, SS=C/36-0.3, CP=C/4-1, CH=C/4+1, WH=W/4+1.25, mori=B/2, slProj=SL*0.9;
+  // right-half key points (inches, x>=0 from centre, y down)
+  const HR={x:NWd,y:0}, G={x:0,y:ND}, M={x:SH,y:SS}, E={x:CH,y:CP}, F={x:WH,y:L};
+  // the sleeve is a cone set into the armhole chord M→E and drooped downward:
+  // ax = the chord normal rotated DROOP toward the hem, cw = the mori edge direction
+  const aL=Math.hypot(E.x-M.x,E.y-M.y)||1, dxn=(E.x-M.x)/aL, dyn=(E.y-M.y)/aL;
+  const DROOP=45*Math.PI/180, cs=Math.cos(DROOP), sn=Math.sin(DROOP);
+  const ax={x:dyn*cs+dxn*sn, y:dyn*sn-dxn*cs};            // sleeve axis · out and down
+  const cw={x:-ax.y, y:ax.x};                             // down the mori edge
+  const mid={x:(M.x+E.x)/2, y:(M.y+E.y)/2};
+  const cc={x:mid.x+slProj*ax.x, y:mid.y+slProj*ax.y};    // centre of the mori edge
+  const capO={x:cc.x-(mori/2)*cw.x, y:cc.y-(mori/2)*cw.y};  // outer top of the sleeve
+  const slO ={x:cc.x+(mori/2)*cw.x, y:cc.y+(mori/2)*cw.y};  // outer hem · mori = B/2
+  // named control points — shared by the outline and the highlight paths
+  const along=(a,b,t,o,v)=>({x:a.x+(b.x-a.x)*t+o*v.x, y:a.y+(b.y-a.y)*t+o*v.y});
+  const shC1={x:(NWd+SH)/2,y:SS*0.3}, shC2={x:SH-0.5,y:SS};
+  const capC1=along(M,capO,0.35,-0.75,cw), capC2=along(M,capO,0.78,-0.55,cw);
+  const cufC1=along(capO,slO,0.30,0.35,ax), cufC2=along(capO,slO,0.70,0.35,ax);
+  const uaC1=along(slO,E,0.35,0.35,cw),     uaC2=along(slO,E,0.72,0.25,cw);
+  const sdC1={x:(E.x+F.x)/2+0.5,y:(E.y+F.y)/2}, sdC2={x:F.x+0.3,y:F.y-1.6};
+  const hmC1={x:WH*0.6,y:L}, hmC2={x:WH*0.3,y:L};
+  // armhole M→E is a scoop, not a chord: offset the controls square to M–E and
+  // toward the centre front, the same way the Part-1 draft builds it
+  const aLb=Math.hypot(E.x-M.x,E.y-M.y)||1, auxb=(E.x-M.x)/aLb, auyb=(E.y-M.y)/aLb;
+  const anxb=-auyb, anyb=auxb;                       // square to M–E, pointing inward
+  const apb=(t)=>({x:M.x+t*(E.x-M.x), y:M.y+t*(E.y-M.y)});
+  const ahC1={x:apb(0.30).x+1.10*anxb, y:apb(0.30).y+1.10*anyb};
+  const ahC2={x:apb(0.72).x+0.80*anxb, y:apb(0.72).y+0.80*anyb};
+  // right-half outline segments HR -> hemCentre, each a cubic {c1,c2,end}
+  const R=[
+    {c1:shC1, c2:shC2,  end:M},           // shoulder
+    {c1:capC1,c2:capC2, end:capO},        // sleeve cap · slopes downward
+    {c1:cufC1,c2:cufC2, end:slO},         // sleeve hem · mori
+    {c1:uaC1, c2:uaC2,  end:E},           // underarm back up to the armpit
+    {c1:sdC1, c2:sdC2,  end:F},           // side seam (tapers in)
+    {c1:hmC1, c2:hmC2,  end:{x:0,y:L}},   // hem -> centre
+  ];
+  // interior construction points — the very numbers Part 1 drafts with, so the
+  // little blouse carries the same darts the manual's step thumbnails show
+  const bustY=C/4+1;
+  const dP={x:0,y:bustY}, dQ={x:3.5,y:bustY}, dR={x:5,y:bustY}, dS={x:2,y:bustY};
+  const dU={x:3.5,y:bustY+1}, dT={x:3.5,y:L}, dV={x:CH,y:CP+C/8};
+  const dW=maxLean(M,ahC1,ahC2,E), dX={x:(dW.x+dQ.x)/2,y:(dW.y+dQ.y)/2};
+  const dT2={x:3.5,y:L-2.5};
+  const tYb=(0-dV.x)/((dT2.x-dV.x)||1), dY={x:0,y:dV.y+tYb*(dT2.y-dV.y)}, dZ={x:0,y:dY.y-0.5};
+  const neckL={c1:{x:-NWd,y:ND*0.55},c2:{x:-NWd*0.45,y:ND},end:G};
+  const neckR={c1:{x:NWd*0.45,y:ND},c2:{x:NWd,y:ND*0.55},end:HR};
+  // assemble full path (inches)
+  const HL={x:-NWd,y:0};
+  let segs=[];
+  segs.push(['M',HL]);
+  segs.push(['C',neckL.c1,neckL.c2,neckL.end]);
+  segs.push(['C',neckR.c1,neckR.c2,neckR.end]);
+  R.forEach(s=>segs.push(['C',s.c1,s.c2,s.end]));
+  // left = mirror(reverse(R)) : from hemCentre back up to HL
+  let prev={x:0,y:L};
+  for(let i=R.length-1;i>=0;i--){ const s=R[i];
+    const start = i===0 ? HR : R[i-1].end;                 // original start of segment i
+    // reverse cubic: prev(=s.end mirrored side) -> start, controls swapped, x negated
+    segs.push(['C',{x:-s.c2.x,y:s.c2.y},{x:-s.c1.x,y:s.c1.y},{x:-start.x,y:start.y}]);
+    prev={x:-start.x,y:start.y};
+  }
+  segs.push(['Z']);
+  // ---- fit to viewBox: collect all pts, scale, centre ----
+  const pts=[]; segs.forEach(s=>{ for(let i=1;i<s.length;i++) pts.push(s[i]); });
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const spanX=maxX-minX, spanY=maxY-minY;
+  const TW=134, TH=168, k=Math.min(TW/spanX, TH/spanY);
+  const ox=70-((minX+maxX)/2)*k, oy=97-((minY+maxY)/2)*k;
+  const T=p=>({x:p.x*k+ox, y:p.y*k+oy});
+  const base=segs.map(s=> s[0]==='M'?`M ${fmt2(T(s[1]))}`: s[0]==='Z'?'Z': `C ${fmt2(T(s[1]))} ${fmt2(T(s[2]))} ${fmt2(T(s[3]))}`).join(' ');
+  // ---- highlights (same transform) ----
+  const seg=(a,b)=>`M ${fmt2(T(a))} L ${fmt2(T(b))}`;
+  const cub=(a,c1,c2,e)=>`M ${fmt2(T(a))} C ${fmt2(T(c1))} ${fmt2(T(c2))} ${fmt2(T(e))}`;
+  const mir=(p)=>({x:-p.x,y:p.y});                       // left half = mirror of right
+  const pair=(a,c1,c2,e)=>cub(a,c1,c2,e)+' '+cub(mir(a),mir(c1),mir(c2),mir(e));
+  const segM=(a,b)=>seg(a,b)+' '+seg(mir(a),mir(b));
+  // Step #8 wedge: ±d at the wide end of a dart, both legs back to its apex
+  const wedge=(tip,base,d,axis)=>{ const dx=tip.x-base.x, dy=tip.y-base.y, l=Math.hypot(dx,dy)||1;
+    let ox=-dy/l*d, oy=dx/l*d;
+    if(axis==='v'){ox=0;oy=d;} if(axis==='h'){ox=d;oy=0;}
+    return segM({x:tip.x+ox,y:tip.y+oy},base)+' '+segM({x:tip.x-ox,y:tip.y-oy},base); };
+  const dartsPath = segM(dS,dP)+' '+segM(dU,dT)+' '+segM(dR,dV)+' '+segM(dW,dX);
+  const plain = dartsPath+' '+segM({x:0,y:CP},{x:CH*0.92,y:CP});   // darts + chest line
+  const hl={
+    length: seg({x:0,y:ND},{x:0,y:L-0.5}),
+    neckline: `M ${fmt2(T(HL))} C ${fmt2(T(neckL.c1))} ${fmt2(T(neckL.c2))} ${fmt2(T(G))} C ${fmt2(T(neckR.c1))} ${fmt2(T(neckR.c2))} ${fmt2(T(HR))}`,
+    backneck: `M ${fmt2(T({x:-NWd*0.85,y:0}))} C ${fmt2(T({x:-NWd*0.3,y:BND}))} ${fmt2(T({x:NWd*0.3,y:BND}))} ${fmt2(T({x:NWd*0.85,y:0}))}`,
+    shoulder: pair(HR,shC1,shC2,M),
+    chest: seg({x:-CH,y:CP},{x:CH,y:CP}),
+    waist: seg({x:-WH,y:L},{x:WH,y:L}),
+    armhole: pair(M,ahC1,ahC2,E),
+    side: pair(E,sdC1,sdC2,F),
+    sleeve: pair(M,capC1,capC2,capO)+' '+pair(capO,cufC1,cufC2,slO)+' '+pair(slO,uaC1,uaC2,E),
+    cap: pair(M,capC1,capC2,capO),
+    mori: pair(capO,cufC1,cufC2,slO)+' '+pair(slO,uaC1,uaC2,E),
+    darts: dartsPath,
+    sew: wedge(dP,dS,1,'v')+' '+wedge(dV,dR,1,'v')+' '+wedge(dW,dX,1)+' '+wedge(dT,dQ,1.25,'h'),
+    belt: `M ${fmt2(T(dV))} L ${fmt2(T(dT2))} L ${fmt2(T(dZ))}`
+        + ` M ${fmt2(T(mir(dV)))} L ${fmt2(T(mir(dT2)))} L ${fmt2(T(dZ))}`,
+    backdart: segM(dQ,{x:dQ.x,y:L-1}),
+  };
+  const tl=T({x:minX,y:minY}), br=T({x:maxX,y:maxY});
+  return {base,hl,plain,fold:{y1:T({x:0,y:0}).y, y2:T({x:0,y:L}).y},
+          box:{y0:Math.min(tl.y,br.y), y1:Math.max(tl.y,br.y)}};
+}
+
+/* ═══════════════════ TROUSERS (USHA Chapter 19) ══════════════════════
+   नाप तालिका → FL, H, W, BL, B, PL.  Six parts:
+     1 front · 2 back · 3 first belt · 4 second belt · 5 fly · 6 pocket
+   Every point below is a literal reading of the chapter's numbered steps;
+   the only geometric modelling is the shape of the curves the manual names
+   ("french curve", "hip curve", "leg shaper"), which are built as exact
+   quarter-ellipses / Catmull-Rom splines rather than eyeballed arcs.
+   ═══════════════════════════════════════════════════════════════════ */
+const TROUSER_CHART = {
+  small:  {FL:38, H:32, W:30, BL:1.5, Bm:16, PL:13},
+  medium: {FL:39, H:34, W:32, BL:1.5, Bm:18, PL:13},
+  large:  {FL:40, H:36, W:34, BL:1.5, Bm:18, PL:13.5},
+};
+// exact circle→cubic constant: a quarter-round drawn with a French / hip curve
+const KAPPA = 4/3*(Math.SQRT2-1);          // 0.5522847…
+const f2 = (n)=>Number(n).toFixed(2);
+// quarter-round: leaves `a` vertically, arrives at `b` horizontally
+function qCtrl(a,b){ return [{x:a.x, y:a.y+KAPPA*(b.y-a.y)}, {x:b.x+KAPPA*(a.x-b.x), y:b.y}]; }
+function qCurve(a,b){ const c=qCtrl(a,b);
+  return `M ${f2(a.x)} ${f2(a.y)} C ${f2(c[0].x)} ${f2(c[0].y)} ${f2(c[1].x)} ${f2(c[1].y)} ${f2(b.x)} ${f2(b.y)}`; }
+// hip curve between two points that both sit on a vertical run: vertical tangent
+// at each end, so it degenerates to a true straight line when the x's agree
+function vCurve(a,b){ const dy=(b.y-a.y)*0.5;
+  return `M ${f2(a.x)} ${f2(a.y)} C ${f2(a.x)} ${f2(a.y+dy)} ${f2(b.x)} ${f2(b.y-dy)} ${f2(b.x)} ${f2(b.y)}`; }
+const lin = (a,b)=>[{x:a.x+(b.x-a.x)/3,y:a.y+(b.y-a.y)/3},{x:a.x+2*(b.x-a.x)/3,y:a.y+2*(b.y-a.y)/3}];
+
+/* ── the front skeleton: shared by Part 1, Part 2 (traced across) and the
+      finished-trouser preview, so all three can never drift apart ── */
+function trGeom(m){
+  const SW=m.H/4+2, SH=m.FL-m.BL, hipY=m.H/3-1;          // 1.3 · 1.1 · 1.2
+  const A={x:SW,y:0}, B={x:SW,y:SH}, C={x:SW,y:hipY}, D={x:0,y:hipY}, E={x:0,y:SH};
+  const F={x:2,y:hipY}, G={x:2,y:0};                      // 2.1 · 2.2
+  const K={x:2,y:0.5};                                    // 3.1
+  const Lp={x:K.x+(m.W/4+0.5), y:K.y};                    // 3.3 · W/4+0.5
+  const M={x:SW/2,y:hipY}, N={x:SW/2,y:SH};               // 4.1 · 4.2
+  const O={x:SW,y:(hipY+SH)/2}, O1={x:SW,y:(hipY+SH)/2-2};// 5.1 · 5.2
+  const P={x:O1.x-(m.H/4+2), y:O1.y};                     // 5.3 · H/4+2
+  const Q={x:N.x-m.Bm/4,y:SH}, R={x:N.x+m.Bm/4,y:SH};     // 5.4 · B/4
+  const kc=qCtrl(K,D);                                    // 3.2 french curve K→D
+  return {SW,SH,hipY,A,B,C,D,E,F,G,K,Lp,M,N,O,O1,P,Q,R,kc};
+}
+
+/* ═══ PART 1 · TROUSER FRONT (5 steps) ═══════════════════════════════ */
+const TR_FRONT = {
+  name:'Part 1 · Trouser front', cross:'', fold:false,
+  scale:11, pad:34, mr:74, mb:20, foldDx:58,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',K:'K',Lp:'L',M:'M',N:'N',O:'O',O1:'O1',P:'P',Q:'Q',R:'R'},
+  labs:{A:'ur',B:'dr',C:'r',D:'l',E:'dl',F:'dr',G:'ul',K:'dl',Lp:'dl',M:'u',N:'dr',O:'r',O1:'r',P:'l',Q:'ul',R:'ur'},
+  small:{F:1,G:1,O:1,O1:1,N:1},
+  sheet:(m)=>({W:m.H/4+2, H:m.FL-m.BL}),
+  points:(m)=>{ const g=trGeom(m); return {
+    A:{...g.A,s:1,gov:'origin',note:'top·side'},
+    B:{...g.B,s:1,gov:'FL−BL',note:'hem·side'},
+    C:{...g.C,s:1,gov:'H/3−1',note:'hip point'},
+    D:{...g.D,s:1,gov:'H/4+2',note:'fork tip'},
+    E:{...g.E,s:1,gov:'D↓sheet',note:'hem·fork'},
+    F:{...g.F,s:2,gov:'D→2″',note:'centre front'},
+    G:{...g.G,s:2,gov:'F↑top',note:'seat top'},
+    K:{...g.K,s:3,gov:'G↓0.5',note:'waist·CF'},
+    Lp:{...g.Lp,s:3,gov:'W/4+0.5',note:'waist·side'},
+    M:{...g.M,s:4,gov:'mid D–C',note:'crease top'},
+    N:{...g.N,s:4,gov:'M↓hem',note:'crease hem'},
+    O:{...g.O,s:5,gov:'mid C–B',note:'knee reference'},
+    O1:{...g.O1,s:5,gov:'O↑2″',note:'knee·side'},
+    P:{...g.P,s:5,gov:'H/4+2',note:'knee·fork'},
+    Q:{...g.Q,s:5,gov:'N←B/4',note:'mori·fork'},
+    R:{...g.R,s:5,gov:'N→B/4',note:'mori·side'},
+  };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${f2(a.x)} ${f2(a.y)} L ${f2(b.x)} ${f2(b.y)}`;
+    return [
+    {id:'tr_len',s:1,color:'var(--text3)',from:'A',to:'B',dash:true,d:L(pt.A,pt.B),gov:'FL−BL'},
+    {id:'tr_de',s:1,color:'var(--text3)',from:'D',to:'E',dash:true,d:L(pt.D,pt.E),gov:'D↓sheet'},
+    {id:'tr_hip',s:1,color:'var(--accent)',from:'D',to:'C',d:L(pt.D,pt.C),gov:'H/4+2 · front hip line'},
+    {id:'tr_seatmark',s:2,color:'var(--text3)',from:'D',to:'F',dash:true,d:L(pt.D,pt.F),gov:'2″ fork'},
+    {id:'tr_seat',s:2,color:'var(--blue)',from:'G',to:'F',d:L(pt.G,pt.F),gov:'G→F seat length'},
+    {id:'tr_waist',s:3,color:'var(--accent)',from:'K',to:'Lp',d:L(pt.K,pt.Lp),gov:'W/4+0.5 · front waist line'},
+    {id:'tr_crotch',s:3,color:'var(--red)',from:'K',to:'D',man:true,d:qCurve(pt.K,pt.D),gov:'french · K→D'},
+    {id:'tr_sideup',s:3,color:'var(--red)',from:'Lp',to:'C',man:true,d:vCurve(pt.Lp,pt.C),gov:'hip curve · L→C'},
+    {id:'tr_crease',s:4,color:'var(--purple)',from:'M',to:'N',d:L(pt.M,pt.N),gov:'crease line · cut 2'},
+    {id:'tr_kneemark',s:5,color:'var(--text3)',from:'O',to:'O1',dash:true,d:L(pt.O,pt.O1),gov:'2″'},
+    {id:'tr_knee',s:5,color:'var(--accent)',from:'P',to:'O1',d:L(pt.P,pt.O1),gov:'H/4+2 · front knee'},
+    {id:'tr_mori',s:5,color:'var(--green)',from:'Q',to:'R',d:L(pt.Q,pt.R),gov:'B/4 each side of N'},
+    {id:'tr_inseam',s:5,color:'var(--red)',from:'D',to:'Q',d:L(pt.D,pt.P)+' '+L(pt.P,pt.Q),gov:'D→P→Q inseam'},
+    {id:'tr_sidelow',s:5,color:'var(--red)',from:'C',to:'R',d:L(pt.C,pt.O1)+' '+L(pt.O1,pt.R),gov:'C→O1→R side seam'},
+  ];},
+  steps:[
+    {n:1,en:'Length & hip line',deps:[],formula:'A→B = FL−BL · A→C = H/3−1 · C→D = H/4+2'},
+    {n:2,en:'Seat length',deps:['D'],formula:'F = D→2″ · G = F↑ top'},
+    {n:3,en:'Waist line & shape',deps:['G','C'],formula:'K = G↓0.5 · K→L = W/4+0.5 · french K→D · hip L→C',man:true},
+    {n:4,en:'Crease line',deps:['D','C'],formula:'M = mid D–C · M→N ↓ hem'},
+    {n:5,en:'Knee & mori width',deps:['M','C'],formula:'O1 = mid(C–B)↑2 · O1→P = H/4+2 · N ± B/4',man:true},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g=''; const rx=sx(SW);
+    if(cur===1){ g+=dimV(rx+30,sy(0),sy(SH),`FL−BL = ${fmt(m.FL-m.BL)}″`);
+      g+=dimV(rx+14,sy(0),sy(pt.C.y),`H/3−1 = ${fmt(m.H/3-1)}″`);
+      g+=dimH(sx(pt.D.x),sx(pt.C.x),sy(pt.C.y)-8,`H/4+2 = ${fmt(m.H/4+2)}″`); }
+    if(cur===2){ g+=dimH(sx(pt.D.x),sx(pt.F.x),sy(pt.D.y)+18,`2″`);
+      g+=dimV(sx(pt.F.x)-16,sy(0),sy(pt.F.y),`seat = ${fmt(m.H/3-1)}″`); }
+    if(cur===3) g+=dimH(sx(pt.K.x),sx(pt.Lp.x),sy(pt.K.y)-10,`W/4+0.5 = ${fmt(m.W/4+0.5)}″`);
+    if(cur===4) g+=`<text class="dimtxt" x="${sx(pt.M.x)+6}" y="${sy((pt.M.y+pt.N.y)/2)}" fill="var(--purple)" transform="rotate(-90 ${sx(pt.M.x)+6} ${sy((pt.M.y+pt.N.y)/2)})" text-anchor="middle">crease line · cut 2</text>`;
+    if(cur===5){ g+=dimH(sx(pt.P.x),sx(pt.O1.x),sy(pt.O1.y)-8,`H/4+2 = ${fmt(m.H/4+2)}″`);
+      g+=dimH(sx(pt.Q.x),sx(pt.R.x),sy(SH)+34,`mori B/2 = ${fmt(m.Bm/2)}″ · B/4 each side of N`); }
+    return g; },
+};
+
+/* ═══ PART 2 · TROUSER BACK (5 steps) ═════════════════════════════════
+   Drafted straight over the front: the sheet is H/16 wider (all of it on the
+   fork side) and BL longer (all of it above), so the whole of Part 1 is traced
+   across first and the back lines are then measured off it.                */
+const TR_BACK = {
+  name:'Part 2 · Trouser back', cross:'traced over Part 1', fold:false,
+  scale:11, pad:34, mr:78, mb:20, foldDx:60,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G',K:'K',Lp:'L',M:'M',N:'N',O:'O',O1:'O1',P:'P',Q:'Q',R:'R',
+           C1:'C1',D1:'D1',S:'S',P1:'P1',T:'T',U:'U',V:'V',Wp:'W',G1:'G1',A1:'A1',X:'X',Y:'Y',Z:'Z',Z1:'Z1'},
+  labs:{A:'ur',B:'dr',C:'r',D:'u',E:'dl',F:'dr',G:'ul',K:'l',Lp:'d',M:'u',N:'dr',O:'r',O1:'r',P:'u',Q:'d',R:'dr',
+        C1:'r',D1:'dr',S:'l',P1:'ul',T:'dl',U:'r',V:'ur',Wp:'ul',G1:'l',A1:'r',X:'u',Y:'r',Z:'u',Z1:'d'},
+  small:{A:1,B:1,C:1,D:1,E:1,F:1,G:1,K:1,Lp:1,M:1,N:1,O:1,O1:1,P:1,Q:1,R:1,D1:1,G1:1,A1:1,V:1,Z:1},
+  sheet:(m)=>({W:m.H/4+2+m.H/16, H:m.FL}),
+  points:(m)=>{
+    const g=trGeom(m), ox=m.H/16, oy=m.BL, t=(p)=>({x:p.x+ox,y:p.y+oy});
+    const A=t(g.A),B=t(g.B),C=t(g.C),D=t(g.D),E=t(g.E),F=t(g.F),G=t(g.G),K=t(g.K),
+          Lp=t(g.Lp),M=t(g.M),N=t(g.N),O=t(g.O),O1=t(g.O1),P=t(g.P),Q=t(g.Q),R=t(g.R);
+    const C1={x:C.x,y:C.y+0.5};                                   // 1.1
+    const D1={x:D.x,y:C1.y};                                      // 1.2
+    const S={x:D1.x-m.H/16,y:C1.y};                               // 1.3 · H/16
+    const P1={x:P.x-m.H/36,y:P.y}, T={x:Q.x-m.H/36,y:Q.y};        // 2.1 · 2.2 · H/36
+    const U={x:M.x,y:M.y+m.H/12};                                 // 3.1 · H/12
+    const kc=[t(g.kc[0]),t(g.kc[1])];
+    const V=maxLean(K,kc[0],kc[1],D);                             // 3.2 · most-slanted pt of K–D
+    const Wp={x:V.x-1.1,y:V.y};                                   // 3.3 · 1.1″
+    const G1={x:F.x,y:(A.y+C.y)/2};                               // 3.5 · level with A1
+    const A1={x:A.x,y:(A.y+C.y)/2};                               // 4.1 · mid A–C
+    const X={x:K.x,y:K.y-1.5};                                    // 3.6 · 1.5″
+    const dx=A.x-X.x, dy=A.y-X.y, dl=Math.hypot(dx,dy)||1, wb=m.W/4+1.5;
+    const Y={x:X.x+wb*dx/dl, y:X.y+wb*dy/dl};                     // 4.3 · through A
+    const Z={x:(X.x+Y.x)/2,y:(X.y+Y.y)/2};                        // 5.1
+    const Z1={x:Z.x,y:Z.y+(m.H/6-1)};                             // 5.2 · H/6−1
+    return {
+      A:{...A,s:1,gov:'traced',note:'top·side'}, B:{...B,s:1,gov:'traced',note:'hem·side'}, C:{...C,s:1,gov:'traced',note:'hip point'},
+      D:{...D,s:1,gov:'traced',note:'fork tip'}, E:{...E,s:1,gov:'traced',note:'hem·fork'}, F:{...F,s:1,gov:'traced',note:'centre front'},
+      G:{...G,s:1,gov:'traced',note:'seat top'}, K:{...K,s:1,gov:'traced',note:'waist·CF'}, Lp:{...Lp,s:1,gov:'traced',note:'waist·side'},
+      M:{...M,s:1,gov:'traced',note:'crease top'}, N:{...N,s:1,gov:'traced',note:'crease hem'}, O:{...O,s:1,gov:'traced',note:'knee reference'},
+      O1:{...O1,s:1,gov:'traced',note:'knee·side'}, P:{...P,s:1,gov:'traced',note:'knee·fork'}, Q:{...Q,s:1,gov:'traced',note:'mori·fork'},
+      R:{...R,s:1,gov:'traced',note:'mori·side'},
+      C1:{...C1,s:1,gov:'C↓0.5',note:'back hip·side'}, D1:{...D1,s:1,gov:'on D–E',note:'fork reference'},
+      S:{...S,s:1,gov:'H/16',note:'back fork'},
+      P1:{...P1,s:2,gov:'P←H/36',note:'back knee'}, T:{...T,s:2,gov:'Q←H/36',note:'back mori'},
+      U:{...U,s:3,gov:'M↓H/12',note:'back shape'}, V:{...V,s:3,gov:'lean K–D',note:'seat curve reference'},
+      Wp:{...Wp,s:3,gov:'V←1.1″',note:'seat lean'}, G1:{...G1,s:3,gov:'on G–F',note:'seat shape reference'},
+      X:{...X,s:3,gov:'K↑1.5',note:'back waist·CB'},
+      A1:{...A1,s:4,gov:'mid A–C',note:'hip reference'}, Y:{...Y,s:4,gov:'W/4+1.5',note:'back waist·side'},
+      Z:{...Z,s:5,gov:'mid X–Y',note:'dart centre'}, Z1:{...Z1,s:5,gov:'H/6−1',note:'dart tip'},
+    };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${f2(a.x)} ${f2(a.y)} L ${f2(b.x)} ${f2(b.y)}`;
+    const legs=`M ${f2(pt.Z.x-0.5)} ${f2(pt.Z.y)} L ${f2(pt.Z1.x)} ${f2(pt.Z1.y)} `
+              +`M ${f2(pt.Z.x+0.5)} ${f2(pt.Z.y)} L ${f2(pt.Z1.x)} ${f2(pt.Z1.y)}`;
+    return [
+    // ── Part 1, traced across (dim, drawn first) ──
+    {id:'tb_hipF',s:1,color:'var(--text3)',from:'D',to:'C',d:L(pt.D,pt.C),gov:'traced · H/4+2'},
+    {id:'tb_seatF',s:1,color:'var(--text3)',from:'G',to:'F',d:L(pt.G,pt.F),gov:'traced · seat'},
+    {id:'tb_waistF',s:1,color:'var(--text3)',from:'K',to:'Lp',d:L(pt.K,pt.Lp),gov:'traced · W/4+0.5'},
+    {id:'tb_crotchF',s:1,color:'var(--text3)',from:'K',to:'D',d:qCurve(pt.K,pt.D),gov:'traced · french K→D'},
+    {id:'tb_sideF',s:1,color:'var(--text3)',from:'Lp',to:'R',d:vCurve(pt.Lp,pt.C)+' '+L(pt.C,pt.O1)+' '+L(pt.O1,pt.R),gov:'traced · side seam'},
+    {id:'tb_inseamF',s:1,color:'var(--text3)',from:'D',to:'Q',d:L(pt.D,pt.P)+' '+L(pt.P,pt.Q),gov:'traced · inseam'},
+    {id:'tb_creaseF',s:1,color:'var(--purple)',from:'M',to:'N',dash:true,d:L(pt.M,pt.N),gov:'traced · crease'},
+    {id:'tb_kneeF',s:1,color:'var(--text3)',from:'P',to:'O1',dash:true,d:L(pt.P,pt.O1),gov:'traced · knee'},
+    {id:'tb_moriF',s:1,color:'var(--text3)',from:'Q',to:'R',d:L(pt.Q,pt.R),gov:'traced · mori'},
+    // ── Step 1 · back hip line ──
+    {id:'tb_c1',s:1,color:'var(--text3)',from:'C',to:'C1',dash:true,d:L(pt.C,pt.C1),gov:'C↓0.5″'},
+    {id:'tb_hip',s:1,color:'var(--accent)',from:'C1',to:'S',d:L(pt.C1,pt.S),gov:'C1→S · back hip line'},
+    // ── Step 2 · knee & mori ──
+    {id:'tb_kneemk',s:2,color:'var(--accent2)',from:'P',to:'P1',d:L(pt.P,pt.P1),gov:'H/36'},
+    {id:'tb_morimk',s:2,color:'var(--accent2)',from:'Q',to:'T',d:L(pt.Q,pt.T),gov:'H/36'},
+    {id:'tb_inseam',s:2,color:'var(--red)',from:'S',to:'T',man:true,d:crPath([pt.S,pt.P1,pt.T]),gov:'leg shaper · S→P1→T'},
+    // ── Step 3 · back shape ──
+    {id:'tb_umk',s:3,color:'var(--text3)',from:'M',to:'U',dash:true,d:L(pt.M,pt.U),gov:'H/12'},
+    {id:'tb_shape',s:3,color:'var(--blue)',from:'Wp',to:'U',d:L(pt.Wp,pt.V)+' '+L(pt.V,pt.U),gov:'W→V→U · back shape'},
+    {id:'tb_xmk',s:3,color:'var(--text3)',from:'K',to:'X',dash:true,d:L(pt.K,pt.X),gov:'K↑1.5″'},
+    {id:'tb_seat',s:3,color:'var(--red)',from:'S',to:'X',man:true,
+      d:crPath([pt.S,pt.Wp,pt.G1],pt.P1,{x:pt.Wp.x,y:pt.G1.y-2})+' '+L(pt.G1,pt.X),
+      gov:'hip curve · S→W→G1→X'},
+    // ── Step 4 · waist line & shape ──
+    {id:'tb_g1a1',s:4,color:'var(--text3)',from:'G1',to:'A1',d:L(pt.G1,pt.A1),gov:'G1→A1'},
+    {id:'tb_waist',s:4,color:'var(--accent)',from:'X',to:'Y',d:L(pt.X,pt.Y),gov:'W/4+1.5 · through A'},
+    {id:'tb_side',s:4,color:'var(--red)',from:'Y',to:'C1',man:true,d:vCurve(pt.Y,pt.C1),gov:'hip curve · Y→C1'},
+    // ── Step 5 · trouser dart ──
+    {id:'tb_dart',s:5,color:'var(--accent2)',from:'Z',to:'Z1',d:L(pt.Z,pt.Z1),gov:'H/6−1'},
+    {id:'tb_dartlegs',s:5,color:'var(--accent2)',from:'Z',to:'Z1',dash:true,d:legs,gov:'Z ± 0.5″'},
+  ];},
+  steps:[
+    {n:1,en:'Back hip line',deps:[],formula:'C1 = C↓0.5 · D1 on D–E · D1→S = H/16',man:true},
+    {n:2,en:'Knee & mori width',deps:['S'],formula:'P1 = P←H/36 · T = Q←H/36 · leg shaper S→P1→T',man:true},
+    {n:3,en:'Back shape',deps:['M','K'],formula:'U = M↓H/12 · V lean · W = V←1.1 · X = K↑1.5',man:true},
+    {n:4,en:'Waist line & shape',deps:['X','A'],formula:'A1 = mid A–C · X→Y = W/4+1.5 · hip Y→C1',man:true},
+    {n:5,en:'Trouser dart',deps:['X','Y'],formula:'Z = mid X–Y · Z→Z1 = H/6−1 · Z ± 0.5″'},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g=''; const rx=sx(SW);
+    if(cur===1){ g+=dimH(sx(pt.S.x),sx(pt.C1.x),sy(pt.C1.y)+38,`H/4+2 + H/16 = ${fmt(m.H/4+2+m.H/16)}″`);
+      g+=dimH(sx(pt.S.x),sx(pt.D1.x),sy(pt.C1.y)-26,`H/16 = ${fmt(m.H/16)}″`); }
+    if(cur===2){ g+=`<text class="dimtxt" x="${sx(pt.P1.x)-8}" y="${sy(pt.P1.y)-8}" text-anchor="end" fill="var(--accent2)">H/36 = ${fmt(m.H/36)}″</text>`;
+      g+=`<text class="dimtxt" x="${sx(pt.T.x)-8}" y="${sy(pt.T.y)-8}" text-anchor="end" fill="var(--accent2)">H/36 = ${fmt(m.H/36)}″</text>`; }
+    if(cur===3){ g+=dimV(sx(pt.M.x)+14,sy(pt.M.y),sy(pt.U.y),`H/12 = ${fmt(m.H/12)}″`);
+      g+=`<text class="dimtxt" x="${sx(pt.Wp.x)-8}" y="${sy(pt.Wp.y)-9}" text-anchor="end" fill="var(--blue)">V ← 1.1″</text>`; }
+    if(cur===4) g+=dimH(sx(pt.X.x),sx(pt.Y.x),sy(pt.X.y)-16,`W/4+1.5 = ${fmt(m.W/4+1.5)}″`);
+    if(cur===5){ g+=dimV(sx(pt.Z.x)+16,sy(pt.Z.y),sy(pt.Z1.y),`H/6−1 = ${fmt(m.H/6-1)}″`);
+      g+=`<text class="dimtxt" x="${sx(pt.Z.x)}" y="${sy(pt.Z.y)-16}" text-anchor="middle" fill="var(--accent2)">± 0.5″</text>`; }
+    return g; },
+};
+
+/* ═══ PARTS 3 & 4 · THE TWO BELTS (1 step each) ══════════════════════ */
+function makeBelt(name, widthOf, extra, label){ return {
+  name, cross:'', fold:false, scale:19, pad:40, mr:56, mb:34, foldDx:26,
+  letters:{A:'A',B:'B',C:'C',D:'D'}, labs:{A:'r',B:'dr',C:'l',D:'dl'}, small:{},
+  sheet:(m)=>({W:widthOf(m), H:m.BL}),
+  points:(m)=>{ const SW=widthOf(m), SH=m.BL; return {
+    A:{x:SW,y:0,s:1,gov:'origin',note:'belt end'},
+    B:{x:SW,y:SH,s:1,gov:'BL',note:'belt end·hem'},
+    C:{x:0,y:0,s:1,gov:label,note:'belt width'},
+    D:{x:0,y:SH,s:1,gov:'C↓BL',note:'belt width·hem'},
+  };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${f2(a.x)} ${f2(a.y)} L ${f2(b.x)} ${f2(b.y)}`;
+    const ex={x:pt.A.x-extra,y:0};
+    return [
+      {id:'bl_top',s:1,color:'var(--accent)',from:'C',to:'A',d:L(pt.C,pt.A),gov:label},
+      {id:'bl_bot',s:1,color:'var(--green)',from:'D',to:'B',d:L(pt.D,pt.B),gov:'C→D→B'},
+      {id:'bl_end1',s:1,color:'var(--red)',from:'A',to:'B',d:L(pt.A,pt.B),gov:'BL'},
+      {id:'bl_end2',s:1,color:'var(--red)',from:'C',to:'D',d:L(pt.C,pt.D),gov:'BL'},
+      {id:'bl_extra',s:1,color:'var(--purple)',from:'A',to:'B',dash:true,d:L(ex,{x:ex.x,y:pt.B.y}),gov:`${extra}″ extra`},
+    ];},
+  steps:[{n:1,en:'Length & width',deps:[],formula:`A→B = BL · A→C = ${label} · ${extra}″ extra piece`}],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g='';
+    g+=dimH(sx(0),sx(SW),sy(0)-18,`${label} = ${fmt(SW)}″`);
+    g+=dimV(sx(SW)+38,sy(0),sy(SH),`BL = ${fmt(m.BL)}″`);
+    g+=dimH(sx(SW-extra),sx(SW),sy(SH)+22,`${extra}″ extra`);
+    return g; },
+};}
+const TR_BELT1 = makeBelt('Part 3 · First belt', (m)=>m.W/2+1,   1,   'W/2+1');
+const TR_BELT2 = makeBelt('Part 4 · Second belt',(m)=>m.W/2+2.5, 2.5, 'W/2+2.5');
+
+/* ═══ PART 5 · FLY (2 steps) ═════════════════════════════════════════ */
+const TR_FLY = {
+  name:'Part 5 · Fly', cross:'', fold:false, scale:30, pad:38, mr:52, mb:24, foldDx:34,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G'},
+  labs:{A:'r',B:'dr',C:'l',D:'dl',E:'u',F:'r',G:'d'}, small:{E:1,F:1,G:1},
+  sheet:(m)=>({W:2, H:m.H/6+2}),
+  points:(m)=>{ const SH=m.H/6+2; return {
+    A:{x:2,y:0,s:1,gov:'origin',note:'top·CF'},
+    B:{x:2,y:SH,s:1,gov:'H/6+2',note:'fly bottom'},
+    C:{x:0,y:0,s:1,gov:'A←2″',note:'fly width'},
+    D:{x:0,y:SH,s:1,gov:'C↓H/6+2',note:'fly bottom corner'},
+    E:{x:1.5,y:0,s:2,gov:'A←0.5',note:'fly curve start'},
+    F:{x:2,y:SH-0.5,s:2,gov:'B↑0.5',note:'fly curve end'},
+    G:{x:1.5,y:SH,s:2,gov:'B←0.5',note:'fly hem taper'},
+  };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${f2(a.x)} ${f2(a.y)} L ${f2(b.x)} ${f2(b.y)}`;
+    return [
+    {id:'fl_r',s:1,color:'var(--text3)',from:'A',to:'B',dash:true,d:L(pt.A,pt.B),gov:'H/6+2'},
+    {id:'fl_l',s:1,color:'var(--text3)',from:'C',to:'D',dash:true,d:L(pt.C,pt.D),gov:'H/6+2'},
+    {id:'fl_t',s:1,color:'var(--text3)',from:'C',to:'A',dash:true,d:L(pt.C,pt.A),gov:'2″'},
+    {id:'fl_b',s:1,color:'var(--text3)',from:'D',to:'B',dash:true,d:L(pt.D,pt.B),gov:'2″'},
+    {id:'fl_top',s:2,color:'var(--accent)',from:'C',to:'E',d:L(pt.C,pt.E),gov:'C→E'},
+    {id:'fl_curveR',s:2,color:'var(--red)',from:'E',to:'F',man:true,d:qCurve(pt.E,pt.F),gov:'french · E→F'},
+    {id:'fl_fg',s:2,color:'var(--green)',from:'F',to:'G',d:L(pt.F,pt.G),gov:'F→G'},
+    {id:'fl_curveL',s:2,color:'var(--red)',from:'C',to:'G',man:true,d:qCurve(pt.C,pt.G),gov:'french · C→G'},
+  ];},
+  steps:[
+    {n:1,en:'Length & width',deps:[],formula:'A→B = H/6+2 · A→C = 2″'},
+    {n:2,en:'Fly shape',deps:['A','B'],formula:'E = A←0.5 · F = B↑0.5 · G = B←0.5 · french C→G, E→F',man:true},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g='';
+    if(cur===1){ g+=dimV(sx(SW)+24,sy(0),sy(SH),`H/6+2 = ${fmt(m.H/6+2)}″`);
+      g+=dimH(sx(0),sx(SW),sy(0)-16,`2″`); }
+    if(cur===2) g+=dimH(sx(pt.G.x),sx(pt.B.x),sy(SH)+26,`0.5″`);
+    return g; },
+};
+
+/* ═══ PART 6 · POCKET (3 steps) ══════════════════════════════════════ */
+const TR_POCKET = {
+  name:'Part 6 · Pocket', cross:'', scale:15, pad:38, mr:66, mb:26, foldDx:46,
+  letters:{A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G'},
+  labs:{A:'r',B:'dr',C:'l',D:'dl',E:'u',F:'l',G:'d'}, small:{E:1,F:1,G:1},
+  sheet:(m)=>({W:7, H:m.PL}),
+  points:(m)=>{ const SH=m.PL; return {
+    A:{x:7,y:0,s:2,gov:'on fold',note:'top·fold'},
+    B:{x:7,y:SH,s:2,gov:'PL',note:'hem·fold'},
+    C:{x:0,y:0,s:2,gov:'A←7″',note:'top·open'},
+    D:{x:0,y:SH,s:2,gov:'C↓PL',note:'hem·open'},
+    E:{x:1,y:0,s:2,gov:'C→1″',note:'mouth'},
+    F:{x:0,y:SH-m.H/12,s:3,gov:'D↑H/12',note:'pocket curve start'},
+    G:{x:m.H/12,y:SH,s:3,gov:'D→H/12',note:'pocket curve end'},
+  };},
+  edges:(pt)=>{ const L=(a,b)=>`M ${f2(a.x)} ${f2(a.y)} L ${f2(b.x)} ${f2(b.y)}`;
+    // hip curve E→F: eases into F with a vertical tangent, so it flows straight
+    // into the quarter-round F→G without a kink
+    const dyEF=(pt.F.y-pt.E.y);
+    const ef=`M ${f2(pt.E.x)} ${f2(pt.E.y)} C ${f2(pt.E.x)} ${f2(pt.E.y+dyEF*0.5)} `
+            +`${f2(pt.F.x)} ${f2(pt.F.y-dyEF*0.5)} ${f2(pt.F.x)} ${f2(pt.F.y)}`;
+    return [
+    {id:'pk_fold',s:2,color:'var(--purple)',from:'A',to:'B',d:L(pt.A,pt.B),gov:'on fold'},
+    {id:'pk_top',s:2,color:'var(--accent)',from:'C',to:'A',d:L(pt.C,pt.A),gov:'7″ · folded width'},
+    {id:'pk_left',s:2,color:'var(--text3)',from:'C',to:'D',dash:true,d:L(pt.C,pt.D),gov:'PL'},
+    {id:'pk_bot',s:2,color:'var(--text3)',from:'D',to:'B',dash:true,d:L(pt.D,pt.B),gov:'7″'},
+    {id:'pk_mouth',s:2,color:'var(--green)',from:'E',to:'A',d:L(pt.E,pt.A),gov:'E→A · pocket mouth'},
+    {id:'pk_curve',s:3,color:'var(--red)',from:'E',to:'G',man:true,d:ef+' '+qCurve(pt.F,pt.G),gov:'hip curve · E→F→G'},
+    {id:'pk_hem',s:3,color:'var(--green)',from:'G',to:'B',d:L(pt.G,pt.B),gov:'G→B'},
+  ];},
+  steps:[
+    {n:1,en:'Fold the sheet',deps:[],formula:'14 × PL  →  folded 7 × PL'},
+    {n:2,en:'Length & width',deps:['sheet'],formula:'A→B = PL · A→C = 7″ · E = C→1″'},
+    {n:3,en:'Pocket shape',deps:['D','E'],formula:'F = D↑H/12 · G = D→H/12 · hip curve E→F→G',man:true},
+  ],
+  dims:(pt,m,cur,sx,sy,SW,SH)=>{ let g='';
+    if(cur===1) g+=`<text class="dimtxt" x="${sx(SW/2)}" y="${sy(SH/2)}" text-anchor="middle" fill="var(--purple)">fold the 14″ sheet in half → 7″ × ${fmt(m.PL)}″</text>`;
+    if(cur>=2){ g+=dimH(sx(0),sx(7),sy(0)-16,`7″ (14″ folded)`);
+      g+=dimV(sx(SW)+24,sy(0),sy(SH),`PL = ${fmt(m.PL)}″`);
+      g+=dimH(sx(pt.C.x),sx(pt.E.x),sy(0)-30,`1″`); }
+    if(cur===3){ g+=dimV(sx(0)-14,sy(pt.F.y),sy(SH),`H/12 = ${fmt(m.H/12)}″`);
+      g+=dimH(sx(0),sx(pt.G.x),sy(SH)+18,`H/12 = ${fmt(m.H/12)}″`); }
+    return g; },
+};
+
+/* ═══ FINISHED-TROUSER PREVIEW ═══════════════════════════════════════
+   The flat garment is the Part-1 piece mirrored about the centre-front seam:
+   half-waist = W/4+0.5, half-hip = H/4+2, knee and mori exactly as drafted.
+   Nothing here is a free-hand proportion — every x and y is a corpus value. */
+function trouserGarment(m){
+  const H=m.H,W=m.W,FL=m.FL,BL=m.BL,B=m.Bm,PL=m.PL;
+  const SWp=H/4+2, tl=FL-BL, hipY=H/3-1;
+  // Laid flat, the half-width at any level is half the circumference there, i.e.
+  // the mean of the front and back piece widths at that level. Front from Part 1,
+  // back from Part 2 (which is the front plus H/16 at the fork, H/36 at the knee
+  // and the mori). Nothing here is chosen — each is a drafted width:
+  const wH   = W/4+0.5;                    //   K→L                    · waist
+  const hH   = (SWp + (SWp+H/16))/2;       // ½(D→C + S→C1)            · crotch line
+  const gap  = H/36;                       //   P→P1 = Q→T · the back leg is
+  //   H/36 wider than the front on the inseam side, so laid flat the two legs
+  //   cannot meet on the centre line — each sits H/36 clear of it.
+  const kOut = gap + (SWp + (SWp+H/36))/2; // ½(P→O1 + P1→O1)          · knee
+  const mOut = gap + (B/2 + (B/2+H/36))/2; // ½(Q→R + T→R)             · mori
+  const crease = (gap+mOut)/2;             //   M→N bisects the mori
+  const cy=hipY-0.5;                       // crotch line below the waist line
+  const Ly=tl-0.5;                         // hem   below the waist line
+  const ky=(hipY+tl)/2-2-0.5;              // knee  below the waist line
+  const vy=cy+H/12;                        // U = M↓H/12 · where the legs part
+  const mIn=gap, kIn=gap;                  // inner (inseam) edge of each leg
+  const bH=BL;                             // the belt sits above the waist line
+  const b2=(W/2+2.5)/2;                    // half of the second (back) belt
+  const flyW=2, flyL=H/6+2;                // Part 5
+  const dartX=(W/4+1.5)/2, dartL=H/6-1;    // Part 2 · Z is mid X–Y
+  const pkW=7, pkR=H/12;                   // Part 6
+  const ssC1={x:wH,y:cy*0.5}, ssC2={x:hH,y:cy*0.5};   // waist→hip, hip curve
+  const P0={x:wH,y:-bH};
+  const R=[
+    {c:lin({x:wH,y:-bH},{x:wH,y:0}),         end:{x:wH,y:0}},        // belt side
+    {c:[ssC1,ssC2],                          end:{x:hH,y:cy}},       // side seam
+    {c:lin({x:hH,y:cy},{x:kOut,y:ky}),       end:{x:kOut,y:ky}},     // thigh
+    {c:lin({x:kOut,y:ky},{x:mOut,y:Ly}),     end:{x:mOut,y:Ly}},     // to the mori
+    {c:lin({x:mOut,y:Ly},{x:mIn,y:Ly}),      end:{x:mIn,y:Ly}},      // mori
+    {c:lin({x:mIn,y:Ly},{x:kIn,y:ky}),       end:{x:kIn,y:ky}},     // inseam · lower
+    {c:lin({x:kIn,y:ky},{x:0,y:vy}),         end:{x:0,y:vy}},        // inseam → crotch
+  ];
+  let segs=[['M',P0]];
+  R.forEach(s=>segs.push(['C',s.c[0],s.c[1],s.end]));
+  for(let i=R.length-1;i>=0;i--){ const s=R[i], start=i===0?P0:R[i-1].end;
+    segs.push(['C',{x:-s.c[1].x,y:s.c[1].y},{x:-s.c[0].x,y:s.c[0].y},{x:-start.x,y:start.y}]); }
+  segs.push(['Z']);
+  const pts=[]; segs.forEach(s=>{ for(let i=1;i<s.length;i++) pts.push(s[i]); });
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys);
+  const TW=126, TH=178, k=Math.min(TW/(maxX-minX), TH/(maxY-minY));
+  const ox=70-((minX+maxX)/2)*k, oy=97-((minY+maxY)/2)*k;
+  const T=p=>({x:p.x*k+ox, y:p.y*k+oy});
+  const base=segs.map(s=> s[0]==='M'?`M ${fmt2(T(s[1]))}`: s[0]==='Z'?'Z'
+    : `C ${fmt2(T(s[1]))} ${fmt2(T(s[2]))} ${fmt2(T(s[3]))}`).join(' ');
+  const seg=(a,b)=>`M ${fmt2(T(a))} L ${fmt2(T(b))}`;
+  const cub=(a,c1,c2,e)=>`M ${fmt2(T(a))} C ${fmt2(T(c1))} ${fmt2(T(c2))} ${fmt2(T(e))}`;
+  const mir=p=>({x:-p.x,y:p.y});
+  const segM=(a,b)=>seg(a,b)+' '+seg(mir(a),mir(b));
+  const pair=(a,c1,c2,e)=>cub(a,c1,c2,e)+' '+cub(mir(a),mir(c1),mir(c2),mir(e));
+  // fly: the same quarter-round the Part-1 draft uses for K→D, at fly length
+  const fc=qCtrl({x:flyW,y:0},{x:0,y:flyL});
+  const flyPath=cub({x:flyW,y:0},fc[0],fc[1],{x:0,y:flyL});
+  // Pocket bag, exactly as Part 6 draws it: the fold A–B lies against the side
+  // seam, the mouth starts 1″ in from C at E, and the whole free edge is the one
+  // hip curve E→F→G — a sweep that eases into F with a vertical tangent and then
+  // flows without a kink into the H/12 corner round F→G.
+  const pkA={x:wH,y:0},        pkC={x:wH-pkW,y:0},
+        pkE={x:wH-pkW+1,y:0},  pkD={x:wH-pkW,y:PL},
+        pkF={x:wH-pkW,y:PL-pkR}, pkG={x:wH-pkW+pkR,y:PL}, pkB={x:wH,y:PL};
+  const pg=qCtrl(pkF,pkG), dEF=pkF.y-pkE.y;
+  const pkBag=(sgn)=>{ const S=p=>({x:sgn*p.x,y:p.y});
+    return `M ${fmt2(T(S(pkE)))} `
+         + `C ${fmt2(T(S({x:pkE.x,y:pkE.y+dEF*0.5})))} ${fmt2(T(S({x:pkF.x,y:pkF.y-dEF*0.5})))} ${fmt2(T(S(pkF)))} `
+         + `C ${fmt2(T(S(pg[0])))} ${fmt2(T(S(pg[1])))} ${fmt2(T(S(pkG)))} `
+         + `L ${fmt2(T(S(pkB)))} L ${fmt2(T(S(pkA)))} Z`; };
+  const pkSheet=(sgn)=>{ const S=p=>({x:sgn*p.x,y:p.y});
+    return `M ${fmt2(T(S(pkA)))} L ${fmt2(T(S(pkC)))} L ${fmt2(T(S(pkD)))} L ${fmt2(T(S(pkB)))} Z`; };
+  const creasePath=segM({x:crease,y:cy},{x:crease,y:Ly});
+  const plain = creasePath+' '+seg({x:-wH,y:0},{x:wH,y:0})+' '+flyPath
+              + ' '+seg({x:0,y:cy},{x:0,y:vy});
+  const hl={
+    length:  seg({x:0,y:0},{x:0,y:Ly}),
+    hip:     seg({x:-hH,y:cy},{x:hH,y:cy}),
+    // The two K→D crotch curves are sewn face to face, so on the finished
+    // trouser the whole front rise reads as the centre seam from waist to fork.
+    // The back S→W→G1→X seat curve is the same seam seen from the other side.
+    rise:    seg({x:0,y:0},{x:0,y:vy}),
+    seat:    seg({x:0,y:0},{x:0,y:vy}),
+    riseB:   seg({x:0,y:0},{x:0,y:vy}),   // the same seam, drafted from the back
+    fly:     flyPath,
+    waistF:  seg({x:-wH,y:0},{x:wH,y:0}),
+    crotch:  pair({x:flyW,y:0},fc[0],fc[1],{x:0,y:flyL}),
+    sideUp:  pair({x:wH,y:0},ssC1,ssC2,{x:hH,y:cy}),
+    sideLow: segM({x:hH,y:cy},{x:kOut,y:ky})+' '+segM({x:kOut,y:ky},{x:mOut,y:Ly}),
+    crease:  creasePath,
+    thigh:   segM({x:hH,y:cy},{x:0,y:vy}),
+    knee:    segM({x:kIn,y:ky},{x:kOut,y:ky}),
+    mori:    segM({x:mIn,y:Ly},{x:mOut,y:Ly}),
+    hem:     segM({x:mIn,y:Ly},{x:mOut,y:Ly}),
+    side:    pair({x:wH,y:0},ssC1,ssC2,{x:hH,y:cy})+' '+segM({x:hH,y:cy},{x:kOut,y:ky})
+             +' '+segM({x:kOut,y:ky},{x:mOut,y:Ly}),
+    inseam:  segM({x:0,y:vy},{x:kIn,y:ky})+' '+segM({x:kIn,y:ky},{x:mIn,y:Ly}),
+    belt1:   seg({x:-wH,y:-bH},{x:wH,y:-bH})+' '+seg({x:-wH,y:0},{x:wH,y:0})
+             +' '+segM({x:wH,y:-bH},{x:wH,y:0}),
+    belt2:   seg({x:-b2,y:-bH},{x:b2,y:-bH})+' '+seg({x:-b2,y:0},{x:b2,y:0})
+             +' '+segM({x:b2,y:-bH},{x:b2,y:0}),
+    dart:    segM({x:dartX,y:0},{x:dartX,y:dartL}),
+    pocket:  pkBag(1)+' '+pkBag(-1),
+    pocketsheet: pkSheet(1)+' '+pkSheet(-1),
+    pocketm: segM(pkE,pkA),
+  };
+  return {base,hl,plain,
+          fold:{y1:T({x:0,y:-bH}).y, y2:T({x:0,y:cy}).y},
+          box:{y0:T({x:0,y:minY}).y, y1:T({x:0,y:maxY}).y}};
+}
+
+/* ── trouser instructions (functions of the live values) ── */
+const INSTR_TR_FRONT = {
+  1:{draft:(v,m)=>[
+      `Take a sheet ${fmt(m.FL-m.BL)}″ long and ${fmt(m.H/4+2)}″ wide. Nothing is folded here — the trouser front is a single flat piece, cut twice (mirrored) for the two legs.`,
+      `Mark A at the top-right corner. From A measure straight down ${fmt(m.FL-m.BL)}″ (FL − BL) and mark B. A→B is the trouser length: the full length minus the belt, because the belt adds its own ${fmt(m.BL)}″ at the top.`,
+      `From A measure down ${fmt(m.H/3-1)}″ (H/3 − 1) and mark C — the hip point, which is also where the crotch sits.`,
+      `From C measure ${fmt(m.H/4+2)}″ to the left and mark D. C→D is the front hip line. D is the fork tip; it is 2″ past the centre front, and that extra 2″ is what wraps under the body.`,
+      `From D drop a line straight down to the bottom edge and mark E.`],
+     sew:()=>"Nothing is stitched yet — but note that C→D governs the whole fit through the seat. Cut two of this piece, one reversed, so you get a left and a right leg.",
+     tip:(v,m)=>`${fmt(m.H/4+2)}″ = Hip ÷ 4 + 2″. The +2 is the fork extension, not ease — trim it and the trousers will pull hard across the seat.`},
+  2:{draft:(v,m)=>[
+      `From D measure 2″ to the right and mark F. This 2″ is the standard front fork; F now sits on the centre-front line of the trouser.`,
+      `From F rule a line straight up to the top edge of the sheet and mark G.`,
+      `G→F is the front seat (rise) length — the vertical distance from the waist down to the crotch, ${fmt(m.H/3-1)}″ here.`],
+     sew:()=>"G–F is the centre-front line: the fly (Part 5) is applied along it, and the two front legs are joined down the curve you will draw from it next.",
+     tip:()=>"Keep G–F truly perpendicular to the hip line. If the rise leans, one leg will twist on the body no matter how well the rest is drafted."},
+  3:{draft:(v,m)=>[
+      `From G measure 0.5″ down the seat line and mark K. That half inch is the waist scoop — the centre front always sits a little below the side.`,
+      `With a French curve join K to D. The curve leaves K straight down along the seat line and only turns out into D at the very bottom — that long J is the front crotch curve.`,
+      `From K rule a horizontal line ${fmt(m.W/4+0.5)}″ (W/4 + 0.5) to the right and mark L. K→L is the front waist line.`,
+      `With a hip curve join L down to C. L→C is the upper side seam, the shaping between waist and hip.`],
+     sew:()=>"K–D is the centre-front seam: place the two fronts right sides together and stitch from K down to D, leaving the top open for the fly. Clip the curve so it lies flat.",
+     tip:(v,m)=>`${fmt(m.W/4+0.5)}″ = Waist ÷ 4 + 0.5. Two fronts give ${fmt(m.W/2+1)}″ across the front waist — exactly the first belt width (W/2 + 1), so the two always agree.`},
+  4:{draft:(v,m)=>[
+      `Find the exact midpoint of the hip line D–C and mark M.`,
+      `From M rule a line straight down to the bottom edge and mark N. M→N is the front crease line.`,
+      `The crease is not a seam — it is the pressed fold that runs down the centre of the finished leg, and it also fixes where the mori is measured from.`],
+     sew:()=>"After the leg seams are closed, press the crease along M–N with steam. On the finished trouser this line is what makes the leg hang straight.",
+     tip:()=>"Mark M–N on the fabric with tailor's chalk before you sew anything — once the leg is a tube it is much harder to find the true centre."},
+  5:{draft:(v,m)=>[
+      `Mark O at the exact midpoint of the right edge C–B, then measure 2″ up from O and mark O1. O1 is the front knee level.`,
+      `From O1 rule a line ${fmt(m.H/4+2)}″ to the left (the same H/4 + 2 as the hip) and mark P. O1→P is the front knee width — the front leg stays as wide at the knee as it is at the hip.`,
+      `From N measure ${fmt(m.Bm/4)}″ (B/4) to each side and mark Q and R. Q→R is the front mori (hem) width, ${fmt(m.Bm/2)}″ across.`,
+      `Join D→P→Q for the inseam and C→O1→R for the side seam. Both run straight to the knee and then taper gently in to the hem.`],
+     sew:()=>"Stitch the inseam D–Q and the side seam C–R, right sides together, 1 cm allowance. Press both open, then finish the mori with a turned hem.",
+     tip:(v,m)=>`The whole taper happens below the knee: ${fmt(m.H/4+2)}″ at O1 narrowing to ${fmt(m.Bm/2)}″ at the hem. Widen B for a straight leg, narrow it for a taper.`},
+};
+
+const INSTR_TR_BACK = {
+  1:{draft:(v,m)=>[
+      `Take a sheet ${fmt(m.FL)}″ long and ${fmt(m.H/4+2+m.H/16)}″ wide — that is the front sheet plus ${fmt(m.BL)}″ of height at the top and ${fmt(m.H/16)}″ of width on the fork side.`,
+      `Trace the whole of Part 1 onto it first: the hip line D–C, the seat line G–F, the waist K–L, the crotch curve K–D, the side seam, the inseam, the crease M–N and the mori. Every back measurement is taken off those lines.`,
+      `From C measure 0.5″ down and mark C1 — the start of the back hip line.`,
+      `From C1 rule left as far as the line D–E and mark D1 where it lands. Then continue ${fmt(m.H/16)}″ further left and mark S.`,
+      `C1→S is the back hip line: ${fmt(m.H/4+2+m.H/16)}″, wider than the front by exactly H/16.`],
+     sew:()=>"The back is always the wider half — the extra H/16 at the fork is what gives room to sit down. Cut two, mirrored, like the fronts.",
+     tip:(v,m)=>`H/16 = ${fmt(m.H/16)}″. Skip this extension and the trousers will feel tight the moment the wearer bends.`},
+  2:{draft:(v,m)=>[
+      `From P measure ${fmt(m.H/36)}″ (H/36) to the left and mark P1. O1→P1 is the back knee width — H/36 wider than the front.`,
+      `From Q measure the same ${fmt(m.H/36)}″ to the left and mark T. R→T is the back mori width.`,
+      `With a leg shaper join S → P1 → T in one continuous curve. It is not a straight line: it bows out under the seat and straightens as it drops past the knee.`],
+     sew:()=>"The back inseam S–T is eased onto the front inseam D–Q. The back is slightly longer over the curve, so pin at the crotch, knee and hem first and spread the extra evenly.",
+     tip:()=>"Both knee and mori grow by the same H/36 — the back is uniformly a touch wider all the way down, which keeps the side seam hanging straight."},
+  3:{draft:(v,m)=>[
+      `From M measure ${fmt(m.H/12)}″ (H/12) straight down and mark U — the back shape point, the deepest reach of the back fork.`,
+      `Look along the traced curve K–D and find the point where it leans furthest from the straight line K–D; mark it V.`,
+      `From V measure 1.1″ horizontally to the left and mark W.`,
+      `Draw a line from W through V and on to U — that straight run is the back shape (the seat angle).`,
+      `Mark G1 on the line G–F, level with the midpoint of A–C. Then from K measure 1.5″ straight up and mark X — the centre-back waist point.`,
+      `With a hip curve join S → W → G1 → X in one sweep. That is the back seat curve, and it is the deepest curve in the whole draft.`],
+     sew:()=>"S–W–G1–X is the centre-back seam. Stitch it last of the four long seams, and leave it a little wide so it can be let out later — that is what the extra width at the seat is for.",
+     tip:()=>"X sits 1.5″ above the front waist K. That rise is what stops the back of the trousers dropping when the wearer sits."},
+  4:{draft:(v,m)=>[
+      `Mark A1 at the midpoint of A–C on the right edge, and join G1 to A1 — the line comes out horizontal, which confirms G1 was placed correctly.`,
+      `From X rule a line ${fmt(m.W/4+1.5)}″ (W/4 + 1.5) long, passing through A, and mark its end Y. X→Y is the back waist line.`,
+      `Because it runs through A, the back waist tips slightly downward toward the side — that slope is deliberate, it matches the rise you added at X.`,
+      `With a hip curve join Y down to C1 — the back upper side seam.`],
+     sew:()=>"Join the back side seam Y–C1 to the front side seam L–C. The 1″ difference between the front waist (W/4 + 0.5) and the back (W/4 + 1.5) is taken out by the dart in the next step.",
+     tip:(v,m)=>`Back waist ${fmt(m.W/4+1.5)}″ vs front ${fmt(m.W/4+0.5)}″ — the extra inch is dart allowance, not ease.`},
+  5:{draft:(v,m)=>[
+      `Mark Z at the midpoint of the waist line X–Y.`,
+      `From Z rule a line ${fmt(m.H/6-1)}″ (H/6 − 1) straight down and mark Z1. Z→Z1 is the trouser dart.`,
+      `From Z measure 0.5″ to each side along the waist line and mark both points; draw a line from each down to Z1. Those two legs are what you actually stitch.`,
+      `The dart takes out 1″ — exactly the difference between the back waist and the front waist.`],
+     sew:()=>"Fold the dart along Z–Z1, stitch from the waist down to the tip, and run the last few stitches right off the fold so the point stays flat. Press the dart toward the centre back.",
+     tip:()=>"Never backstitch at the dart tip — knot the threads instead, or you will get a hard little bubble over the seat."},
+};
+
+const INSTR_TR_BELT1 = {
+  1:{draft:(v,m)=>[
+      `Take a strip ${fmt(m.BL)}″ deep and ${fmt(m.W/2+1)}″ long. Mark A at the top-right corner.`,
+      `From A measure ${fmt(m.BL)}″ down and mark B. A→B is the belt depth (BL).`,
+      `From A measure ${fmt(m.W/2+1)}″ (W/2 + 1) to the left and mark C, then drop ${fmt(m.BL)}″ from C to D.`,
+      `The last 1″ at the A end is the extra piece — the underlap that carries the button.`],
+     sew:()=>"This band covers the front waist. Interface it, fold it in half lengthwise, and stitch it on with the 1″ extension projecting past the fly for the button.",
+     tip:(v,m)=>`${fmt(m.W/2+1)}″ = Waist ÷ 2 + 1, which is exactly the two front waist lines (${fmt(m.W/4+0.5)}″ each) laid end to end — the belt can never come out the wrong length.`},
+};
+const INSTR_TR_BELT2 = {
+  1:{draft:(v,m)=>[
+      `Take a strip ${fmt(m.BL)}″ deep and ${fmt(m.W/2+2.5)}″ long. Mark A at the top-right corner.`,
+      `From A measure ${fmt(m.BL)}″ down and mark B — the same depth as the first belt, so the two meet flush at the side seams.`,
+      `From A measure ${fmt(m.W/2+2.5)}″ (W/2 + 2.5) to the left and mark C, then drop ${fmt(m.BL)}″ from C to D.`,
+      `The last 2.5″ at the A end is the extra piece.`],
+     sew:()=>"This is the back band. Join it to the first belt at the side seams so the two together ring the whole waist, then attach as one waistband.",
+     tip:(v,m)=>`The back band is 1.5″ longer than the front one (${fmt(m.W/2+2.5)}″ vs ${fmt(m.W/2+1)}″) — that covers the seat curve and the dart take-up at the back.`},
+};
+
+const INSTR_TR_FLY = {
+  1:{draft:(v,m)=>[
+      `Take a strip ${fmt(m.H/6+2)}″ long and 2″ wide. Mark A at the top-right.`,
+      `From A measure ${fmt(m.H/6+2)}″ (H/6 + 2) down and mark B. A→B is the fly length.`,
+      `From A measure 2″ to the left and mark C — the fly width — and drop the same ${fmt(m.H/6+2)}″ from C to D.`],
+     sew:()=>"The fly is applied along the centre-front line G–F of the left front, over the opening left above D in the crotch seam.",
+     tip:(v,m)=>`${fmt(m.H/6+2)}″ = Hip ÷ 6 + 2. Notice it is shorter than the ${fmt(m.H/3-1)}″ rise — the fly stops well above the crotch, which is what keeps the seam from bulking there.`},
+  2:{draft:()=>[
+      `From A measure 0.5″ to the left and mark E. From B measure 0.5″ up and mark F, and 0.5″ to the left and mark G.`,
+      `Join G to F with a straight line — that little 0.5″ chamfer softens the bottom corner.`,
+      `With a French curve join C to G: the curve runs straight down the left edge and only swings across into G near the bottom.`,
+      `With a French curve join E to F down the right edge. The finished piece is a tongue, wider at the top and rounded off at the bottom.`],
+     sew:()=>"Fold the fly on C–G, press, and topstitch the curve through to the left front. The curve you just drew is the visible topstitching line on the finished trouser.",
+     tip:()=>"Cut the fly on the straight grain, never on the bias — a bias fly stretches and the opening gapes after a few wears."},
+};
+
+const INSTR_TR_POCKET = {
+  1:{draft:(v,m)=>[
+      `Take a sheet ${fmt(m.PL)}″ long and 14″ wide.`,
+      `Fold it in half lengthwise so it becomes ${fmt(m.PL)}″ × 7″. You draft on the folded half, exactly as for the kurti body.`,
+      `The fold becomes the bottom of the finished bag, so the pocket comes out as one piece with no seam across the base.`],
+     sew:()=>"Cut two pockets, one for each side. Because the base is on the fold there is only one seam to close, up the open edge.",
+     tip:(v,m)=>`Pocket length PL = ${fmt(m.PL)}″. Deeper than it looks — the bag has to reach well below the hip line so nothing falls out when sitting.`},
+  2:{draft:(v,m)=>[
+      `Mark A at the top on the fold. From A measure ${fmt(m.PL)}″ down and mark B — A→B is the pocket length.`,
+      `From A measure 7″ to the left and mark C, then drop ${fmt(m.PL)}″ from C to D.`,
+      `From C measure 1″ to the right and mark E. A→E is the top width of the pocket, ${fmt(6)}″ — the pocket mouth.`],
+     sew:()=>"A–E is the opening. It is set into the side seam, so the 1″ you took off at C is what the seam allowance and the facing eat up.",
+     tip:()=>"Cut the mouth edge on the straight grain and stay-stitch it — a pocket opening that stretches never sits flat again."},
+  3:{draft:(v,m)=>[
+      `From D measure ${fmt(m.H/12)}″ (H/12) up the left edge and mark F.`,
+      `From D measure the same ${fmt(m.H/12)}″ to the right along the bottom and mark G.`,
+      `With a hip curve join E → F → G. It runs almost straight from E down to F, then rounds the corner into G.`,
+      `That rounded corner is the pocket shape — a square corner would collect lint and fray, a round one turns out cleanly.`],
+     sew:()=>"Stitch E–F–G, trim the seam close around the curve, turn and press. Then attach the bag to the front along the side seam and the waist.",
+     tip:(v,m)=>`H/12 = ${fmt(m.H/12)}″ appears twice here and once again as the back shape (M↓U) — the manual reuses it as its standard corner radius.`},
+};
+TR_FRONT.instr  = INSTR_TR_FRONT;
+TR_BACK.instr   = INSTR_TR_BACK;
+TR_BELT1.instr  = INSTR_TR_BELT1;
+TR_BELT2.instr  = INSTR_TR_BELT2;
+TR_FLY.instr    = INSTR_TR_FLY;
+TR_POCKET.instr = INSTR_TR_POCKET;
+
+const CHARTS = { kurti:SIZE_CHART, blouse:BLOUSE_CHART, trouser:TROUSER_CHART };
+const PARTS = {
+  kurta_sleeve:{
+    label:'Kurta Sleeve', tag:'kurta + sleeve · Part 1 (1–9) + Part 2 (1–4)', chart:'kurti',
+    uses:['C','S','H','W','L','SL','Bm','Wd'],
+    phases:[BODY, SLEEVE],
+    garmentTitle:'Finished kurti — this step',
+    garment:{ base:BASE_SIL, hl:SLEEVED_HL, fold:{y1:33,y2:184}, HL:{
+      1:{ids:['length'],cap:'Drafted on the fold — the centre line is the full length.'},
+      2:{ids:['length','shoulder'],cap:'Length (A→B), width (H/4+1) and the shoulder point / tira (S/2).'},
+      3:{ids:['chest'],cap:'Chest line — reference for armhole depth & side shaping. Not a stitched seam.'},
+      4:{ids:['waist'],cap:'Waist line — the side seam nips in here (F→H).'},
+      5:{ids:['hip','side'],cap:'Hip line + side seam: stitch F–H–J–C, right sides together.'},
+      6:{ids:['neckline'],cap:'Neck box sets depth (C/6) and width (C/12).'},
+      7:{ids:['neckline','backneck'],cap:'Both neck curves on the one half piece — front C/6 (solid), back A↓4″ (dashed).'},
+      8:{ids:['shoulder'],cap:'Shoulder slope — front & back panels join along this seam.'},
+      9:{ids:['armhole'],cap:'Body armhole — the sleeve cap eases into this curve.'},
+      10:{ids:['sleeve'],cap:'Part 2 · the sleeve piece — cut on the fold, mirrored to full width.'},
+      11:{ids:['sleeve'],cap:'Sleeve length (A→C) and bicep width (C/4−0.5).'},
+      12:{ids:['hem'],cap:'Sleeve hem / mori (B/2) and the underarm seam D→E.'},
+      13:{ids:['armhole'],cap:'Armhole — the cap is eased into this seam, where the sleeve meets the body.'},
+    }},
+  },
+  kurta_sleeveless:{
+    label:'Kurta Sleeveless', tag:'sleeveless kurti · armhole = finished edge', chart:'kurti',
+    uses:['C','S','H','W','L','Wd'],
+    phases:[SLEEVELESS_BODY],
+    garmentTitle:'Finished kurti — sleeveless',
+    garment:{ base:SLEEVELESS_SIL, hl:SLEEVELESS_HL, fold:{y1:33,y2:184}, HL:{
+      1:{ids:['length'],cap:'Drafted on the fold — the centre line is the full length.'},
+      2:{ids:['length','shoulder'],cap:'Length (A→B), width (H/4+1) and the shoulder point / tira (S/2).'},
+      3:{ids:['chest'],cap:'Chest line — reference for armhole depth & side shaping. Not a stitched seam.'},
+      4:{ids:['waist'],cap:'Waist line — the side seam nips in here (F→H).'},
+      5:{ids:['hip','side'],cap:'Hip line + side seam: stitch F–H–J–C, right sides together.'},
+      6:{ids:['neckline'],cap:'Neck box sets depth (C/6) and width (C/12).'},
+      7:{ids:['neckline','backneck'],cap:'Both neck curves on the one half piece — front C/6 (solid), back A↓4″ (dashed).'},
+      8:{ids:['shoulder'],cap:'Shoulder slope — front & back panels join along this seam.'},
+      9:{ids:['armhole'],cap:'Sleeveless armhole — a finished edge, no sleeve. Bind the raw curve with bias directly.'},
+    }},
+  },
+
+  trousers:{
+    label:'Trousers', tag:"men's trouser · front (1–5) + back (1–5) + belts + fly + pocket", chart:'trouser',
+    uses:['H','W','FL','BL','Bm','PL'],
+    fieldLabels:{Bm:'Mohri width (B)'},
+    phases:[TR_FRONT, TR_BACK, TR_BELT1, TR_BELT2, TR_FLY, TR_POCKET],
+    garmentTitle:'Finished trousers — this step',
+    garment:{ gen:trouserGarment, half:'right', HL:{
+      1:{ids:['length','hip'],cap:'Trouser length (FL−BL) down the centre seam, and the front hip line (H/4+2) at the hip point H/3−1.'},
+      2:{ids:['rise'],cap:'Seat length G→F — the centre-front rise, with the 2″ fork taken off D.'},
+      3:{ids:['waistF','rise','sideUp'],cap:'Front waist (W/4+0.5), the crotch curve K→D — which becomes this centre seam — and the upper side seam L→C.'},
+      4:{ids:['crease'],cap:'Crease line M→N — the pressed centre of each leg. Cut 2.'},
+      5:{ids:['knee','mori','inseam','sideLow'],cap:'Knee (H/4+2) and mori (B/4 each side of N), with the inseam D→P→Q and the lower side seam C→O1→R.'},
+      6:{ids:['hip','riseB'],cap:'Back hip line C1→S — H/16 wider than the front, all of it added at the fork.'},
+      7:{ids:['knee','mori','inseam'],cap:'Back knee and mori, each H/36 wider than the front; the inseam S→P1→T is curved with a leg shaper.'},
+      8:{ids:['riseB'],cap:'Back shape: U = M↓H/12, then the seat curve S→W→G1→X — the deepest curve in the draft, and the back face of this same centre seam.'},
+      9:{ids:['waistF','sideUp'],cap:'Back waist line X→Y (W/4+1.5) through A, then the hip curve Y→C1 down the side seam.'},
+      10:{ids:['waistF','dart'],cap:'Trouser dart at the middle of X–Y: H/6−1 long, 0.5″ each side — it takes the extra 1″ back out of the waist.'},
+      11:{ids:['belt1','waistF'],cap:'First belt — W/2+1, which is exactly the two front waist lines end to end.'},
+      12:{ids:['belt2'],cap:'Second belt — W/2+2.5, the back band, 1.5″ longer to cover the seat curve.'},
+      13:{ids:['fly','rise'],cap:'Fly length H/6+2 and width 2″, applied down the centre-front seam.'},
+      14:{ids:['fly'],cap:'Fly shape — the French curve C→G is the topstitching line you see on the finished trouser.'},
+      15:{ids:['pocketsheet'],cap:'Pocket sheet folded 14″ → 7″; the fold sits against the side seam.'},
+      16:{ids:['pocketsheet','pocketm'],cap:'Pocket length PL and the mouth A→E across the top of the folded piece.'},
+      17:{ids:['pocket'],cap:'Pocket shape — the bottom corner rounded by H/12 so it turns out clean.'},
+    }},
+  },
+  blouse:{
+    label:'Blouse', tag:'blouse · front (1–9) + back (1–2) + sleeve (1–4)', chart:'blouse',
+    uses:['C','S','W','L','SL','Bm'],
+    phases:[BLOUSE_FRONT, BLOUSE_BACK, BLOUSE_SLEEVE],
+    garmentTitle:'Finished blouse — this step',
+    garment:{ gen:blouseGarment, HL:{
+      1:{ids:['length'],cap:'Front drafted on the fold — the centre line is the blouse length.'},
+      2:{ids:['chest','waist'],cap:'Chest line (C/4+1) and waist line (W/4+1.25) — the blouse nips in between.'},
+      3:{ids:['neckline'],cap:'Neck box: depth C/6, width C/12+0.5.'},
+      4:{ids:['neckline','backneck'],cap:'Both neck curves from H — front C/6 (solid), back C/8 (dashed).'},
+      5:{ids:['shoulder'],cap:'Shoulder slope C/36−0.3 — the seam H→M.'},
+      6:{ids:['armhole'],cap:'Armhole M→E, split by the C–L line — front and back curves 0.5″ apart.'},
+      7:{ids:['darts'],cap:'Four darts converging on the bust apex — this is what fits the blouse.'},
+      8:{ids:['sew'],cap:'Stitching area — the wedge on each dart: ±1″ at P, V, W and ±1.25″ at T.'},
+      9:{ids:['belt'],cap:'Belt (South India) — optional; V → T2 → Z, 2.5″ above the hem.'},
+      10:{ids:['side'],cap:'Back panel — 1″ shorter, 0.5″ narrower, with the neck, shoulder and armhole traced across.'},
+      11:{ids:['backdart'],cap:'Back waist dart (±1.25″ at the waist, tapering to Q).'},
+      12:{ids:['sleeve'],cap:'Part 3 · the sleeve — cut on the fold, mirrored to full width.'},
+      13:{ids:['sleeve'],cap:'Sleeve length (A→C) and bicep width (C/4−0.5).'},
+      14:{ids:['mori'],cap:'Sleeve hem / mori (B/2) and sleeve shape — the hem edge and the underarm seam D→E.'},
+      15:{ids:['armhole'],cap:'Armhole — the cap is eased into this seam, where the sleeve meets the body.'},
+    }},
+  },
+};
+
+function totalSteps(part){ return part.phases.reduce((a,p)=>a+p.steps.length,0); }
+function resolve(part, gstep){ let acc=0;
+  for(let i=0;i<part.phases.length;i++){ const p=part.phases[i];
+    if(gstep<=acc+p.steps.length) return {phase:p, pIdx:i, local:gstep-acc};
+    acc+=p.steps.length;
+  }
+  const last=part.phases[part.phases.length-1];
+  return {phase:last, pIdx:part.phases.length-1, local:last.steps.length};
+}
+
+/* ═══ RENDER ══════════════════════════════════════════════════════════ */
+const stage = document.getElementById('stage');
+function fitBox(card, wrap, w, h, capScale){
+  const pad = 52;
+  const availW = Math.max(120, wrap.clientWidth - pad);
+  const availH = Math.max(120, wrap.clientHeight - pad);
+  const scale = Math.min(availW/w, availH/h, capScale||1.6);
+  card.style.width = Math.round(w*scale)+'px';
+  card.style.height = Math.round(h*scale)+'px';
+}
+function fitCard(w,h){
+  fitBox(document.getElementById('canvas-card'), document.querySelector('.canvas-wrap'), w, h, 1.6);
+}
+let lastWH = {w:400,h:600};
+window.addEventListener('resize', ()=>{
+  fitCard(lastWH.w, lastWH.h);
+  if(lastPreviewWH) fitBox(document.getElementById('preview-card'), document.querySelector('.preview-wrap'), lastPreviewWH.w, lastPreviewWH.h, 3.2);
+});
+
+function render(){
+  const part=PARTS[state.part], m=state.m, gstep=state.step;
+  const {phase:ph, pIdx, local:cur} = resolve(part, gstep);
+  const pt=ph.points(m), edges=ph.edges(pt,m);
+  const {W:SW,H:SH}=ph.sheet(m), SCALE=ph.scale;
+  // Component-name labels run far wider than a single letter, so this mode
+  // needs real breathing room on every side — the letter-mode margins were
+  // tuned tight around 1–2 char labels and will clip a name like "Sleeve cap
+  // three-quarter point" otherwise.
+  const namesMode = state.namesMode;
+  const PAD = ph.pad + (namesMode?70:0);
+  const mr  = ph.mr  + (namesMode?90:0);
+  const mb  = ph.mb  + (namesMode?24:0);
+  const w=SW*SCALE+PAD*2+mr, h=SH*SCALE+PAD*2+mb;
+  lastWH = {w,h};
+  fitCard(w,h);
+  stage.setAttribute('viewBox',`0 0 ${w} ${h}`);
+  stage.setAttribute('preserveAspectRatio','xMidYMid meet');
+  const sx=x=>x*SCALE+PAD, sy=y=>y*SCALE+PAD;
+
+  let g=`<defs><pattern id="grid" width="${SCALE}" height="${SCALE}" patternUnits="userSpaceOnUse">
+      <path d="M ${SCALE} 0 L 0 0 0 ${SCALE}" fill="none" stroke="var(--grid-line)" stroke-width="1"/></pattern></defs>
+    <rect width="${w}" height="${h}" fill="var(--bg)"/>
+    <rect x="${sx(0)}" y="${sy(0)}" width="${SW*SCALE}" height="${SH*SCALE}" fill="url(#grid)" opacity=".85"/>
+    <rect x="${sx(0)}" y="${sy(0)}" width="${SW*SCALE}" height="${SH*SCALE}" fill="rgba(245,158,11,0.05)" stroke="var(--sheet-border)" stroke-width="1.4"/>`;
+  if(ph.fold!==false) g+=`<text class="dimtxt" x="${sx(SW)+ph.foldDx}" y="${sy(SH/2)}" transform="rotate(-90 ${sx(SW)+ph.foldDx} ${sy(SH/2)})" fill="var(--purple)">${ph.foldLabel||'on fold'}</text>`;
+
+  edges.forEach(e=>{ if(e.s>cur) return;
+    const isNew=e.s===cur, dim=!isNew;
+    const dd=e.d.replace(/(-?\d+\.?\d*) (-?\d+\.?\d*)/g,(_,a,b)=>`${sx(+a)} ${sy(+b)}`);
+    g+=`<path id="${e.id}" data-phase="${pIdx+1}" data-step="${e.s}" data-from="${e.from}" data-to="${e.to}" data-formula="${e.gov}"${e.man?' data-manual="true"':''} `
+      +`d="${dd}" fill="none" stroke="${e.color}" stroke-width="${isNew?2.8:1.6}" `
+      +(e.dash?`stroke-dasharray="4,3" `:'')
+      +`stroke-linecap="round" stroke-linejoin="round" opacity="${dim?0.4:1}"${isNew?' filter="drop-shadow(0 0 3px '+e.color+')"':''}/>`;
+  });
+
+  // Left/lower-left-anchored labels extend backward (toward negative x) from
+  // their point. That's fine for a short letter, but a full component name
+  // sitting right at the open edge (x≈0) runs straight off the canvas — so in
+  // names mode, flip those specific ones to extend rightward into the sheet's
+  // own (mostly empty) interior instead, where there's always room.
+  const FLIP = {l:'r', dl:'dr', ul:'ur'};
+  Object.entries(pt).forEach(([k,p])=>{ if(k[0]==='_'||p.s>cur) return;
+    const isNew=p.s===cur, small=ph.small[k];
+    const onFold=Math.abs(p.x-SW)<0.01;
+    let dir=(ph.labs&&ph.labs[k]) || (onFold?'r':'l');
+    if(namesMode && FLIP[dir] && p.x < 1.5) dir = FLIP[dir];
+    const o=LAB[dir]||LAB.l; const px=sx(p.x), py=sy(p.y);
+    const r=isNew?(small?3:4.2):(small?2.2:2.8);
+    const govDy = o.dy<0 ? o.dy-9 : o.dy+9;
+    g+=`<circle class="anchor${small?' small':''}${isNew?'':' dim'}" cx="${px}" cy="${py}" r="${r}"/>`;
+    const dispLetter = ph.letters[k]||k;
+    const label = namesMode ? (shortNameForNote(p.note) || dispLetter) : dispLetter;
+    g+=`<text class="alabel${isNew?'':' dim'}" x="${px+o.dx}" y="${py+o.dy}" text-anchor="${o.a}">${label}</text>`;
+    if(isNew&&p.note&&!small) g+=`<text class="aform" x="${px+o.dx}" y="${py+govDy}" text-anchor="${o.a}">${p.gov}</text>`;
+  });
+
+  g += ph.dims(pt,m,cur,sx,sy,SW,SH);
+  stage.innerHTML=g;
+
+  renderDag(part); renderDots(part); renderGarment(part); renderInstructions(part);
+  setTranslatable(document.getElementById('garment-title'), part.garmentTitle);
+  document.getElementById('readout').innerHTML=`${ph.name} · <b>${cur}</b>/${ph.steps.length}`;
+  document.getElementById('prev-btn').disabled=gstep===1;
+  document.getElementById('next-btn').disabled=gstep===totalSteps(part);
+  document.getElementById('tag').textContent=part.tag;
+  const pct = Math.round((gstep/totalSteps(part))*100);
+  document.getElementById('progress-fill').style.width = pct+'%';
+  ['stage','instr','garment'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.classList.remove('step-in'); void el.offsetWidth; el.classList.add('step-in');
+  });
+}
+
+/* Paint English immediately, swap to the cached/fetched translation once ready —
+   same non-blocking pattern as the instruction panel, reused everywhere else
+   in the UI that shows translatable text (DAG sidebar, captions, headings). */
+function setTranslatable(el, text){
+  if(!el) return;
+  el.textContent = text;
+  if(state.lang==='en') return;
+  const lang = state.lang;
+  translateText(text, lang).then(t=>{ if(state.lang===lang) el.textContent = t; });
+}
+function escapeAttr(s){ return String(s).replace(/"/g,'&quot;'); }
+async function translateDagLabels(){
+  if(state.lang==='en') return;
+  const lang = state.lang;
+  const nodes = Array.from(document.querySelectorAll('#dag-nodes [data-i18n]'));
+  const texts = [...new Set(nodes.map(n=>n.getAttribute('data-i18n')))];
+  const translated = await Promise.all(texts.map(t=>translateText(t,lang)));
+  if(state.lang!==lang) return; // stale — language changed again mid-flight
+  const map = {}; texts.forEach((t,i)=>map[t]=translated[i]);
+  nodes.forEach(n=>{ const key=n.getAttribute('data-i18n'); if(map[key]!==undefined) n.textContent = map[key]; });
+}
+async function translateFieldTips(){
+  if(state.lang==='en') return;
+  const lang = state.lang;
+  const nodes = Array.from(document.querySelectorAll('#measure [data-i18n-tip]'));
+  const texts = [...new Set(nodes.map(n=>n.getAttribute('data-i18n-tip')))];
+  const translated = await Promise.all(texts.map(t=>translateText(t,lang)));
+  if(state.lang!==lang) return;
+  const map = {}; texts.forEach((t,i)=>map[t]=translated[i]);
+  nodes.forEach(n=>{ const key=n.getAttribute('data-i18n-tip'); if(map[key]!==undefined) n.title = map[key]; });
+}
+function translateStaticLabels(){
+  setTranslatable(document.getElementById('sec-title-basebody'), 'Base body size — variables L·S·C…');
+  setTranslatable(document.getElementById('sec-title-howto'), 'How to draft & sew — this step');
+  setTranslatable(document.getElementById('dag-title'), PARTS[state.part].label+' — DAG');
+}
+function renderDag(part){
+  const host=document.getElementById('dag-nodes'); host.innerHTML='';
+  const multi=part.phases.length>1; let gi=0;
+  part.phases.forEach((ph,pi)=>{
+    if(multi){ const hd=document.createElement('div'); hd.className='phase-hdr';
+      hd.innerHTML=`<span data-i18n="${escapeAttr(ph.name)}">${ph.name}</span><span class="pl"></span>`; host.appendChild(hd); }
+    ph.steps.forEach((st,si)=>{ gi++; const g=gi;
+      const n=document.createElement('div');
+      n.className='node '+(g===state.step?'active':g<state.step?'done':'locked')+(si===0?' first':'');
+      const deps=st.deps.map(d=>`<span class="chip dep">${d}</span>`).join('');
+      const ct=(ph.cross!==undefined)?ph.cross:'needs Part 1 armhole';
+      const cross=(pi>0&&si===0&&ct)?`<span class="chip cross" data-i18n="${escapeAttr(ct)}">${ct}</span>`:'';
+      n.innerHTML=`<div class="num">${st.n}</div>`+(st.man?`<div class="badge-man">✎</div>`:'')
+        +`<div class="hi" data-i18n="${escapeAttr(st.en)}">${st.en}</div><div class="formula">${st.formula}</div>`
+        +`<div class="chips">${st.deps.length?`<span class="chip" data-i18n="needs">needs</span>${deps}`:'<span class="chip" data-i18n="root">root</span>'}${cross}${st.man?'<span class="chip man" data-i18n="manual">manual</span>':''}</div>`;
+      n.onclick=(gg=>()=>{state.step=gg;render();})(g);
+      host.appendChild(n);
+    });
+  });
+  translateDagLabels();
+}
+function renderDots(part){
+  const host=document.getElementById('dots'); host.innerHTML=''; let gi=0;
+  part.phases.forEach((ph,pi)=>{ ph.steps.forEach((st,si)=>{ gi++; const g=gi;
+    const d=document.createElement('div');
+    d.className='dot '+(g===state.step?'on':g<state.step?'done':'')+(pi>0&&si===0?' sep':'');
+    d.onclick=(gg=>()=>{state.step=gg;render();})(g); host.appendChild(d);
+  }); });
+}
+/* USHA manual convention: the whole garment is always drawn plain, and only the
+   step's own line is inked in — over ONE side of it (the left). So the silhouette
+   is never cut; the highlight is what gets clipped to the half. */
+const CENTRE_IDS = { length:1, rise:1, riseB:1 };  // ids that ARE the centre line itself
+const SECOND_CURVE = { backneck:1, riseB:1, dart:1 };  // drawn dashed — the far face of the garment
+const WHOLE_IDS = { belt1:1, belt2:1 };     // separate pieces — not a folded half
+// rough bbox of an SVG path from its coordinate pairs (control points give margin)
+function pathBox(d){ const n=(d.match(/-?\d*\.?\d+/g)||[]).map(Number); let b=null;
+  for(let i=0;i+1<n.length;i+=2){ const x=n[i],y=n[i+1];
+    b = b ? {x0:Math.min(b.x0,x),y0:Math.min(b.y0,y),x1:Math.max(b.x1,x),y1:Math.max(b.y1,y)} : {x0:x,y0:y,x1:x,y1:y}; }
+  return b||{x0:0,y0:0,x1:140,y1:200}; }
+let lastPreviewWH = {w:140,h:200};
+function renderGarment(part){ const st=part.garment.HL[state.step]||{ids:[],cap:''};
+  const gm = part.garment.gen ? part.garment.gen(state.m) : {base:part.garment.base, hl:part.garment.hl};
+  const cx=70, fold = gm.fold || part.garment.fold || {y1:30,y2:184};
+  const bb=pathBox(gm.base);                                  // hug the drawing
+  const left=Math.max(0,Math.round(bb.x0-5)), right=Math.min(140,Math.round(bb.x1+5));
+  const top =Math.max(0,Math.round(Math.min(bb.y0,fold.y1)-6));
+  const bot =Math.round(Math.max(bb.y1,fold.y2)+6);
+  const VW=right-left, VH=bot-top;
+  lastPreviewWH = {w:VW,h:VH};
+  fitBox(document.getElementById('preview-card'), document.querySelector('.preview-wrap'), VW, VH, 3.2);
+  let s=`<svg viewBox="${left} ${top} ${VW} ${VH}" style="width:100%;height:100%;display:block">`;
+  // Which half of the preview was actually drafted? The kurti and blouse sheets
+  // put the fold on the right, so the drafted half is the left one. The trouser
+  // sheets are the other way round — the fork/centre edge is on the LEFT of the
+  // draft and the side seam on the right — so the matching half of the finished
+  // garment is the right leg. Clip to whichever half the phase drew.
+  const hx = part.garment.half==='right' ? cx : left,
+        hw = part.garment.half==='right' ? right-cx : cx-left;
+  s+=`<defs><clipPath id="halfclip"><rect x="${hx}" y="${top}" width="${hw}" height="${VH}"/></clipPath></defs>`;
+  // the garment, drawn whole and plain — never cut
+  s+=`<path d="${gm.base}" fill="rgba(210,232,255,0.05)" stroke="var(--garment-line)" stroke-width="1.4" stroke-linejoin="round"/>`;
+  // interior construction lines — always drawn plain, as the manual's thumbnails do
+  if(gm.plain) s+=`<path d="${gm.plain}" fill="none" stroke="var(--garment-line)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>`;
+  // faint centre line (the fold), part of the plain drawing
+  s+=`<line x1="${cx}" y1="${fold.y1}" x2="${cx}" y2="${fold.y2}" stroke="var(--garment-line)" stroke-width="1" stroke-dasharray="4,3"/>`;
+  // the step's own line, inked over the left half only
+  const ink=(d,col,dash)=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.6" `
+    +`stroke-linecap="round"${dash} filter="drop-shadow(0 0 3px ${col})"/>`;
+  let half='', whole='';
+  st.ids.forEach(id=>{ const d=gm.hl[id]; if(!d) return;
+    const dash = SECOND_CURVE[id]?' stroke-dasharray="4,3"':'';
+    if(CENTRE_IDS[id]){ whole+=ink(d,'var(--purple)',dash); return; } // sits on the centre line
+    if(WHOLE_IDS[id]){ whole+=ink(d,'var(--red)',dash); return; }    // a whole separate piece
+    half+=ink(d,'var(--red)',dash);
+  });
+  if(half)  s+=`<g clip-path="url(#halfclip)">${half}</g>`;
+  if(whole) s+=whole;
+  s+=`</svg>`;
+  document.getElementById('garment').innerHTML=s;
+  setTranslatable(document.getElementById('garment-cap'), st.cap);
+}
+function renderInstructions(part){
+  const {phase:ph, local:cur}=resolve(part, state.step);
+  const v=V(state.m);
+  const set=ph.instr||{}; const step=set[cur]||{};
+  let draft=(step.draft?step.draft(v,state.m):[]);
+  let sew=(step.sew?step.sew(v,state.m):null);
+  let tip=(step.tip?step.tip(v,state.m):null);
+  if(state.namesMode){
+    const pt = ph.points(state.m);
+    const names = buildNames(ph, pt);
+    draft = draft.map(d=>humanize(d,names));
+    if(sew) sew = humanize(sew,names);
+    if(tip) tip = humanize(tip,names);
+  }
+  const head = `${ph.name} · step ${cur} / ${ph.steps.length}`;
+  const paint = (d,s,t,h)=>{
+    let html=`<div class="instr-head">${h}</div>`;
+    html+='<ol class="instr-list">'+d.map(x=>`<li>${x}</li>`).join('')+'</ol>';
+    if(s) html+=`<div class="instr-sew"><b>✂ Stitch</b> ${s}</div>`;
+    if(t) html+=`<div class="instr-tip"><b>💡 Tip</b> ${t}</div>`;
+    document.getElementById('instr').innerHTML=html;
+  };
+  paint(draft, sew, tip, head);
+  if(state.lang!=='en'){
+    const myStep=state.step, myPart=state.part, myLang=state.lang;
+    document.getElementById('instr').classList.add('lang-loading');
+    Promise.all([
+      Promise.all(draft.map(d=>translateText(d,myLang))),
+      sew ? translateText(sew,myLang) : Promise.resolve(null),
+      tip ? translateText(tip,myLang) : Promise.resolve(null),
+      translateText(head,myLang),
+    ]).then(([d2,s2,t2,h2])=>{
+      if(state.step!==myStep || state.part!==myPart || state.lang!==myLang) return; // stale — user moved on
+      paint(d2,s2,t2,h2);
+      if(lastTranslateError){
+        document.getElementById('instr').insertAdjacentHTML('beforeend',
+          `<div class="instr-warn">⚠ ${lastTranslateError}</div>`);
+      }
+    }).finally(()=>{ document.getElementById('instr').classList.remove('lang-loading'); });
+  }
+}
+function renderFields(){
+  const part=PARTS[state.part];
+  const host=document.getElementById('measure');
+  const presets=['small','medium','large'].map(k=>
+    `<button class="preset${state.size===k?' active':''}" data-size="${k}">${k[0].toUpperCase()+k.slice(1)}</button>`).join('');
+  const ov=part.fieldLabels||{};
+  const fields=ALL_FIELDS.filter(f=>part.uses.includes(f.id)).map(f=>
+    `<div class="field"><label>${ov[f.id]||f.label}<span class="ex" data-i18n-tip="${escapeAttr(f.tip)}" title="${escapeAttr(f.tip)}">${f.ex}</span></label>
+     <input type="number" step="0.5" data-id="${f.id}" value="${state.m[f.id]}"/></div>`).join('');
+  host.innerHTML=`<div class="preset-row">${presets}</div><div class="fields-grid">${fields}</div>`;
+  translateFieldTips();
+  host.querySelectorAll('.preset').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.size; state.size=k; state.m={...CHARTS[part.chart][k]}; renderFields(); render();
+  });
+  host.querySelectorAll('input[data-id]').forEach(inp=>inp.addEventListener('input',e=>{
+    state.m[e.target.dataset.id]=parseFloat(e.target.value)||0;
+    if(state.size!=='custom'){ state.size='custom'; host.querySelectorAll('.preset').forEach(b=>b.classList.remove('active')); }
+    render();
+  }));
+}
+
+// Garment is chosen by the host page (RoopVana) before this loads, not by a
+// switcher in here — see SILAI_INITIAL_PART near the top of state init.
+
+// Escape the header's stacking context entirely (backdrop-filter on an ancestor
+// silently turns position:fixed descendants into something scoped to that
+// ancestor, so z-index stops working against later page content) by moving
+// the menu to be a direct child of <body> once, up front.
+document.body.appendChild(document.getElementById('lang-menu'));
+
+function positionLangMenu(){
+  const menu = document.getElementById('lang-menu');
+  const sidebar = document.querySelector('aside.info');
+  const btn = document.getElementById('lang-toggle');
+  const sb = sidebar.getBoundingClientRect(), bb = btn.getBoundingClientRect();
+  // full-width match to the sidebar it sits above, so nothing behind it can peek out
+  menu.style.left = sb.left+'px';
+  menu.style.width = sb.width+'px';
+  menu.style.top = (bb.bottom+8)+'px';
+  menu.style.maxHeight = (window.innerHeight - bb.bottom - 24)+'px';
+}
+document.getElementById('lang-toggle').addEventListener('click',(e)=>{
+  e.stopPropagation();
+  const wrap=document.getElementById('lang-wrap');
+  const menu=document.getElementById('lang-menu');
+  const opening = !menu.classList.contains('open');
+  wrap.classList.toggle('open', opening);
+  menu.classList.toggle('open', opening);
+  if(opening) positionLangMenu();
+});
+window.addEventListener('resize', ()=>{ if(document.getElementById('lang-menu').classList.contains('open')) positionLangMenu(); });
+document.getElementById('lang-menu').addEventListener('click',(e)=>{
+  const b=e.target.closest('.lang-opt'); if(!b) return;
+  document.querySelectorAll('.lang-opt').forEach(x=>x.classList.toggle('active',x===b));
+  state.lang = b.dataset.lang;
+  document.getElementById('lang-current').textContent = b.dataset.label;
+  document.getElementById('lang-wrap').classList.remove('open');
+  document.getElementById('lang-menu').classList.remove('open');
+  renderInstructions(PARTS[state.part]);
+  translateStaticLabels();
+  translateDagLabels();
+  translateFieldTips();
+  setTranslatable(document.getElementById('garment-title'), PARTS[state.part].garmentTitle);
+  const stNow = PARTS[state.part].garment.HL[state.step];
+  if(stNow) setTranslatable(document.getElementById('garment-cap'), stNow.cap);
+});
+document.addEventListener('click',(e)=>{
+  const wrap=document.getElementById('lang-wrap');
+  const menu=document.getElementById('lang-menu');
+  if(menu.classList.contains('open') && !wrap.contains(e.target) && !menu.contains(e.target)){
+    wrap.classList.remove('open');
+    menu.classList.remove('open');
+  }
+});
+// Light/dark mode — the diagram's colors (edge strokes, dimension text, grid
+// lines) all read off CSS custom properties already, so flipping the theme
+// just needs new values for those variables; nothing in the SVG-building code
+// has to change. Preference persists across visits.
+const themeBtn = document.getElementById('theme-toggle');
+function applyTheme(light){
+  document.body.classList.toggle('light', light);
+  themeBtn.textContent = light ? '☀️' : '🌙';
+}
+applyTheme(localStorage.getItem('silai-theme') === 'light');
+themeBtn.addEventListener('click', ()=>{
+  const light = !document.body.classList.contains('light');
+  applyTheme(light);
+  localStorage.setItem('silai-theme', light ? 'light' : 'dark');
+});
+
+document.getElementById('names-toggle').addEventListener('click',()=>{
+  state.namesMode=!state.namesMode;
+  document.getElementById('names-toggle').classList.toggle('on',state.namesMode);
+  document.getElementById('names-toggle-label').textContent = state.namesMode ? 'Original names' : 'Component Name';
+  render(); // re-draws the diagram's own point labels too, not just the instruction text
+});
+document.getElementById('prev-btn').onclick=()=>{if(state.step>1){state.step--;render();}};
+document.getElementById('next-btn').onclick=()=>{const n=totalSteps(PARTS[state.part]); if(state.step<n){state.step++;render();}};
+window.addEventListener('keydown',e=>{const n=totalSteps(PARTS[state.part]);
+  if(e.key==='ArrowRight'&&state.step<n){state.step++;render();}
+  if(e.key==='ArrowLeft'&&state.step>1){state.step--;render();}});
+
+// Load the correct measurement chart for whichever garment the host page requested
+// (SIZE_CHART.large was just a placeholder default for the very first render).
+state.m = {...CHARTS[PARTS[state.part].chart].large};
+document.getElementById('garment-label').textContent = PARTS[state.part].label;
+setTranslatable(document.getElementById('dag-title'), PARTS[state.part].label+' — DAG');
+renderFields(); render();
+</script>
+</body>
+</html>
