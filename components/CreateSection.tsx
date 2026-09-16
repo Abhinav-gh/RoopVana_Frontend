@@ -2673,28 +2673,33 @@ const CreateSection = () => {
   };
 
   // --- SILAI pattern studio: garment detection -----------------------------
-  // There's no dedicated "blouse"/"trousers" style key in allStyles (blouse/
-  // trousers show up either as a saree's paired blouse, as part of a
-  // composite outfit like a salwar kameez, or as whatever the person typed
-  // into the free-text upper/lower body prompt), so this checks the
-  // free-text prompts too rather than only the fixed style keys.
+  // Full Outfit mode uses the 3-level hierarchy (selectedGarment, via
+  // styleHierarchy) to pick the garment, NOT selectedStyle -- selectedStyle
+  // is legacy state that no longer updates once you're using that
+  // hierarchy, so reading it here would always see its unchanged default
+  // ("traditional_saree"), which is exactly why the button either never
+  // showed or showed unconditionally. This reads the actual garment label
+  // from the hierarchy in Full Outfit mode, and the free-text/style state
+  // Custom mode actually uses.
   const [showPatternStudio, setShowPatternStudio] = useState(false);
 
-  const isKurtiSelected =
-    (selectedStyle?.toLowerCase().includes("kurti")) ||
-    (selectedUpperStyle?.toLowerCase().includes("kurti"));
+  const fullModeGarmentLabel = (
+    outfitMode === 'full' && selectedGarment
+      ? (currentCategoryGarments[selectedGarment]?.label || customGarments[selectedGarment]?.label || "")
+      : ""
+  ).toLowerCase();
 
-  const upperText = `${selectedStyle} ${selectedUpperStyle} ${customUpperPrompt || ""}`.toLowerCase();
-  const lowerText = `${selectedStyle} ${selectedLowerStyle} ${customLowerPrompt || ""}`.toLowerCase();
-  const isSleevelessSelected = /sleeveless|tank top|sleeveless kurti/.test(upperText);
+  const upperText = `${selectedUpperStyle} ${customUpperPrompt || ""} ${fullModeGarmentLabel}`.toLowerCase();
+  const lowerText = `${selectedLowerStyle} ${customLowerPrompt || ""} ${fullModeGarmentLabel}`.toLowerCase();
+
+  const isKurtiSelected = /kurti|kurta/.test(upperText);
+  const isSleevelessSelected = /sleeveless|tank top/.test(upperText);
   const isBlouseSelected =
-    upperText.includes("blouse") ||
-    selectedStyle === "traditional_saree" ||
-    selectedStyle === "modern_saree";
+    upperText.includes("blouse") || fullModeGarmentLabel.includes("saree");
   const TROUSER_STYLE_KEYS = ["palazzo_suit", "salwar_kameez", "sharara", "dhoti_kurta", "jodhpuri", "business_casual", "formal_suit"];
   const isTrouserSelected =
-    TROUSER_STYLE_KEYS.includes(selectedStyle) ||
-    /trouser|palazzo|salwar|dhoti|churidar|pyjama|pajama/.test(lowerText);
+    TROUSER_STYLE_KEYS.includes(selectedLowerStyle) ||
+    /trouser|palazzo|salwar|dhoti|churidar|pyjama|pajama|sharara|jodhpuri/.test(lowerText);
 
   const isSilaiGarmentSelected = isKurtiSelected || isBlouseSelected || isTrouserSelected;
   const silaiGarment: SilaiGarment = isKurtiSelected
@@ -4572,7 +4577,7 @@ const CreateSection = () => {
                               <option value="bn-IN">🇮🇳 বাংলা</option>
                               <option value="gu-IN">🇮🇳 ગુજરાતી</option>
                               <option value="kn-IN">🇮🇳 ಕನ್ನಡ</option>
-                              <option value="ml-IN">🇮🇳 മലയാളം</option>
+                              <option value="ml-IN">🇮🇳 മലയാളం</option>
                               <option value="or-IN">🇮🇳 ଓଡ଼ିଆ</option>
                             </select>
                             <Button
@@ -4736,6 +4741,16 @@ const CreateSection = () => {
                       detectedLanguage={detectedLanguage}
                     />
                   </div>
+                  {isSilaiGarmentSelected && (
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={() => setShowPatternStudio(true)}
+                        className="px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:scale-105 transition-all flex items-center gap-2"
+                      >
+                        🧵 Generate Sewing Pattern
+                      </button>
+                    </div>
+                  )}
                   </div>
                 )}
                 
