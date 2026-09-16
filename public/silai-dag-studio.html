@@ -2653,6 +2653,13 @@ window.addEventListener('keydown',e=>{const n=totalSteps(PARTS[state.part]);
   if (requestedPart && PARTS[requestedPart]) {
     document.querySelectorAll('.sw-btn').forEach(x =>
       x.classList.toggle('active', x.dataset.part === requestedPart));
+    // Launched from the host site already knowing the garment -- there's
+    // nothing to switch to, so show just the one active button rather than
+    // all five (the switcher stays fully functional if ?part= is absent,
+    // e.g. opening the file directly).
+    document.querySelectorAll('.sw-btn').forEach(x => {
+      x.style.display = (x.dataset.part === requestedPart) ? '' : 'none';
+    });
     state.part = requestedPart;
     state.step = 1;
   }
