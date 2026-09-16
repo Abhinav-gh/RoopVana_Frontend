@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
-import SewingPatternStudio, { SilaiGarment } from "./SewingPatternStudio";
+import SewingPatternStudio, { SilaiGarment, SilaiSize } from "./SewingPatternStudio";
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
 import { EditOptionDialog } from './EditOptionDialog';
 import ImagePreview from "./ImagePreview";
@@ -2694,6 +2694,7 @@ const CreateSection = () => {
 
   const isKurtiSelected = /kurti|kurta/.test(upperText);
   const isSleevelessSelected = /sleeveless|tank top/.test(upperText);
+  const isShirtSelected = /\bshirt\b/.test(upperText) || fullModeGarmentLabel.includes("shirt");
   const isBlouseSelected =
     upperText.includes("blouse") || fullModeGarmentLabel.includes("saree");
   const TROUSER_STYLE_KEYS = ["palazzo_suit", "salwar_kameez", "sharara", "dhoti_kurta", "jodhpuri", "business_casual", "formal_suit"];
@@ -2701,14 +2702,24 @@ const CreateSection = () => {
     TROUSER_STYLE_KEYS.includes(selectedLowerStyle) ||
     /trouser|palazzo|salwar|dhoti|churidar|pyjama|pajama|sharara|jodhpuri/.test(lowerText);
 
-  const isSilaiGarmentSelected = isKurtiSelected || isBlouseSelected || isTrouserSelected;
+  const isSilaiGarmentSelected = isKurtiSelected || isShirtSelected || isBlouseSelected || isTrouserSelected;
   const silaiGarment: SilaiGarment = isKurtiSelected
     ? (isSleevelessSelected ? "kurta_sleeveless" : "kurta_sleeve")
+    : isShirtSelected
+    ? "shirt"
     : isBlouseSelected
     ? "blouse"
     : isTrouserSelected
     ? "trousers"
     : "kurta_sleeve";
+
+  // Map RoopVana's 6-point body size scale onto the studio's 3 presets
+  // (small/medium/large) -- "any" has no real signal, so it lands on the
+  // neutral middle preset rather than guessing either direction.
+  const BODY_SIZE_TO_SILAI: Record<string, SilaiSize> = {
+    xs: "small", s: "small", m: "medium", any: "medium", l: "large", xl: "large", xxl: "large",
+  };
+  const silaiSize: SilaiSize = BODY_SIZE_TO_SILAI[selectedBodyType] || "medium";
   // ---------------------------------------------------------------------------
 
   return (
@@ -5090,6 +5101,7 @@ const CreateSection = () => {
         open={showPatternStudio}
         onClose={() => setShowPatternStudio(false)}
         garment={silaiGarment}
+        size={silaiSize}
       />
     </section>
   );

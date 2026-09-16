@@ -13,7 +13,8 @@
 
 import React from "react";
 
-export type SilaiGarment = "kurta_sleeve" | "kurta_sleeveless" | "blouse" | "trousers";
+export type SilaiGarment = "kurta_sleeve" | "kurta_sleeveless" | "blouse" | "trousers" | "shirt";
+export type SilaiSize = "small" | "medium" | "large";
 
 interface SewingPatternStudioProps {
   open: boolean;
@@ -21,9 +22,12 @@ interface SewingPatternStudioProps {
   /** Which garment to open the studio on. Defaults to the sleeved kurti,
    *  matching the original kurta-only behaviour when nothing else is passed. */
   garment?: SilaiGarment;
+  /** Which body-size preset to open with (matches the studio's own Small/
+   *  Medium/Large presets). Defaults to "medium" when nothing else is passed. */
+  size?: SilaiSize;
 }
 
-export default function SewingPatternStudio({ open, onClose, garment = "kurta_sleeve" }: SewingPatternStudioProps) {
+export default function SewingPatternStudio({ open, onClose, garment = "kurta_sleeve", size = "medium" }: SewingPatternStudioProps) {
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -63,9 +67,9 @@ export default function SewingPatternStudio({ open, onClose, garment = "kurta_sl
         position: "relative", background: "#0d0d0f",
       }}>
         <iframe
-          key={garment}
+          key={`${garment}:${size}`}
           title="SILAI pattern studio"
-          src={`/silai-dag-studio.html?part=${encodeURIComponent(garment)}`}
+          src={`/silai-dag-studio.html?part=${encodeURIComponent(garment)}&size=${encodeURIComponent(size)}`}
           style={{ width: "100%", height: "100%", border: "none", display: "block" }}
         />
       </div>
