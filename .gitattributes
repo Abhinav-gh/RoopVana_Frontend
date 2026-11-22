@@ -1,0 +1,2 @@
+# SILAI object store: files are hashed in eco/manifest.json, keep their bytes exact
+public/eco/** -text

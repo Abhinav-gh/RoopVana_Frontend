@@ -1,0 +1,249 @@
+{
+  "store": "silai-eco",
+  "version": "1.0.0",
+  "description": "SILAI object store: Executable Craft Objects for garment drafting. Each object maps body measurements to pattern pieces, drafting steps and instructions.",
+  "units": "inches",
+  "garments": [
+    "kurta_sleeve",
+    "kurta_sleeveless",
+    "blouse",
+    "trousers",
+    "shirt",
+    "skirt",
+    "tshirt"
+  ],
+  "objects": [
+    {
+      "id": "geometry",
+      "kind": "library",
+      "version": "1.0.0",
+      "file": "lib/geometry.eco.js",
+      "deps": [
+        "kit"
+      ],
+      "sha256": "2723d223f5bc3e0ea72ca53060d26621dfa526565d8643e1dfa2130a63d759c3",
+      "bytes": 2893,
+      "title": "Curve geometry shared by the drafting programs",
+      "provenance": {
+        "source": "SILAI",
+        "note": "Bezier evaluation, arc-length sampling, quarter-round French curves"
+      },
+      "exports": [
+        "bezAt",
+        "maxLean",
+        "fmt2",
+        "KAPPA",
+        "f2",
+        "qCtrl",
+        "qCurve",
+        "vCurve",
+        "lin",
+        "skUnit",
+        "skArc",
+        "skAtLen"
+      ]
+    },
+    {
+      "id": "set-in-sleeve",
+      "kind": "component",
+      "version": "1.0.0",
+      "file": "components/set-in-sleeve.eco.js",
+      "deps": [
+        "kit"
+      ],
+      "sha256": "4e48f31b295e67e6d28e50a3c077ad34d09d648f541034174acaebe220236cd8",
+      "bytes": 7484,
+      "title": "Set-in sleeve (4 steps), parameterised by cap split",
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Kurti sleeve",
+        "note": "Also used by the blouse sleeve"
+      },
+      "exports": [
+        "makeSleeve",
+        "INSTR_SLEEVE"
+      ]
+    },
+    {
+      "id": "kurta-block",
+      "kind": "component",
+      "version": "1.0.0",
+      "file": "components/kurta-block.eco.js",
+      "deps": [
+        "kit"
+      ],
+      "sha256": "861e108695d81ae00336048dceac7e6edfef02c48ab9f359156479e3583de66a",
+      "bytes": 17296,
+      "title": "Kurti body block (9 steps), sleeved and sleeveless variants",
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Chapter 8 (measurement chart) and kurti chapter"
+      },
+      "exports": [
+        "SIZE_CHART",
+        "BASE_SIL",
+        "SLEEVELESS_SIL",
+        "BODY_STEPS",
+        "BODY",
+        "SLEEVELESS_BODY",
+        "SLEEVED_HL",
+        "SLEEVELESS_HL",
+        "INSTR_BODY",
+        "INSTR_SLEEVELESS"
+      ]
+    },
+    {
+      "id": "kurta_sleeve",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/kurta_sleeve.eco.js",
+      "deps": [
+        "kit",
+        "kurta-block",
+        "set-in-sleeve"
+      ],
+      "sha256": "dc217da1c510633b8d81455b5c521d068a950fbfa91b49276cbf4de26cac4a62",
+      "bytes": 2736,
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Kurti with set-in sleeve"
+      },
+      "match": [
+        "kurta",
+        "kurti"
+      ]
+    },
+    {
+      "id": "kurta_sleeveless",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/kurta_sleeveless.eco.js",
+      "deps": [
+        "kit",
+        "kurta-block"
+      ],
+      "sha256": "a4d41f06498dd13e53ec583641b5efb281ad221bc09e0ef83dc000f3ce940276",
+      "bytes": 2228,
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Kurti, sleeveless variant"
+      },
+      "match": [
+        "sleeveless kurta",
+        "sleeveless kurti",
+        "tank top"
+      ]
+    },
+    {
+      "id": "blouse",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/blouse.eco.js",
+      "deps": [
+        "kit",
+        "geometry",
+        "set-in-sleeve"
+      ],
+      "sha256": "89db6ed6ef3237ed6bd7d2e8f51f50a6c7d2a32ed5eadb8b44224e65e3cbf358",
+      "bytes": 31237,
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Chapter 15 (blouse)"
+      },
+      "match": [
+        "blouse",
+        "saree",
+        "choli"
+      ]
+    },
+    {
+      "id": "trousers",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/trousers.eco.js",
+      "deps": [
+        "kit",
+        "geometry"
+      ],
+      "sha256": "13d9c232d404a34d9986349a96d3a8a5ba851665abc8dcee73be6c17e3157d54",
+      "bytes": 48372,
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Chapter 19 (trousers)"
+      },
+      "match": [
+        "trouser",
+        "pant",
+        "salwar",
+        "palazzo",
+        "sharara",
+        "churidar",
+        "pyjama",
+        "pajama",
+        "dhoti",
+        "jodhpuri"
+      ]
+    },
+    {
+      "id": "shirt",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/shirt.eco.js",
+      "deps": [
+        "kit",
+        "geometry"
+      ],
+      "sha256": "2d2c6d3cb5e4e0a388b370d31efcfbe542d3976927cfea98da7968bbadb37c52",
+      "bytes": 50108,
+      "provenance": {
+        "source": "USHA Silai School tailoring manual (Zarapkar drafting system)",
+        "chapter": "Part B, men's shirt"
+      },
+      "match": [
+        "shirt"
+      ]
+    },
+    {
+      "id": "skirt",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/skirt.eco.js",
+      "deps": [
+        "kit",
+        "geometry"
+      ],
+      "sha256": "9f8b513e1ee8a9bd39ba378de04fbacea525e0feefee84b2b4132bcb273f30d9",
+      "bytes": 24257,
+      "provenance": {
+        "source": "Standard direct-draft A-line construction (drafting textbooks)",
+        "note": "Not in the USHA manual; written in the corpus formula vocabulary"
+      },
+      "match": [
+        "skirt",
+        "lehenga",
+        "ghagra"
+      ]
+    },
+    {
+      "id": "tshirt",
+      "kind": "garment",
+      "version": "1.0.0",
+      "file": "garments/tshirt.eco.js",
+      "deps": [
+        "kit",
+        "geometry"
+      ],
+      "sha256": "6429c92cfb37a11c2a587ef6e13aafc3c256b56f11d048d0855eca1e2883d3ea",
+      "bytes": 29910,
+      "provenance": {
+        "source": "Corpus formula vocabulary (shirt, blouse and kurta rules)",
+        "note": "Not in the USHA manual; sleeve width solved so cap length equals armhole length"
+      },
+      "match": [
+        "t-shirt",
+        "tshirt",
+        "tee"
+      ]
+    }
+  ]
+}
