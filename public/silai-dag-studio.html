@@ -260,6 +260,26 @@
     .node{padding:13px 12px 13px 46px}
     .node:hover{transform:none}
   }
+
+  /* ── First-visit guided tour (in the chosen language) ─────────────── */
+  .help-btn{height:32px;min-width:32px;padding:0 9px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--text2);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .help-btn:hover{border-color:var(--accent);color:var(--accent2)}
+  .tour-spot{position:fixed;z-index:200;border-radius:12px;pointer-events:none;
+    box-shadow:0 0 0 2px var(--accent),0 0 0 9999px rgba(0,0,0,.72);transition:all .28s var(--ease)}
+  .tour-block{position:fixed;inset:0;z-index:199;background:transparent}
+  .tour-card{position:fixed;z-index:201;width:min(340px,calc(100vw - 24px));background:var(--surface);color:var(--text);
+    border:1px solid var(--accent);border-radius:14px;padding:16px 16px 12px;box-shadow:0 18px 50px rgba(0,0,0,.55);
+    font-size:14.5px;line-height:1.6;transition:top .28s var(--ease),left .28s var(--ease)}
+  .tour-card h4{margin:0 0 6px;font-size:15.5px;color:var(--accent2)}
+  .tour-card p{margin:0;color:var(--text)}
+  .tour-count{font-size:11.5px;color:var(--text2);margin-top:10px}
+  .tour-btns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  .tour-btns .sp{flex:1}
+  .tour-btns button{font-family:inherit;font-size:13.5px;border-radius:9px;padding:8px 13px;cursor:pointer;border:1px solid var(--border);background:var(--panel);color:var(--text)}
+  .tour-btns button.primary{background:var(--accent);border-color:var(--accent);color:#1a1205;font-weight:700}
+  .tour-btns button.skip{background:none;border:none;color:var(--text2);padding:8px 4px}
+  .tour-card.loading p,.tour-card.loading h4{opacity:.55}
+  @media (max-width:900px){ .tour-card{font-size:15.5px} .tour-btns button{padding:10px 15px;font-size:14.5px} .help-btn{height:36px;min-width:36px} }
 </style>
 </head>
 <body>
@@ -280,6 +300,7 @@
     <span class="nt-track"><span class="nt-thumb"></span></span>
     <span class="nt-label" id="names-toggle-label">Letters</span>
   </button>
+  <button class="help-btn" id="help-btn" title="Show the guide again" aria-label="Show the guide again">?</button>
   <div class="lang-wrap" id="lang-wrap">
     <button class="lang-toggle" id="lang-toggle" title="Translate the instructions">
       🌐 <span id="lang-current">English</span> <span class="lang-caret">▾</span>
@@ -3691,6 +3712,110 @@ document.getElementById('dag-title').textContent=PARTS[state.part].label+' — D
 syncHeaderHeight();
 renderFields(); render();
 translateChrome();
+/* ═══ First-visit guided tour ═══════════════════════════════════════════
+   Shown once per browser (localStorage 'silai.tour.seen'); the "?" button in
+   the header replays it. Every title, text and button is translated into the
+   studio language (state.lang, set from ?lang= by RoopVana) with the same
+   translateText() used for the instructions. Steps whose target is hidden
+   are skipped, so it works on phones and with a single garment button. */
+const TOUR_STEPS=[
+  {sel:null, t:'Welcome to SILAI Studio', d:'This studio shows you, step by step, how to draw the paper pattern for your garment and how to sew it. This short guide shows you around.'},
+  {sel:'#switch', t:'Your garment', d:'This is the garment you are making. The pattern below is drawn for it.'},
+  {sel:'#canvas-card', t:'The pattern', d:'The pattern is drawn here, one step at a time. New lines for this step are highlighted.'},
+  {sel:'#preview-card', t:'How it will look', d:'This picture shows how the finished garment looks at this step.'},
+  {sel:'.controls', t:'Move between steps', d:'Press Next to go to the next step and Prev to go back. The dots show how far you have come.'},
+  {sel:'.sec-measure', t:'Your measurements', d:'Choose Small, Medium or Large, or type your own measurements in inches. The whole pattern changes to fit.'},
+  {sel:'.sec-instr', t:'What to do', d:'Read what to draw and how to sew for this step here.'},
+  {sel:'#listen-btn', t:'Listen', d:'Press Listen to hear this step read aloud. Tick Every step to hear each new step automatically.'},
+  {sel:'#lang-wrap', t:'Language', d:'Change the language of the instructions and the voice here.'},
+  {sel:'#help-btn', t:'See this guide again', d:'Press this button any time to see this guide again. Happy sewing!'},
+];
+const TOUR_KEY='silai.tour.seen';
+const tour={i:0, open:false, els:null};
+function tourVisible(el){
+  if(!el) return false;
+  const r=el.getBoundingClientRect(); const cs=getComputedStyle(el);
+  return r.width>0 && r.height>0 && cs.display!=='none' && cs.visibility!=='hidden';
+}
+function tourSteps(){ return TOUR_STEPS.filter(s=>!s.sel || tourVisible(document.querySelector(s.sel))); }
+async function tourText(k){ return state.lang==='en' ? k : await translateText(k,state.lang); }
+function tourBuild(){
+  const block=document.createElement('div'); block.className='tour-block';
+  const spot=document.createElement('div'); spot.className='tour-spot';
+  const card=document.createElement('div'); card.className='tour-card'; card.setAttribute('role','dialog'); card.setAttribute('aria-modal','true');
+  card.innerHTML='<h4></h4><p></p><div class="tour-count"></div><div class="tour-btns"><button class="skip"></button><span class="sp"></span><button class="back"></button><button class="primary next"></button></div>';
+  document.body.append(block,spot,card);
+  card.querySelector('.skip').onclick=()=>tourEnd();
+  card.querySelector('.back').onclick=()=>tourGo(tour.i-1);
+  card.querySelector('.next').onclick=()=>{ const n=tourSteps().length; tour.i>=n-1 ? tourEnd() : tourGo(tour.i+1); };
+  block.onclick=e=>e.stopPropagation();
+  tour.els={block,spot,card};
+}
+function tourPlace(){
+  if(!tour.open) return;
+  const steps=tourSteps(); const st=steps[tour.i]; if(!st) return;
+  const {spot,card}=tour.els; const vw=innerWidth, vh=innerHeight, pad=6;
+  const el=st.sel && document.querySelector(st.sel);
+  const cw=card.offsetWidth, ch=card.offsetHeight;
+  if(!el){
+    spot.style.cssText='left:50%;top:50%;width:0;height:0';
+    card.style.left=Math.max(12,(vw-cw)/2)+'px'; card.style.top=Math.max(12,(vh-ch)/2)+'px'; return;
+  }
+  const r=el.getBoundingClientRect();
+  const top=Math.max(4,r.top-pad), left=Math.max(4,r.left-pad);
+  const w=Math.min(vw-8,r.width+pad*2), h=Math.min(vh-8,r.bottom+pad-top);
+  spot.style.cssText=`left:${left}px;top:${top}px;width:${w}px;height:${h}px`;
+  let y;
+  if(top+h+12+ch<=vh-8) y=top+h+12;            // below
+  else if(top-12-ch>=8) y=top-12-ch;            // above
+  else y=Math.max(8,vh-ch-8);                   // big target: pin to bottom
+  let x=Math.min(Math.max(12,r.left+r.width/2-cw/2),vw-cw-12);
+  card.style.left=x+'px'; card.style.top=y+'px';
+}
+async function tourGo(i){
+  const steps=tourSteps(); i=Math.max(0,Math.min(i,steps.length-1)); tour.i=i;
+  const st=steps[i]; const {card}=tour.els;
+  const el=st.sel && document.querySelector(st.sel);
+  if(el){
+    // on phones the info panel sits below the canvas: bring the target into view first
+    const r=el.getBoundingClientRect();
+    if(r.top<0 || r.bottom>innerHeight) el.scrollIntoView({block: r.height>innerHeight*0.6?'start':'center'});
+  }
+  const rtl=['ur','ar'].includes(state.lang); card.dir=rtl?'rtl':'ltr';
+  const last=i===steps.length-1;
+  const keys=[st.t, st.d, 'Skip', 'Back', last?'Done':'Next'];
+  // English first so the card never shows blank, then swap in the translation
+  const paint=v=>{ card.querySelector('h4').textContent=v[0]; card.querySelector('p').textContent=v[1];
+    card.querySelector('.skip').textContent=v[2]; const b=card.querySelector('.back'); b.textContent=v[3]; b.style.visibility=i?'visible':'hidden';
+    card.querySelector('.next').textContent=v[4]; card.querySelector('.tour-count').textContent=`${i+1} / ${steps.length}`;
+    requestAnimationFrame(tourPlace); };
+  if(state.lang==='en'){ paint(keys); return; }
+  card.classList.add('loading'); paint(keys);
+  const lang=state.lang;
+  let tr; try{ tr=await Promise.all(keys.map(tourText)); }catch(e){ tr=keys; }
+  if(tour.i!==i || state.lang!==lang || !tour.open) return;
+  card.classList.remove('loading'); paint(tr);
+}
+function tourStart(){
+  if(tour.open) return;
+  if(!tour.els) tourBuild();
+  tour.open=true; Object.values(tour.els).forEach(e=>e.style.display='');
+  window.scrollTo(0,0); tourGo(0);
+}
+function tourEnd(){
+  tour.open=false; if(tour.els) Object.values(tour.els).forEach(e=>e.style.display='none');
+  try{ localStorage.setItem(TOUR_KEY,'1'); }catch(e){}
+}
+addEventListener('resize',tourPlace); addEventListener('scroll',tourPlace,true);
+addEventListener('keydown',e=>{ if(tour.open && e.key==='Escape') tourEnd(); },true);
+document.getElementById('help-btn').onclick=()=>tourStart();
+// translate the "?" tooltip too
+(async()=>{ const b=document.getElementById('help-btn'); const t=await tourText('Show the guide again'); b.title=t; b.setAttribute('aria-label',t); })();
+(function(){
+  let seen=false; try{ seen=localStorage.getItem(TOUR_KEY)==='1'; }catch(e){}
+  if(new URLSearchParams(location.search).get('tour')==='1') seen=false;   // ?tour=1 forces it (testing)
+  if(!seen) setTimeout(tourStart, 700);
+})();
 </script>
 </body>
 </html>
