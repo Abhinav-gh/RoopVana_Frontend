@@ -94,7 +94,7 @@ const GenerationHistoryPage = () => {
     <div className="min-h-screen bg-background pb-12">
       <Header />
       
-      <div className="container max-w-4xl mx-auto px-6 pt-32">
+      <div className="container max-w-4xl mx-auto px-4 sm:px-6 pt-24 sm:pt-32">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-10">
           <div>

@@ -622,19 +622,108 @@ select option {
   background: hsl(0 72% 51% / 0.08);
 }
 
-/* IntroJS Custom Styling for soft edges */
+/* ── Guided tour (intro.js) ────────────────────────────────────────────
+   intro.js ships a white tooltip but the text inherited the app's light
+   foreground colour, so it was white-on-white. Everything below uses the
+   app's own colour tokens, so the tour matches both dark and light themes. */
 .introjs-tooltip {
+    background: hsl(var(--card)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--primary) / 0.35) !important;
     border-radius: 16px !important;
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45), 0 0 0 1px hsl(var(--primary) / 0.08) !important;
+    min-width: 260px !important;
+    max-width: min(360px, calc(100vw - 32px)) !important;
+    font-family: inherit !important;
+}
+.introjs-tooltip-header {
+    padding: 14px 16px 0 !important;
+    min-height: 34px;
+}
+.introjs-tooltip-title {
+    color: hsl(var(--foreground)) !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+}
+.introjs-tooltiptext {
+    color: hsl(var(--foreground)) !important;
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+    padding: 12px 18px 6px !important;
+}
+.introjs-tooltiptext b, .introjs-tooltiptext strong {
+    color: hsl(var(--primary)) !important;
+}
+
+/* arrow follows the tooltip colour */
+.introjs-arrow.top, .introjs-arrow.top-middle, .introjs-arrow.top-right { border-bottom-color: hsl(var(--card)) !important; }
+.introjs-arrow.bottom, .introjs-arrow.bottom-middle, .introjs-arrow.bottom-right { border-top-color: hsl(var(--card)) !important; }
+.introjs-arrow.left, .introjs-arrow.left-bottom { border-right-color: hsl(var(--card)) !important; }
+.introjs-arrow.right, .introjs-arrow.right-bottom { border-left-color: hsl(var(--card)) !important; }
+
+/* progress dots */
+.introjs-bullets { padding: 6px 0 4px !important; }
+.introjs-bullets ul li a {
+    background: hsl(var(--muted-foreground) / 0.35) !important;
+}
+.introjs-bullets ul li a.active {
+    background: hsl(var(--primary)) !important;
+}
+
+/* Back / Next / Done */
+.introjs-tooltipbuttons {
+    border-top: 1px solid hsl(var(--border)) !important;
+    padding: 12px 14px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 10px;
 }
 .introjs-button {
+    font-family: inherit !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    padding: 9px 18px !important;
     border-radius: 12px !important;
     box-shadow: none !important;
     text-shadow: none !important;
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--foreground)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    transition: background .2s ease, border-color .2s ease, color .2s ease;
 }
+.introjs-button:hover, .introjs-button:focus {
+    background: hsl(var(--muted)) !important;
+    border-color: hsl(var(--primary) / 0.6) !important;
+    color: hsl(var(--foreground)) !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+.introjs-nextbutton, .introjs-donebutton {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: hsl(var(--primary)) !important;
+}
+.introjs-nextbutton:hover, .introjs-donebutton:hover,
+.introjs-nextbutton:focus, .introjs-donebutton:focus {
+    background: hsl(var(--primary) / 0.88) !important;
+    color: hsl(var(--primary-foreground)) !important;
+    border-color: hsl(var(--primary)) !important;
+}
+.introjs-disabled, .introjs-disabled:hover, .introjs-disabled:focus {
+    opacity: .4 !important;
+    background: hsl(var(--muted)) !important;
+    color: hsl(var(--muted-foreground)) !important;
+    border-color: hsl(var(--border)) !important;
+}
+
+/* highlighted element */
 .introjs-helperLayer {
     border-radius: 12px !important;
+    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.9), 0 0 0 5000px rgba(0, 0, 0, 0.62) !important;
+    border: none !important;
 }
+.introjs-overlay { opacity: 0 !important; }   /* the helper layer's shadow does the dimming */
+
 .introjs-skipbutton {
     position: absolute !important;
     top: 12px !important;
@@ -657,4 +746,10 @@ select option {
     background: hsl(var(--destructive) / 0.1) !important;
     color: hsl(var(--destructive)) !important;
     border-color: hsl(var(--destructive) / 0.3) !important;
+}
+
+/* phones: a little larger to tap */
+@media (max-width: 640px) {
+    .introjs-tooltiptext { font-size: 15.5px !important; }
+    .introjs-button { padding: 11px 20px !important; font-size: 15px !important; }
 }

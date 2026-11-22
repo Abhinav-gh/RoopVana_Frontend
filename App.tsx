@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider, useAuth } from "@/hooks/AuthContext";
+import { LanguageProvider } from "@/hooks/use-language";
+import { SKIP_AUTH } from "@/lib/firebase";
+import LanguagePicker from "@/components/LanguagePicker";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import LoginPage from "./pages/LoginPage";
@@ -20,6 +23,8 @@ const queryClient = new QueryClient();
  */
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+
+  if (SKIP_AUTH) return <>{children}</>;
 
   if (loading) {
     return (
@@ -59,11 +64,14 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <ThemeProvider>
+    <LanguageProvider>
     <AuthProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          {/* after the first login: ask for a language (and when changing it) */}
+          <LanguagePicker />
           <BrowserRouter>
             <Routes>
               <Route
@@ -113,6 +121,7 @@ const App = () => (
         </TooltipProvider>
       </QueryClientProvider>
     </AuthProvider>
+    </LanguageProvider>
   </ThemeProvider>
 );
 

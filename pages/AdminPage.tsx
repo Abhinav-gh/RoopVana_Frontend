@@ -192,32 +192,33 @@ const AdminPage = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 glass-card border-b border-border/50 px-6 py-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-50 glass-card border-b border-border/50 px-3 sm:px-6 py-3 sm:py-4">
+        <div className="container mx-auto px-0 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
               onClick={() => navigate('/')}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft className="w-4 h-4" /> Back
             </button>
-            <h1 className="font-display text-xl font-semibold">
+            <h1 className="font-display text-lg sm:text-xl font-semibold truncate">
               <span className="gradient-text">Admin Dashboard</span>
             </h1>
           </div>
           <button
             onClick={loadAllData}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0"
+            aria-label="Refresh"
           >
-            <RefreshCw className="w-4 h-4" /> Refresh
+            <RefreshCw className="w-4 h-4" /> <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
+      <div className="container mx-auto px-3 sm:px-6 py-6 sm:py-8">
         {/* Stats Cards */}
         {stats && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-8">
             {[
               { label: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400' },
               { label: 'Total Generations', value: stats.totalGenerations, icon: BarChart3, color: 'text-green-400' },
@@ -242,12 +243,12 @@ const AdminPage = () => {
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6 border-b border-border/50 pb-2">
+        <div className="flex gap-2 mb-6 border-b border-border/50 pb-2 overflow-x-auto">
           {(['overview', 'users', 'requests', 'credits'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
+              className={`shrink-0 whitespace-nowrap px-3 sm:px-4 py-2 rounded-t-lg text-sm font-medium transition-colors ${
                 activeTab === tab
                   ? 'bg-primary/10 text-primary border-b-2 border-primary'
                   : 'text-muted-foreground hover:text-foreground'
@@ -267,7 +268,7 @@ const AdminPage = () => {
             <h2 className="text-lg font-semibold text-foreground">Recent Generations</h2>
             <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-border/50 bg-muted/30">
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
@@ -324,7 +325,7 @@ const AdminPage = () => {
 
             <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-border/50 bg-muted/30">
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
@@ -519,7 +520,7 @@ const AdminPage = () => {
             ) : (
               <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
+                  <table className="w-full min-w-[640px] text-sm">
                     <thead>
                       <tr className="border-b border-border/50 bg-muted/30">
                         <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
@@ -582,21 +583,21 @@ const AdminPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="glass-card rounded-xl border border-border/50 p-4"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-foreground">{r.email}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">UID: {r.userId}</p>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <p translate="no" className="text-sm font-medium text-foreground break-all">{r.email}</p>
+                        <p translate="no" className="text-xs text-muted-foreground mt-0.5 break-all">UID: {r.userId}</p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
                             Requested: {r.requestedCredits || 0}
                           </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-2 italic">"{r.message}"</p>
+                        <p className="text-sm text-muted-foreground mt-2 italic break-words">"{r.message}"</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           {r.createdAt ? new Date(r.createdAt).toLocaleString() : '—'}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <input
                           type="number"
                           min="1"
@@ -629,7 +630,7 @@ const AdminPage = () => {
             </h2>
             <div className="glass-card rounded-xl border border-border/50 overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full min-w-[640px] text-sm">
                   <thead>
                     <tr className="border-b border-border/50 bg-muted/30">
                       <th className="text-left px-4 py-3 text-muted-foreground font-medium">Email</th>
