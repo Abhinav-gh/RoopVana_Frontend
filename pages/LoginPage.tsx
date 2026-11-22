@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/AuthContext';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff } from 'lucide-react';
+import { HAS_FIREBASE_CONFIG } from '@/lib/firebase';
 
 const LoginPage: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -88,6 +89,16 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Form */}
+        {!HAS_FIREBASE_CONFIG && (
+          <div className="login-error" role="status">
+            <span className="login-error-icon">⚠️</span>
+            <span>
+              Login is not set up on this computer: the Firebase keys (VITE_FIREBASE_*) are missing
+              from the frontend <code>.env</code> file. Add them and restart <code>npm run dev</code>.
+            </span>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="login-form">
           <h2 className="login-form-title">
             {isSignUp ? 'Create Account' : 'Welcome Back'}

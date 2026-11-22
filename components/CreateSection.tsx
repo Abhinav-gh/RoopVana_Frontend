@@ -8,6 +8,8 @@ import { Mic, MicOff, Sparkles, Globe, X, Edit2, RotateCcw, Plus, ChevronDown } 
 import { Button } from "./ui/button";
 import PromptInput from "./PromptInput";
 import SewingPatternStudio, { SilaiGarment, SilaiSize } from "./SewingPatternStudio";
+import { useLanguage, ASK_LANGUAGE_EVERY_LOAD } from "@/hooks/use-language";
+import { LANGUAGES, langFromVoiceCode } from "@/lib/i18n";
 import { CustomDropdown, DropdownOption } from './CustomDropdown';
 import { EditOptionDialog } from './EditOptionDialog';
 import ImagePreview from "./ImagePreview";
@@ -884,6 +886,11 @@ const compressImage = (base64Url: string, maxDim = 512, quality = 0.5): Promise<
 };
 
 const CreateSection = () => {
+  // Homepage language (picked on the hero section). It sets the default
+  // voice-input language here and the language the sewing-pattern studio
+  // opens in.
+  const { lang, t, chosen: langChosen } = useLanguage();
+  const voiceCodeFor = (l: string) => LANGUAGES.find((x) => x.code === l)?.voice || "en-IN";
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -902,12 +909,20 @@ const CreateSection = () => {
   // IntroJS configuration will be defined right before rendering
   // to ensure access to all initialized state variables like outfitMode.
 
+  // The guided tour starts only after a language has been chosen, so it
+  // appears in that language (the page translator translates the tour too).
   useEffect(() => {
-    const tutorialSeen = localStorage.getItem('roopvana_tutorial_seen');
+    if (!langChosen) return;
+    // in testing mode the tour runs on every load, after the language screen
+    const tutorialSeen = !ASK_LANGUAGE_EVERY_LOAD && localStorage.getItem('roopvana_tutorial_seen');
     if (!tutorialSeen) {
-      setStepsEnabled(true);
+      // short pause so the page has been translated before the tour appears
+      const id = window.setTimeout(() => setStepsEnabled(true), lang === 'en' ? 0 : 900);
+      return () => window.clearTimeout(id);
     }
-    
+  }, [langChosen]);
+
+  useEffect(() => {
     const handleStartTutorial = () => {
       setInitialStep(0);
       setStepsEnabled(true);
@@ -915,6 +930,21 @@ const CreateSection = () => {
     window.addEventListener('start-roopvana-tutorial', handleStartTutorial);
     return () => window.removeEventListener('start-roopvana-tutorial', handleStartTutorial);
   }, []);
+
+  // intro.js 8 + intro.js-react: the wrapper calls start() and then
+  // goToStepNumber(1) without waiting for it, so on some machines the tour
+  // advances twice and opens on step 2. Once it has settled, put it back on
+  // the first step. (The wrapper also passes an undefined step index to its
+  // callbacks with intro.js 8, so the current step is read from intro.js.)
+  const stepsRef = useRef<any>(null);
+  const onTutorialStart = () => {
+    [250, 700].forEach((ms) => window.setTimeout(() => {
+      const ij = stepsRef.current?.introJs;
+      if (ij && typeof ij.currentStep === 'function' && ij.currentStep() !== initialStep) {
+        ij.goToStep(initialStep + 1);
+      }
+    }, ms));
+  };
 
   const onTutorialExit = () => {
     setStepsEnabled(false);
@@ -1053,7 +1083,10 @@ const CreateSection = () => {
   const [isLowerListening, setIsLowerListening] = useState(false);
   const [isFootwearListening, setIsFootwearListening] = useState(false);
   const [isHeadwearListening, setIsHeadwearListening] = useState(false);
-  const [voiceLang, setVoiceLang] = useState('en-IN');
+  const [voiceLang, setVoiceLang] = useState(() => voiceCodeFor(lang));
+  // follow the homepage language when it changes (the user can still pick
+  // another voice language from the dropdowns afterwards)
+  useEffect(() => { setVoiceLang(voiceCodeFor(lang)); }, [lang]);
   const upperRecognitionRef = useRef<any>(null);
   const lowerRecognitionRef = useRef<any>(null);
   const footwearRecognitionRef = useRef<any>(null);
@@ -2662,12 +2695,15 @@ const CreateSection = () => {
       ? [{ element: '#prompt-input', intro: 'Notice the auto-generated prompt here! You can further refine it directly and then click Generate to create your masterpiece!' }]
       : [{ element: '#custom-prompts-guide', intro: 'Since you are in custom mode, use the boxes below each piece to add hyper-specific details to your upper and lower garments.' }]),
     { element: '#user-profile-btn', intro: 'Here is your profile! Access Generation History, Admin tools, request more credits, or log out.' },
+    { element: '#language-btn', intro: 'Change the language of the whole site here at any time.' },
     { element: '#theme-toggle-btn', intro: 'Toggle between dark and light modes according to your preference.' },
     { element: '#tutorial-btn', intro: 'Click here anytime to view this tutorial again.' },
   ];
 
-  const handleStepChange = (nextStepIndex: number) => {
-    if (introSteps[nextStepIndex]?.element === '#style-selector') {
+  // the wrapper's step index is undefined with intro.js 8, so match on the
+  // element the tour is about to highlight instead
+  const handleStepChange = (_nextStepIndex: number, nextElement?: Element) => {
+    if (nextElement?.id === 'style-selector') {
       if (outfitMode === 'full') setIsStyleExpanded(true);
     }
   };
@@ -2694,23 +2730,36 @@ const CreateSection = () => {
 
   const isKurtiSelected = /kurti|kurta/.test(upperText);
   const isSleevelessSelected = /sleeveless|tank top/.test(upperText);
-  const isShirtSelected = /\bshirt\b/.test(upperText) || fullModeGarmentLabel.includes("shirt");
+  // T-shirt is checked before shirt: "t-shirt" also matches /\bshirt\b/ and
+  // the "T-Shirt" label contains "shirt", so the order of the checks matters.
+  const isTshirtSelected = /t-shirt|tshirt|\btee\b/.test(upperText);
+  const isShirtSelected = !isTshirtSelected &&
+    (/\bshirt\b/.test(upperText) || fullModeGarmentLabel.includes("shirt"));
   const isBlouseSelected =
     upperText.includes("blouse") || fullModeGarmentLabel.includes("saree");
   const TROUSER_STYLE_KEYS = ["palazzo_suit", "salwar_kameez", "sharara", "dhoti_kurta", "jodhpuri", "business_casual", "formal_suit"];
   const isTrouserSelected =
     TROUSER_STYLE_KEYS.includes(selectedLowerStyle) ||
     /trouser|palazzo|salwar|dhoti|churidar|pyjama|pajama|sharara|jodhpuri/.test(lowerText);
+  // The studio's skirt is an A-line skirt. Lehenga and ghagra are panelled,
+  // much fuller skirts; they open the A-line draft as the closest available
+  // pattern until a lehenga draft is added.
+  const isSkirtSelected = /skirt|lehenga|ghagra|lehnga/.test(lowerText);
 
-  const isSilaiGarmentSelected = isKurtiSelected || isShirtSelected || isBlouseSelected || isTrouserSelected;
+  const isSilaiGarmentSelected =
+    isKurtiSelected || isTshirtSelected || isShirtSelected || isBlouseSelected || isTrouserSelected || isSkirtSelected;
   const silaiGarment: SilaiGarment = isKurtiSelected
     ? (isSleevelessSelected ? "kurta_sleeveless" : "kurta_sleeve")
+    : isTshirtSelected
+    ? "tshirt"
     : isShirtSelected
     ? "shirt"
     : isBlouseSelected
     ? "blouse"
     : isTrouserSelected
     ? "trousers"
+    : isSkirtSelected
+    ? "skirt"
     : "kurta_sleeve";
 
   // Map RoopVana's 6-point body size scale onto the studio's 3 presets
@@ -2720,12 +2769,23 @@ const CreateSection = () => {
     xs: "small", s: "small", m: "medium", any: "medium", l: "large", xl: "large", xxl: "large",
   };
   const silaiSize: SilaiSize = BODY_SIZE_TO_SILAI[selectedBodyType] || "medium";
+
+  // Language the studio translates and reads its instructions in. The
+  // language the request was actually written in wins; then the voice-input
+  // language; then the language picked on the homepage.
+  const typedLanguage = detectLanguage(`${prompt} ${customUpperPrompt || ""} ${customLowerPrompt || ""}`);
+  const typedVoiceCode = typedLanguage && typedLanguage !== "English" ? getLanguageCode(typedLanguage) : null;
+  const studioLang = typedVoiceCode
+    ? langFromVoiceCode(typedVoiceCode)
+    : voiceLang !== "en-IN" ? langFromVoiceCode(voiceLang) : lang;
   // ---------------------------------------------------------------------------
 
   return (
     <section id="create" className="relative py-16 sm:py-20 lg:py-24">
       <Steps
+        ref={stepsRef}
         enabled={stepsEnabled}
+        onStart={onTutorialStart}
         steps={introSteps}
         initialStep={initialStep}
         onExit={onTutorialExit}
@@ -2751,12 +2811,11 @@ const CreateSection = () => {
           className="text-center mb-10 sm:mb-12"
         >
           <h2 className="font-display text-2xl sm:text-3xl md:text-5xl font-bold mb-4">
-            <span className="text-foreground">Create Your</span>{" "}
-            <span className="gradient-text">Masterpiece</span>
+            <span className="text-foreground">{t("createHead1")}</span>{" "}
+            <span className="gradient-text">{t("createHead2")}</span>
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground max-w-xl mx-auto px-2 sm:px-0">
-            Describe your dream fashion design in any Indian language. 
-            Our AI understands your vision and brings it to life.
+            {t("createSub")}
           </p>
         </motion.div>
 
@@ -2810,11 +2869,11 @@ const CreateSection = () => {
             {/* Step 1: Gender Selection - Big prominent buttons */}
             <div id="gender-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 1: Select Gender</span>
-              <div className="flex w-full flex-col sm:flex-row gap-3 sm:gap-4">
+              <div className="grid w-full grid-cols-2 sm:flex sm:flex-row gap-3 sm:gap-4">
                 <button
                   onClick={() => handleGenderChange('female')}
                   disabled={isLoading}
-                  className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
+                  className={`w-full sm:w-auto px-3 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 ${
                     selectedGender === 'female'
                       ? 'bg-pink-500/20 text-pink-400 border-2 border-pink-500 shadow-lg shadow-pink-500/20'
                       : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
@@ -2826,7 +2885,7 @@ const CreateSection = () => {
                 <button
                   onClick={() => handleGenderChange('male')}
                   disabled={isLoading}
-                  className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-3 ${
+                  className={`w-full sm:w-auto px-3 sm:px-8 py-3 sm:py-4 rounded-2xl font-semibold text-base sm:text-lg transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 ${
                     selectedGender === 'male'
                       ? 'bg-blue-500/20 text-blue-400 border-2 border-blue-500 shadow-lg shadow-blue-500/20'
                       : 'bg-muted/50 text-muted-foreground hover:bg-muted border-2 border-transparent'
@@ -2841,11 +2900,11 @@ const CreateSection = () => {
             {/* Step 2: Outfit Mode Toggle */}
             <div id="outfit-mode-selector" className="flex flex-col items-center gap-3">
               <span className="text-sm font-medium text-muted-foreground">Step 2: Outfit Type</span>
-              <div className="flex w-full flex-col sm:flex-row gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
+              <div className="grid w-full grid-cols-2 sm:flex sm:flex-row gap-1 sm:gap-2 p-1 rounded-xl bg-muted/30 border border-border/50">
                 <button
                   onClick={() => setOutfitMode('full')}
                   disabled={isLoading}
-                  className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full sm:w-auto px-2 sm:px-5 py-2.5 rounded-lg text-sm sm:text-base font-medium leading-tight transition-all duration-200 ${
                     outfitMode === 'full'
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -2856,7 +2915,7 @@ const CreateSection = () => {
                 <button
                   onClick={() => setOutfitMode('custom')}
                   disabled={isLoading}
-                  className={`w-full sm:w-auto px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full sm:w-auto px-2 sm:px-5 py-2.5 rounded-lg text-sm sm:text-base font-medium leading-tight transition-all duration-200 ${
                     outfitMode === 'custom'
                       ? 'bg-primary text-primary-foreground shadow-sm'
                       : 'text-muted-foreground hover:text-foreground'
@@ -4715,7 +4774,7 @@ const CreateSection = () => {
                                 onClick={() => setShowPatternStudio(true)}
                                 className="px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                               >
-                                🧵 Generate Sewing Pattern
+                                🧵 {t("sewingBtn")}
                               </button>
                             </div>
                           )}
@@ -4758,7 +4817,7 @@ const CreateSection = () => {
                         onClick={() => setShowPatternStudio(true)}
                         className="px-6 py-3 rounded-xl font-semibold text-sm bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-lg hover:scale-105 transition-all flex items-center gap-2"
                       >
-                        🧵 Generate Sewing Pattern
+                        🧵 {t("sewingBtn")}
                       </button>
                     </div>
                   )}
@@ -5102,6 +5161,7 @@ const CreateSection = () => {
         onClose={() => setShowPatternStudio(false)}
         garment={silaiGarment}
         size={silaiSize}
+        lang={studioLang}
       />
     </section>
   );

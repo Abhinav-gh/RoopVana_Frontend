@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, LogOut, Coins, Send, User, Shield, Clock, ImageIcon, HelpCircle } from "lucide-react";
+import { Sparkles, LogOut, Coins, Send, User, Shield, Clock, ImageIcon, HelpCircle, Globe2 } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { LANGUAGES } from "@/lib/i18n";
 import { useNavigate } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import { useAuth } from "@/hooks/AuthContext";
@@ -18,6 +20,8 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Header = () => {
+  const { lang, openPicker } = useLanguage();
+  const currentLanguage = LANGUAGES.find((l) => l.code === lang);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [credits, setCredits] = useState<number | null>(null);
@@ -105,25 +109,25 @@ const Header = () => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50"
     >
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="container mx-auto px-3 sm:px-6 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2">
           {/* Logo */}
           <motion.div
-            className="flex items-center gap-3"
+            className="flex items-center gap-2 sm:gap-3 min-w-0"
             whileHover={{ scale: 1.02 }}
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
           >
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-gradient-button flex items-center justify-center">
+            <div className="relative shrink-0">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-button flex items-center justify-center">
                 <Sparkles className="w-5 h-5 text-primary-foreground" />
               </div>
-              <div className="absolute inset-0 w-10 h-10 rounded-xl bg-gradient-button opacity-50 blur-lg animate-pulse-slow" />
+              <div className="absolute inset-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-button opacity-50 blur-lg animate-pulse-slow" />
             </div>
-            <div>
-              <h1 className="font-display text-xl font-semibold tracking-tight">
+            <div className="min-w-0 hidden min-[400px]:block" translate="no">
+              <h1 className="font-display text-lg sm:text-xl font-semibold tracking-tight truncate">
                 <span className="gradient-text">RoopVana</span>
               </h1>
-              <p className="text-[10px] text-muted-foreground tracking-widest uppercase">
+              <p className="hidden min-[400px]:block text-[10px] text-muted-foreground tracking-widest uppercase truncate">
                 Fashion Intelligence
               </p>
             </div>
@@ -134,7 +138,7 @@ const Header = () => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3 }}
-            className="flex items-center gap-3"
+            className="flex items-center gap-1.5 sm:gap-3 shrink-0"
           >
             {/* Credits Badge — always visible when logged in */}
             {user && (
@@ -145,7 +149,7 @@ const Header = () => {
               >
                 <button
                   onClick={() => fetchCredits()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer"
+                  className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20 hover:bg-primary/15 transition-colors cursor-pointer"
                   title="Click to refresh credits"
                 >
                   <Coins className="w-3.5 h-3.5 text-primary" />
@@ -174,6 +178,22 @@ const Header = () => {
               </button>
             )}
 
+            {/* Change language: opens the language picker */}
+            <button
+              id="language-btn"
+              type="button"
+              translate="no"
+              onClick={openPicker}
+              title="Change language"
+              aria-label="Change language"
+              className="flex items-center gap-1.5 h-9 px-2 sm:px-3 rounded-lg border border-border/60 bg-muted/40 hover:border-primary/60 hover:bg-muted transition-colors text-foreground"
+            >
+              <Globe2 className="w-4 h-4 text-primary" />
+              <span className="hidden min-[420px]:inline text-xs sm:text-sm font-medium max-w-[7rem] truncate">
+                {currentLanguage?.native}
+              </span>
+            </button>
+
             <div id="theme-toggle-btn">
               <ThemeToggle />
             </div>
@@ -187,7 +207,7 @@ const Header = () => {
                     className="flex items-center gap-1.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-transform hover:scale-105"
                     aria-label="User menu"
                   >
-                    <Avatar className="h-8 w-8 cursor-pointer border border-primary/30 hover:border-primary/60 transition-colors">
+                    <Avatar translate="no" className="h-8 w-8 cursor-pointer border border-primary/30 hover:border-primary/60 transition-colors">
                       <AvatarFallback className="bg-gradient-button text-primary-foreground text-xs font-semibold">
                         {getInitials(user.email || 'U')}
                       </AvatarFallback>
@@ -200,7 +220,7 @@ const Header = () => {
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">Account</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">
+                      <p translate="no" className="text-xs leading-none text-muted-foreground truncate">
                         {user.email}
                       </p>
                     </div>

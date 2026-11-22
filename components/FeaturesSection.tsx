@@ -1,52 +1,21 @@
 import { motion } from "framer-motion";
 import { Mic, Globe2, Palette, Zap, Shield, Sparkles } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
+import { StringKey } from "@/lib/i18n";
 
-const features = [
-  {
-    icon: Globe2,
-    title: "Multilingual Support",
-    description:
-      "Create in Hindi, Tamil, Telugu, and all major Indian languages with seamless AI translation.",
-    gradient: "from-primary/20 to-accent/20",
-  },
-  {
-    icon: Mic,
-    title: "Voice Input",
-    description:
-      "Simply speak your design vision. Our AI captures every detail in your native language.",
-    gradient: "from-secondary/20 to-primary/20",
-  },
-  {
-    icon: Palette,
-    title: "Fashion Intelligence",
-    description:
-      "AI trained on traditional Indian aesthetics, modern trends, and timeless elegance.",
-    gradient: "from-accent/20 to-secondary/20",
-  },
-  {
-    icon: Zap,
-    title: "Instant Generation",
-    description:
-      "From thought to design in seconds. Premium quality outputs every single time.",
-    gradient: "from-primary/20 to-secondary/20",
-  },
-  {
-    icon: Shield,
-    title: "Your Creations",
-    description:
-      "Full ownership of every design. Download, share, and use commercially.",
-    gradient: "from-secondary/20 to-accent/20",
-  },
-  {
-    icon: Sparkles,
-    title: "Endless Possibilities",
-    description:
-      "From bridal to casual, traditional to fusion - create any fashion style imaginable.",
-    gradient: "from-accent/20 to-primary/20",
-  },
+// Titles and descriptions live in lib/i18n.ts (f1t/f1d … f6t/f6d) so they
+// switch with the homepage language.
+const features: { icon: typeof Globe2; title: StringKey; description: StringKey; gradient: string }[] = [
+  { icon: Globe2,   title: "f1t", description: "f1d", gradient: "from-primary/20 to-accent/20" },
+  { icon: Mic,      title: "f2t", description: "f2d", gradient: "from-secondary/20 to-primary/20" },
+  { icon: Palette,  title: "f3t", description: "f3d", gradient: "from-accent/20 to-secondary/20" },
+  { icon: Zap,      title: "f4t", description: "f4d", gradient: "from-primary/20 to-secondary/20" },
+  { icon: Shield,   title: "f5t", description: "f5d", gradient: "from-secondary/20 to-accent/20" },
+  { icon: Sparkles, title: "f6t", description: "f6d", gradient: "from-accent/20 to-primary/20" },
 ];
 
 const FeaturesSection = () => {
+  const { t } = useLanguage();
   return (
     <section className="relative py-24 overflow-hidden">
       {/* Background elements */}
@@ -70,12 +39,11 @@ const FeaturesSection = () => {
           className="text-center mb-16"
         >
           <h2 className="font-display text-3xl md:text-5xl font-bold mb-4">
-            <span className="text-foreground">Designed for</span>{" "}
-            <span className="gradient-text">Excellence</span>
+            <span className="text-foreground">{t("featHead1")}</span>{" "}
+            <span className="gradient-text">{t("featHead2")}</span>
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Every feature crafted to empower your creative vision with the 
-            richness of Indian heritage and cutting-edge AI.
+            {t("featSub")}
           </p>
         </motion.div>
 
@@ -102,10 +70,10 @@ const FeaturesSection = () => {
 
                   {/* Content */}
                   <h3 className="font-display text-lg font-semibold mb-2 text-foreground group-hover:text-primary transition-colors duration-300">
-                    {feature.title}
+                    {t(feature.title)}
                   </h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    {feature.description}
+                    {t(feature.description)}
                   </p>
                 </div>
               </div>

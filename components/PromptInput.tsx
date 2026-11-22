@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, Sparkles, Globe, X } from "lucide-react";
 import { Button } from "./ui/button";
+import { useLanguage } from "@/hooks/use-language";
+import { LANGUAGES } from "@/lib/i18n";
 
 // Extend Window interface for Speech Recognition
 declare global {
@@ -92,7 +94,11 @@ const PromptInput = ({
   const [isListening, setIsListening] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [currentPlaceholder, setCurrentPlaceholder] = useState("");
-  const [voiceLang, setVoiceLang] = useState('en-IN');
+  // default the mic to the language picked on the homepage
+  const { lang } = useLanguage();
+  const homeVoice = LANGUAGES.find((l) => l.code === lang)?.voice || "en-IN";
+  const [voiceLang, setVoiceLang] = useState(homeVoice);
+  useEffect(() => { setVoiceLang(homeVoice); }, [homeVoice]);
   const [isVoiceInput, setIsVoiceInput] = useState(false); // Track if input is from voice
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -323,7 +329,7 @@ const PromptInput = ({
 
             {/* Bottom action bar */}
             <div className="flex flex-col sm:flex-row gap-3 px-4 pb-4 pt-2 sm:items-center sm:justify-between border-t border-border/20">
-              <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
                 {/* Audio label box */}
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-muted/30 border border-border/50 flex-shrink-0">
                   <Mic className="w-3.5 h-3.5 text-muted-foreground" />
