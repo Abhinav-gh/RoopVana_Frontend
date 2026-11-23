@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <meta name="referrer" content="no-referrer"/>
 <title>Silai · DAG Studio</title>
+<script>
+/* Background theme: the studio's own saved choice, else RoopVana's theme (same site),
+   else dark, which was the only theme before. */
+(function(){
+  var t='dark';
+  try{
+    var own=localStorage.getItem('silai.theme');
+    var rv=localStorage.getItem('roopvana-theme');
+    if(rv==='system') rv=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
+    t=(own==='light'||own==='dark')?own:((rv==='light'||rv==='dark')?rv:'dark');
+  }catch(e){}
+  document.documentElement.setAttribute('data-theme',t);
+})();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -13,9 +27,28 @@
     --accent:#f59e0b;--accent2:#fbbf24;--accent-dim:rgba(245,158,11,.12);
     --red:#f0524a;--blue:#4a90f5;--green:#2fc774;--purple:#b062f2;
     --text:#eeeef4;--text2:#9393a8;--text3:#57576a;
+    --grid:#20202a;--sheet-fill:rgba(245,158,11,.05);--sheet-stroke:#33333d;--gm-fill:rgba(210,232,255,.05);--gm-line:#3a3a44;
+    --halo:#0d0d0f;--aform:#a6a6bd;--dimtxt:#f0f1f8;--anchor-stroke:#000;--on-accent:#000;
+    --paper:#0d0d0f;--shadow-lg:rgba(0,0,0,.4);--shadow-md:rgba(0,0,0,.35);--shadow-menu:rgba(0,0,0,.5);--sew-bg:rgba(47,199,116,.08);--warn-bg:rgba(240,82,74,.09);
     --ease:cubic-bezier(.22,.85,.32,1);--ease-fast:cubic-bezier(.3,.9,.4,1);
     --radius:12px;--radius-sm:8px;
   }
+  /* White background. Colours are darker than in the dark theme so thin lines, letters and
+     highlights keep their contrast on white; label halos turn white instead of black. */
+  html[data-theme="light"]{
+    color-scheme:light;
+    --bg:#f4f4f7;--surface:#ffffff;--panel:#f3f3f7;--panel2:#ffffff;--border:#dcdce4;--border-soft:#e9e9ef;
+    --accent:#d97706;--accent2:#b45309;--accent-dim:rgba(217,119,6,.10);
+    --red:#dc2626;--blue:#2563eb;--green:#15803d;--purple:#7e22ce;
+    --text:#1b1b24;--text2:#4b4b5e;--text3:#a3a3b3;
+    --grid:#eeeef3;--sheet-fill:rgba(217,119,6,.035);--sheet-stroke:#d2d2dc;--gm-fill:rgba(37,99,235,.045);--gm-line:#a7a7b6;
+    --halo:#ffffff;--aform:#5c5c70;--dimtxt:#1b1b24;--anchor-stroke:#ffffff;--on-accent:#ffffff;
+    --paper:#ffffff;--shadow-lg:rgba(30,30,60,.10);--shadow-md:rgba(30,30,60,.08);--shadow-menu:rgba(30,30,60,.16);--sew-bg:rgba(21,128,61,.07);--warn-bg:rgba(220,38,38,.07);
+  }
+  html[data-theme="light"] .anchor.dim{opacity:.7}
+  /* the coloured glow on new lines looks muddy on white: use a soft neutral lift instead */
+  html[data-theme="light"] #stage [filter], html[data-theme="light"] #garment [filter]{filter:drop-shadow(0 1px 1.2px rgba(20,20,40,.22))}
+  html[data-theme="light"] .alabel.dim{opacity:.9}
   html{scroll-behavior:smooth}
   body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;height:100vh;display:flex;flex-direction:column;overflow:hidden}
   ::-webkit-scrollbar{width:9px;height:9px}
@@ -30,7 +63,7 @@
   .switch{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:3px;gap:1px}
   .sw-btn{padding:7px 13px;border:none;background:none;color:var(--text2);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;border-radius:8px;transition:background .22s var(--ease),color .22s var(--ease),transform .15s var(--ease-fast);white-space:nowrap}
   .sw-btn:hover{color:var(--text)}
-  .sw-btn.active{background:var(--accent);color:#000;box-shadow:0 2px 10px rgba(245,158,11,.35)}
+  .sw-btn.active{background:var(--accent);color:var(--on-accent);box-shadow:0 2px 10px rgba(245,158,11,.35)}
   .sw-btn:active{transform:scale(.96)}
 
   .tag{font-size:11px;color:var(--text3);font-family:'JetBrains Mono',monospace;border:1px solid var(--border);padding:4px 9px;border-radius:6px}
@@ -56,7 +89,7 @@
   .lang-wrap.open .lang-caret{transform:rotate(180deg)}
   .lang-menu{position:fixed;z-index:80;display:none;
     max-height:290px;overflow-y:auto;background:var(--panel2);border:1px solid var(--border);
-    border-radius:11px;padding:6px;box-shadow:0 14px 34px rgba(0,0,0,.5);
+    border-radius:11px;padding:6px;box-shadow:0 14px 34px var(--shadow-menu);
     opacity:0;transform:translateY(-4px);transition:opacity .16s var(--ease),transform .16s var(--ease)}
   .lang-wrap.open .lang-menu{display:block;opacity:1;transform:none}
   .lang-menu.open{display:block;opacity:1;transform:none}
@@ -77,7 +110,7 @@
   .node{position:relative;margin:0 12px 4px;padding:11px 12px 11px 44px;border-radius:var(--radius-sm);cursor:pointer;transition:background .18s var(--ease),border-color .18s var(--ease),transform .12s var(--ease-fast);border:1px solid transparent}
   .node:hover{background:var(--panel);transform:translateX(1px)}
   .node.active{background:var(--accent-dim);border-color:var(--accent);box-shadow:inset 2px 0 0 var(--accent)}
-  .node.done .num{background:var(--accent);color:#000;border-color:var(--accent)}
+  .node.done .num{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .node.locked{opacity:.45}
   .num{position:absolute;left:12px;top:11px;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--text2);z-index:2;transition:background .18s var(--ease),color .18s var(--ease),border-color .18s var(--ease)}
   .node.active .num{border-color:var(--accent);color:var(--accent)}
@@ -103,10 +136,10 @@
     background-image:radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px);background-size:22px 22px}
   .preview-title{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:var(--text3);font-weight:600}
   .preview-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;
-    box-shadow:0 18px 44px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;overflow:hidden;
+    box-shadow:0 18px 44px var(--shadow-md);display:flex;align-items:center;justify-content:center;overflow:hidden;
     transition:width .38s var(--ease),height .38s var(--ease)}
   .canvas-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:22px;
-    box-shadow:0 22px 55px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.02);
+    box-shadow:0 22px 55px var(--shadow-lg),inset 0 1px 0 rgba(255,255,255,.02);
     display:flex;align-items:center;justify-content:center;overflow:hidden;
     transition:width .38s var(--ease),height .38s var(--ease)}
   #stage{width:100%;height:100%;display:block}
@@ -127,17 +160,17 @@
   .btn{display:flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--text);font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:border-color .18s var(--ease),color .18s var(--ease),transform .12s var(--ease-fast)}
   .btn:hover{border-color:var(--accent);color:var(--accent)}
   .btn:active{transform:scale(.96)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#000}
-  .btn.primary:hover{background:var(--accent2);color:#000}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+  .btn.primary:hover{background:var(--accent2);color:var(--on-accent)}
   .btn:disabled{opacity:.35;cursor:not-allowed;transform:none}
 
-  .anchor{fill:var(--accent);stroke:#000;stroke-width:1.2;transition:r .15s var(--ease)}
+  .anchor{fill:var(--accent);stroke:var(--anchor-stroke);stroke-width:1.2;transition:r .15s var(--ease)}
   .anchor.dim{fill:var(--text3);opacity:.55}
   .anchor.small{fill:var(--blue)}
-  .alabel{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:var(--accent2);paint-order:stroke;stroke:#0d0d0f;stroke-width:2.6px;stroke-linejoin:round}
+  .alabel{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;fill:var(--accent2);paint-order:stroke;stroke:var(--halo);stroke-width:2.6px;stroke-linejoin:round}
   .alabel.dim{fill:var(--text2);opacity:.75}
-  .aform{font-family:'JetBrains Mono',monospace;font-size:7.5px;fill:#a6a6bd;paint-order:stroke;stroke:#0d0d0f;stroke-width:2.2px;stroke-linejoin:round}
-  .dimtxt{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;fill:#f0f1f8;paint-order:stroke;stroke:#0d0d0f;stroke-width:2.8px;stroke-linejoin:round}
+  .aform{font-family:'JetBrains Mono',monospace;font-size:7.5px;fill:var(--aform);paint-order:stroke;stroke:var(--halo);stroke-width:2.2px;stroke-linejoin:round}
+  .dimtxt{font-family:'JetBrains Mono',monospace;font-size:9.5px;font-weight:600;fill:var(--dimtxt);paint-order:stroke;stroke:var(--halo);stroke-width:2.8px;stroke-linejoin:round}
 
   aside.info{width:304px;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;flex-shrink:0}
   .sec{padding:16px 17px;border-bottom:1px solid var(--border)}
@@ -146,7 +179,7 @@
   .preset-row{display:flex;gap:6px;margin-bottom:12px}
   .preset{flex:1;padding:7px 0;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text2);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;transition:border-color .18s var(--ease),color .18s var(--ease),background .18s var(--ease)}
   .preset:hover{border-color:var(--accent);color:var(--accent)}
-  .preset.active{background:var(--accent);border-color:var(--accent);color:#000}
+  .preset.active{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 
   .fields-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
   .field{margin:0}
@@ -162,7 +195,7 @@
   .instr-list{margin:0;padding-left:17px}
   .instr-list li{font-size:12px;color:var(--text);line-height:1.6;margin-bottom:7px}
   .instr-list li::marker{color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:11px}
-  .instr-sew{margin-top:12px;padding:10px 12px;border-radius:9px;background:rgba(47,199,116,.08);border:1px solid rgba(47,199,116,.28);font-size:11px;color:var(--text2);line-height:1.55}
+  .instr-sew{margin-top:12px;padding:10px 12px;border-radius:9px;background:var(--sew-bg);border:1px solid rgba(47,199,116,.28);font-size:11px;color:var(--text2);line-height:1.55}
   .instr-sew b{color:var(--green);font-weight:600;margin-right:4px}
   .instr-tip{margin-top:9px;padding:10px 12px;border-radius:9px;background:var(--accent-dim);border:1px solid rgba(245,158,11,.28);font-size:11px;color:var(--text2);line-height:1.55}
   .instr-tip b{color:var(--accent2);font-weight:600;margin-right:4px}
@@ -173,16 +206,16 @@
   .listen-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--accent);
     background:var(--accent-dim);color:var(--accent2);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;
     transition:background .18s var(--ease),color .18s var(--ease)}
-  .listen-btn:hover{background:var(--accent);color:#000}
-  .listen-btn.on{background:var(--accent);color:#000}
+  .listen-btn:hover{background:var(--accent);color:var(--on-accent)}
+  .listen-btn.on{background:var(--accent);color:var(--on-accent)}
   .auto-read{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer;user-select:none}
   .auto-read input{accent-color:var(--accent);width:14px;height:14px}
   .btn.listen-mini{padding:8px 11px;font-size:15px}
-  .btn.listen-mini.on{background:var(--accent);border-color:var(--accent);color:#000}
+  .btn.listen-mini.on{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
   .instr-list li{transition:background .2s var(--ease)}
   .instr-list li.speaking{background:var(--accent-dim);border-radius:6px;box-shadow:0 0 0 4px var(--accent-dim)}
   .instr-sew.speaking,.instr-tip.speaking{box-shadow:0 0 0 2px var(--accent)}
-  .instr-warn{margin-top:9px;padding:10px 12px;border-radius:9px;background:rgba(240,82,74,.09);border:1px solid rgba(240,82,74,.32);font-size:11px;color:var(--text2);line-height:1.55}
+  .instr-warn{margin-top:9px;padding:10px 12px;border-radius:9px;background:var(--warn-bg);border:1px solid rgba(240,82,74,.32);font-size:11px;color:var(--text2);line-height:1.55}
 
   @media (max-width:1100px) and (min-width:901px){
     aside.dag{width:230px}
@@ -264,6 +297,7 @@
   /* ── First-visit guided tour (in the chosen language) ─────────────── */
   .help-btn{height:32px;min-width:32px;padding:0 9px;border-radius:9px;border:1px solid var(--border);background:var(--panel);color:var(--text2);font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
   .help-btn:hover{border-color:var(--accent);color:var(--accent2)}
+  .theme-btn{font-size:15px;line-height:1;padding:0 8px}
   .tour-spot{position:fixed;z-index:200;border-radius:12px;pointer-events:none;
     box-shadow:0 0 0 2px var(--accent),0 0 0 9999px rgba(0,0,0,.72);transition:all .28s var(--ease)}
   .tour-block{position:fixed;inset:0;z-index:199;background:transparent}
@@ -300,6 +334,7 @@
     <span class="nt-track"><span class="nt-thumb"></span></span>
     <span class="nt-label" id="names-toggle-label">Letters</span>
   </button>
+  <button class="help-btn theme-btn" id="theme-btn" title="White or dark background" aria-label="White or dark background"></button>
   <button class="help-btn" id="help-btn" title="Show the guide again" aria-label="Show the guide again">?</button>
   <div class="lang-wrap" id="lang-wrap">
     <button class="lang-toggle" id="lang-toggle" title="Translate the instructions">
@@ -669,10 +704,10 @@ function render(){
   const sx=x=>x*SCALE+PAD, sy=y=>y*SCALE+PAD;
 
   let g=`<defs><pattern id="grid" width="${SCALE}" height="${SCALE}" patternUnits="userSpaceOnUse">
-      <path d="M ${SCALE} 0 L 0 0 0 ${SCALE}" fill="none" stroke="#20202a" stroke-width="1"/></pattern></defs>
-    <rect width="${w}" height="${h}" fill="var(--bg)"/>
+      <path d="M ${SCALE} 0 L 0 0 0 ${SCALE}" fill="none" stroke="var(--grid)" stroke-width="1"/></pattern></defs>
+    <rect width="${w}" height="${h}" fill="var(--paper)"/>
     <rect x="${sx(0)}" y="${sy(0)}" width="${SW*SCALE}" height="${SH*SCALE}" fill="url(#grid)" opacity=".85"/>
-    <rect x="${sx(0)}" y="${sy(0)}" width="${SW*SCALE}" height="${SH*SCALE}" fill="rgba(245,158,11,0.05)" stroke="#33333d" stroke-width="1.4"/>`;
+    <rect x="${sx(0)}" y="${sy(0)}" width="${SW*SCALE}" height="${SH*SCALE}" fill="var(--sheet-fill)" stroke="var(--sheet-stroke)" stroke-width="1.4"/>`;
   if(ph.fold!==false) g+=`<text class="dimtxt" x="${sx(SW)+ph.foldDx}" y="${sy(SH/2)}" transform="rotate(-90 ${sx(SW)+ph.foldDx} ${sy(SH/2)})" fill="var(--purple)">${ph.foldLabel||'on fold'}</text>`;
 
   edges.forEach(e=>{ if(e.s>cur) return;
@@ -773,11 +808,11 @@ function renderGarment(part){ const st=part.garment.HL[state.step]||{ids:[],cap:
         hw = part.garment.half==='right' ? right-cx : cx-left;
   s+=`<defs><clipPath id="halfclip"><rect x="${hx}" y="${top}" width="${hw}" height="${VH}"/></clipPath></defs>`;
   // the garment, drawn whole and plain — never cut
-  s+=`<path d="${gm.base}" fill="rgba(210,232,255,0.05)" stroke="#3a3a44" stroke-width="1.4" stroke-linejoin="round"/>`;
+  s+=`<path d="${gm.base}" fill="var(--gm-fill)" stroke="var(--gm-line)" stroke-width="1.4" stroke-linejoin="round"/>`;
   // interior construction lines — always drawn plain, as the manual's thumbnails do
-  if(gm.plain) s+=`<path d="${gm.plain}" fill="none" stroke="#3a3a44" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>`;
+  if(gm.plain) s+=`<path d="${gm.plain}" fill="none" stroke="var(--gm-line)" stroke-width="0.9" stroke-linecap="round" opacity="0.8"/>`;
   // faint centre line (the fold), part of the plain drawing
-  s+=`<line x1="${cx}" y1="${fold.y1}" x2="${cx}" y2="${fold.y2}" stroke="#3a3a44" stroke-width="1" stroke-dasharray="4,3"/>`;
+  s+=`<line x1="${cx}" y1="${fold.y1}" x2="${cx}" y2="${fold.y2}" stroke="var(--gm-line)" stroke-width="1" stroke-dasharray="4,3"/>`;
   // the step's own line, inked over the left half only
   const ink=(d,col,dash)=>`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.6" `
     +`stroke-linecap="round"${dash} filter="drop-shadow(0 0 3px ${col})"/>`;
@@ -1206,6 +1241,7 @@ const TOUR_STEPS=[
   {sel:'.sec-instr', t:'What to do', d:'Read what to draw and how to sew for this step here.'},
   {sel:'#listen-btn', t:'Listen', d:'Press Listen to hear this step read aloud. Tick Every step to hear each new step automatically.'},
   {sel:'#lang-wrap', t:'Language', d:'Change the language of the instructions and the voice here.'},
+  {sel:'#theme-btn', t:'Background', d:'Switch between a white and a dark background. Your choice is remembered on this phone or computer.'},
   {sel:'#help-btn', t:'See this guide again', d:'Press this button any time to see this guide again. Happy sewing!'},
 ];
 const TOUR_KEY='silai.tour.seen';
@@ -1287,6 +1323,19 @@ function tourEnd(){
 addEventListener('resize',tourPlace); addEventListener('scroll',tourPlace,true);
 addEventListener('keydown',e=>{ if(tour.open && e.key==='Escape') tourEnd(); },true);
 document.getElementById('help-btn').onclick=()=>tourStart();
+// background switch: white <-> dark, remembered in localStorage['silai.theme']
+(function(){
+  const btn=document.getElementById('theme-btn');
+  const paint=()=>{ const light=document.documentElement.getAttribute('data-theme')==='light';
+    btn.textContent=light?'\u263E':'\u2600'; btn.setAttribute('aria-pressed',String(light)); };
+  btn.onclick=()=>{
+    const next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
+    document.documentElement.setAttribute('data-theme',next);
+    try{ localStorage.setItem('silai.theme',next); }catch(e){}
+    paint();
+  };
+  paint();
+})();
 // translate the "?" tooltip too
 (async()=>{ const b=document.getElementById('help-btn'); const t=await tourText('Show the guide again'); b.title=t; b.setAttribute('aria-label',t); })();
 (function(){
