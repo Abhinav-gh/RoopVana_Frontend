@@ -215,6 +215,23 @@
   .instr-list li{transition:background .2s var(--ease)}
   .instr-list li.speaking{background:var(--accent-dim);border-radius:6px;box-shadow:0 0 0 4px var(--accent-dim)}
   .instr-sew.speaking,.instr-tip.speaking{box-shadow:0 0 0 2px var(--accent)}
+  /* voice check bar (above the instructions) */
+  .voice-bar{display:flex;align-items:flex-start;gap:9px;margin:0 0 11px;padding:9px 11px;border-radius:9px;
+    border:1px solid var(--border);background:var(--panel);font-size:11.5px;color:var(--text2);line-height:1.5;animation:stepIn .25s var(--ease)}
+  .voice-bar[hidden]{display:none}
+  .voice-bar.ok{background:var(--sew-bg);border-color:rgba(47,199,116,.35)}
+  .voice-bar.info{background:var(--accent-dim);border-color:rgba(245,158,11,.35)}
+  .voice-bar.warn{background:var(--warn-bg);border-color:rgba(240,82,74,.32)}
+  .voice-bar .vb-ico{font-size:15px;line-height:1.2;flex:none}
+  .voice-bar .vb-body{flex:1;min-width:0}
+  .voice-bar .vb-name{font-weight:700;color:var(--text)}
+  .voice-bar ol{margin:6px 0 2px;padding-left:18px}
+  .voice-bar ol li{margin:2px 0}
+  .voice-bar .vb-acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .vb-btn{height:30px;padding:0 12px;border-radius:9px;border:1px solid var(--accent);background:var(--accent);color:var(--on-accent);
+    font-family:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .vspin{width:13px;height:13px;margin-top:2px;flex:none;border-radius:50%;border:2px solid var(--border);border-top-color:var(--accent);animation:vspin .8s linear infinite}
+  @keyframes vspin{to{transform:rotate(360deg)}}
   .instr-warn{margin-top:9px;padding:10px 12px;border-radius:9px;background:var(--warn-bg);border:1px solid rgba(240,82,74,.32);font-size:11px;color:var(--text2);line-height:1.55}
 
   @media (max-width:1100px) and (min-width:901px){
@@ -281,6 +298,8 @@
     .instr-head{font-size:10.5px}
     .instr-list li{font-size:14.5px;line-height:1.65;margin-bottom:9px}
     .instr-sew,.instr-tip,.instr-warn{font-size:13px;line-height:1.6}
+    .voice-bar{font-size:13px;line-height:1.55}
+    .vb-btn{height:40px;padding:0 16px;font-size:14px}
     .preset{padding:11px 0;font-size:13px}
     .field label{font-size:12px}
     .field input{font-size:16px;padding:9px 10px}   /* 16px stops iOS zooming on focus */
@@ -397,6 +416,7 @@
           <label class="auto-read" title="Read each new step aloud automatically"><input type="checkbox" id="auto-read"/> <span data-i18n="Every step">Every step</span></label>
         </div>
       </div>
+      <div class="voice-bar" id="voice-bar" hidden role="status" aria-live="polite"></div>
       <div id="instr"></div>
     </div>
   </aside>
@@ -946,14 +966,32 @@ function sayDevice(text, voice, my){
     speechSynthesis.speak(u);
   });
 }
-function sayWeb(text, lang, my){
+/* One audio element for the whole page. A tap on "Allow sound" plays a
+   silent clip through it, which unlocks it for later steps (needed on
+   iPhones and for "Every step", where no tap starts the sound).          */
+const SILENT_WAV='data:audio/wav;base64,UklGRrQBAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YZABAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICA';
+const PLAYER=new Audio(); PLAYER.preload='auto';
+function webUrl(text, lang){
+  return `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`;
+}
+// resolves true (played), false (could not load), or 'blocked' (browser wants a tap first)
+function sayWebOnce(text, lang, my){
   return new Promise(res=>{
-    const a=new Audio(`https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${encodeURIComponent(lang)}&q=${encodeURIComponent(text)}`);
-    TTS.audio=a;
-    a.onended=()=>res(true);
-    a.onerror=()=>res(TTS.token!==my);
-    a.play().catch(()=>res(TTS.token!==my));
+    const a=PLAYER; TTS.audio=a;
+    let done=false; const fin=v=>{ if(done) return; done=true; a.onended=a.onerror=null; res(v); };
+    a.onended=()=>fin(true);
+    a.onerror=()=>fin(TTS.token!==my);
+    a.src=webUrl(text, lang);
+    a.play().catch(err=>fin(TTS.token!==my ? true : (err && err.name==='NotAllowedError') ? 'blocked' : false));
   });
+}
+async function sayWeb(text, lang, my){
+  let r=await sayWebOnce(text, lang, my);
+  if(r===false && TTS.token===my){            // one retry: the free service sometimes drops a request
+    await new Promise(z=>setTimeout(z,700));
+    if(TTS.token===my) r=await sayWebOnce(text, lang, my);
+  }
+  return r;
 }
 function langName(code){
   const o=[...document.querySelectorAll('.lang-opt')].find(x=>x.dataset.lang===code);
@@ -972,7 +1010,7 @@ function unmark(){ document.querySelectorAll('#instr .speaking').forEach(e=>e.cl
 function stopSpeaking(){
   TTS.token++;
   if('speechSynthesis' in window) speechSynthesis.cancel();
-  if(TTS.audio){ TTS.audio.pause(); TTS.audio=null; }
+  if(TTS.audio){ TTS.audio.pause(); TTS.audio.onended=TTS.audio.onerror=null; TTS.audio=null; }
   unmark();
   if(TTS.speaking) setListenUI(false);
 }
@@ -983,9 +1021,11 @@ async function startSpeaking(){
   await instrReady;                       // wait for the translated text
   if(my!==TTS.token) return;
   const {lang, items}=painted;
-  const voice=await pickVoice(lang);
+  const ready=await ensureVoice(lang);
   if(my!==TTS.token) return;
-  let failed=false;
+  if(!ready){ TTS.pending=true; unmark(); setListenUI(false); return; }   // the voice bar says what to do
+  const voice=VOICE.voice;
+  let failed=false, blocked=false;
   for(const it of items){
     if(my!==TTS.token) return;
     unmark(); it.el.classList.add('speaking');
@@ -993,24 +1033,136 @@ async function startSpeaking(){
     for(const piece of chunks(speakable(it.text, lang))){
       if(my!==TTS.token) return;
       const ok = voice ? await sayDevice(piece, voice, my) : await sayWeb(piece, lang, my);
+      if(ok==='blocked'){ blocked=true; break; }
       if(!ok){ failed=true; break; }
     }
-    if(failed) break;
+    if(failed||blocked) break;
   }
   if(my!==TTS.token) return;
   unmark(); setListenUI(false);
-  if(failed){
-    document.getElementById('instr').insertAdjacentHTML('beforeend',
-      `<div class="instr-warn">🔇 ${chromeText('No voice was found for')} ${langName(lang)}. `
-      +`${chromeText('Install that language voice in the phone settings (Text-to-speech), or check the internet connection.')}</div>`);
-  }
+  if(blocked){ VOICE.unlocked=false; setVoiceState('needs-tap'); TTS.pending=true; }
+  else if(failed){ setVoiceState(navigator.onLine===false ? 'offline' : 'none'); }
 }
+/* ═══ VOICE CHECK ═════════════════════════════════════════════════════
+   Before reading, find out which voice will speak and tell the user:
+     checking  → "Getting the voice ready…"
+     device    → the phone has a voice for this language (works offline)
+     web       → Google's online voice answered (needs internet)
+     needs-tap → the browser wants one tap before it plays sound
+     offline / none → no voice; show how to install the phone voice, with
+                  "Check again". Re-checks by itself when the phone comes
+                  back online, returns from Settings, or gets a new voice. */
+const VOICE={ lang:null, state:'idle', voice:null, unlocked:false, seq:0, hideT:0, checking:null };
+const VOICE_TEXT=['Getting the voice ready…','Phone voice ready. It works without internet.',
+  'Online voice ready. It needs internet.','Tap Allow sound so the studio can read aloud.','Allow sound',
+  'No voice is available for this language right now.','You are offline. Connect to the internet, or install the phone voice.',
+  'To hear it, install the voice on this phone:','Open phone Settings and search for Text-to-speech.',
+  'Choose Speech Services by Google, then Install voice data.','Download the voice for this language, then tap Check again.',
+  'Check again','Sound is on.'];
+function hasTapped(){ return VOICE.unlocked || !!(navigator.userActivation && navigator.userActivation.hasBeenActive); }
+function probeWeb(lang){
+  // load (not play) a short word; loading needs no tap. Some phones on mobile
+  // data do not preload audio, so a timeout falls back to a plain reachability check.
+  return new Promise(res=>{
+    const a=new Audio(); a.preload='auto'; a.muted=true;
+    let done=false;
+    const fin=v=>{ if(done) return; done=true; clearTimeout(t); a.oncanplaythrough=a.onloadeddata=a.onerror=null; a.removeAttribute('src'); try{a.load();}catch(e){} res(v); };
+    const opt=document.querySelector(`.lang-opt[data-lang="${lang}"]`);
+    const word=(opt && opt.dataset.label) || 'OK';
+    a.oncanplaythrough=a.onloadeddata=()=>fin(true);
+    a.onerror=()=>fin(false);
+    const t=setTimeout(()=>{
+      fetch(webUrl(word, lang),{mode:'no-cors',cache:'no-store'}).then(()=>fin(true),()=>fin(false));
+    },6000);
+    a.src=webUrl(word, lang); a.load();
+  });
+}
+async function checkVoice(lang, show){
+  const my=++VOICE.seq;
+  VOICE.lang=lang; VOICE.voice=null;
+  setVoiceState('checking', show);
+  const run=(async()=>{
+    const v=await pickVoice(lang);
+    if(my!==VOICE.seq) return;
+    let st;
+    if(v){ VOICE.voice=v; st='device'; }
+    else if(navigator.onLine===false){ st='offline'; }
+    else { st = (await probeWeb(lang)) ? 'web' : 'none'; }
+    if(my!==VOICE.seq) return;
+    if((st==='device'||st==='web') && !hasTapped()) setVoiceState('needs-tap');
+    else setVoiceState(st, show);
+  })();
+  VOICE.checking=run; await run;
+}
+// true when a voice can speak now; otherwise the bar explains what is needed
+async function ensureVoice(lang){
+  if(VOICE.lang!==lang || VOICE.state==='idle' || VOICE.state==='none' || VOICE.state==='offline') await checkVoice(lang, true);
+  else if(VOICE.state==='checking' && VOICE.checking) await VOICE.checking;
+  if(VOICE.state==='needs-tap' && hasTapped()) setVoiceState(VOICE.voice?'device':'web', false);
+  if((VOICE.state==='device'||VOICE.state==='web') && !hasTapped()){ setVoiceState('needs-tap'); return false; }
+  return VOICE.state==='device' || VOICE.state==='web';
+}
+function unlockSound(){
+  // must run inside the tap: unlock the shared audio element and the phone voice
+  try{ PLAYER.src=SILENT_WAV; PLAYER.play().catch(()=>{}); }catch(e){}
+  try{ if('speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(' '); u.volume=0; speechSynthesis.speak(u); } }catch(e){}
+  VOICE.unlocked=true;
+}
+function setVoiceState(st, show=true){
+  if(st!=='unlocked') VOICE.state=st;
+  clearTimeout(VOICE.hideT);
+  const bar=document.getElementById('voice-bar');
+  const T=chromeText, name=`<span class="vb-name">${langName(VOICE.lang||state.lang)}</span>`;
+  if(st==='idle' || ((st==='device'||st==='web'||st==='checking') && !show)){ bar.hidden=true; return; }
+  const steps=`<ol><li>${T('Open phone Settings and search for Text-to-speech.')}</li>
+    <li>${T('Choose Speech Services by Google, then Install voice data.')}</li>
+    <li>${T('Download the voice for this language, then tap Check again.')}</li></ol>`;
+  let cls='info', ico='', body='', acts='';
+  if(st==='checking'){ ico='<span class="vspin"></span>'; body=`${name} · ${T('Getting the voice ready…')}`; }
+  else if(st==='device'){ cls='ok'; ico='✅'; body=`${name} · ${T('Phone voice ready. It works without internet.')}`; }
+  else if(st==='web'){ cls='ok'; ico='🌐'; body=`${name} · ${T('Online voice ready. It needs internet.')}`; }
+  else if(st==='unlocked'){ cls='ok'; ico='🔊'; body=T('Sound is on.'); }
+  else if(st==='needs-tap'){ ico='🔈'; body=`${name} · ${T('Tap Allow sound so the studio can read aloud.')}`;
+    acts=`<button class="vb-btn" data-act="allow">🔊 ${T('Allow sound')}</button>`; }
+  else { cls='warn'; ico='🔇';
+    body=`${name} · ${T(st==='offline' ? 'You are offline. Connect to the internet, or install the phone voice.' : 'No voice is available for this language right now.')}`
+      +`<div style="margin-top:4px">${T('To hear it, install the voice on this phone:')}</div>${steps}`;
+    acts=`<button class="vb-btn" data-act="recheck">↻ ${T('Check again')}</button>`; }
+  bar.className='voice-bar '+cls;
+  bar.innerHTML=`<span class="vb-ico">${ico}</span><div class="vb-body">${body}${acts?`<div class="vb-acts">${acts}</div>`:''}</div>`;
+  bar.hidden=false;
+  if(cls==='ok') VOICE.hideT=setTimeout(()=>{ bar.hidden=true; }, 3500);
+  if((st==='needs-tap'||cls==='warn') && isPhone()) bar.scrollIntoView({block:'center',behavior:'smooth'});
+}
+document.getElementById('voice-bar').addEventListener('click', e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  unlockSound();
+  if(b.dataset.act==='allow'){
+    setVoiceState(VOICE.voice ? 'device' : 'web');
+    if(TTS.pending || TTS.auto){ TTS.pending=false; startSpeaking(); }
+  } else if(b.dataset.act==='recheck'){
+    checkVoice(state.lang, true).then(()=>{
+      if(TTS.pending && (VOICE.state==='device'||VOICE.state==='web')){ TTS.pending=false; startSpeaking(); }
+    });
+  }
+});
+// a newly installed phone voice, the connection coming back, or returning from Settings re-runs the check
+if('speechSynthesis' in window) speechSynthesis.addEventListener('voiceschanged', ()=>{
+  if(VOICE.state==='none'||VOICE.state==='offline') checkVoice(state.lang, true);
+  else if(VOICE.state==='web') checkVoice(state.lang, false);
+});
+window.addEventListener('online', ()=>{ if(VOICE.state==='offline'||VOICE.state==='none') checkVoice(state.lang, true); });
+window.addEventListener('offline', ()=>{ if(VOICE.state==='web') setVoiceState('offline'); });
+document.addEventListener('visibilitychange', ()=>{
+  if(!document.hidden && (VOICE.state==='none'||VOICE.state==='offline')) checkVoice(state.lang, true);
+});
+
 function toggleSpeaking(){ if(TTS.speaking) stopSpeaking(); else startSpeaking(); }
 document.getElementById('listen-btn').addEventListener('click', toggleSpeaking);
 document.getElementById('listen-mini').addEventListener('click', toggleSpeaking);
 document.getElementById('auto-read').addEventListener('change', e=>{
   TTS.auto=e.target.checked;
-  if(TTS.auto) startSpeaking(); else stopSpeaking();
+  if(TTS.auto){ unlockSound(); startSpeaking(); } else stopSpeaking();
 });
 
 /* ═══ CONTROLS IN THE CHOSEN LANGUAGE ═════════════════════════════════
@@ -1023,13 +1175,18 @@ async function translateChrome(){
   const lang=state.lang;
   const els=[...document.querySelectorAll('[data-i18n]')];
   const extra=['Listen','Stop','No voice was found for',
-    'Install that language voice in the phone settings (Text-to-speech), or check the internet connection.'];
-  if(lang==='en'){ els.forEach(el=>el.textContent=el.dataset.i18n); return; }
+    'Install that language voice in the phone settings (Text-to-speech), or check the internet connection.'].concat(VOICE_TEXT);
+  if(lang==='en'){ els.forEach(el=>el.textContent=el.dataset.i18n); refreshVoiceBar(); return; }
   CHROME[lang]=CHROME[lang]||{};
   const keys=[...new Set(els.map(el=>el.dataset.i18n).concat(extra))];
   await Promise.all(keys.map(async k=>{ CHROME[lang][k]=await translateText(k,lang); }));
   if(state.lang!==lang) return;
   els.forEach(el=>{ el.textContent=chromeText(el.dataset.i18n); });
+  refreshVoiceBar();
+}
+function refreshVoiceBar(){
+  const bar=document.getElementById('voice-bar');
+  if(!bar.hidden && !bar.classList.contains('ok') && VOICE.state!=='idle') setVoiceState(VOICE.state, true);
 }
 function renderFields(){
   const part=PARTS[state.part];
@@ -1104,6 +1261,8 @@ document.getElementById('lang-menu').addEventListener('click',(e)=>{
   document.getElementById('lang-menu').classList.remove('open');
   renderInstructions(PARTS[state.part]);
   translateChrome();
+  unlockSound();                                  // choosing a language is a tap
+  checkVoice(state.lang, state.lang!=='en');
 });
 document.addEventListener('click',(e)=>{
   const wrap=document.getElementById('lang-wrap');
@@ -1222,6 +1381,7 @@ const SILAI_READY = (async function(){
   syncHeaderHeight();
   renderFields(); render();
   translateChrome();
+  if(state.lang!=='en') checkVoice(state.lang, false);   // quietly, in the background
   // fetch the other garments in the background so the switcher is instant
   SILAI.garments().forEach(o=>SILAI.require(o.id).catch(()=>{}));
 })().catch(showStoreError);
