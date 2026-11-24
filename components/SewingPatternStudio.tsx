@@ -15,9 +15,20 @@
 // holding the close button, so the close button never covers the studio's own
 // language picker in the top-right corner. Larger screens keep the floating
 // card with the close button in the backdrop.
+//
+// Theme: the site and the studio share one white/dark setting
+// (localStorage "roopvana-theme"); this frame follows it too.
 
 import React from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTheme } from "@/hooks/use-theme";
+
+// Colours of the frame around the studio, matching the studio's own white and
+// dark themes (public/silai-dag-studio.html :root and html[data-theme="light"]).
+const FRAME = {
+  dark:  { page: "#0d0d0f", bar: "#151519", border: "#26262f", btn: "#1b1b21", text: "#eeeef4", muted: "#9393a8", backdrop: "rgba(0,0,0,.72)", shadow: "rgba(0,0,0,.6)" },
+  light: { page: "#f4f4f7", bar: "#ffffff", border: "#dcdce4", btn: "#ffffff", text: "#1b1b24", muted: "#4b4b5e", backdrop: "rgba(20,20,40,.45)", shadow: "rgba(20,20,40,.25)" },
+};
 
 export type SilaiGarment =
   | "kurta_sleeve"
@@ -45,6 +56,10 @@ interface SewingPatternStudioProps {
 
 export default function SewingPatternStudio({ open, onClose, garment = "kurta_sleeve", size = "medium", lang = "en" }: SewingPatternStudioProps) {
   const isMobile = useIsMobile();
+  // The studio saves its white/dark switch in the same "roopvana-theme" setting,
+  // so this follows it live (see hooks/use-theme.tsx).
+  const { resolvedTheme } = useTheme();
+  const c = FRAME[resolvedTheme];
 
   React.useEffect(() => {
     if (!open) return;
@@ -71,25 +86,25 @@ export default function SewingPatternStudio({ open, onClose, garment = "kurta_sl
         style={{
           position: "fixed", inset: 0, zIndex: 1000,
           display: "flex", flexDirection: "column",
-          background: "#0d0d0f",
+          background: c.page,
           height: "100dvh",
         }}
       >
         <div style={{
           flexShrink: 0, height: 48, display: "flex", alignItems: "center",
           padding: "0 8px", gap: 8,
-          borderBottom: "1px solid #26262f", background: "#151519",
+          borderBottom: `1px solid ${c.border}`, background: c.bar,
         }}>
           <button
             onClick={onClose}
             aria-label="Close pattern studio"
             style={{
               height: 36, padding: "0 14px", borderRadius: 9,
-              border: "1px solid #26262f", background: "#1b1b21",
-              color: "#eeeef4", cursor: "pointer", fontSize: 14, fontWeight: 600,
+              border: `1px solid ${c.border}`, background: c.btn,
+              color: c.text, cursor: "pointer", fontSize: 14, fontWeight: 600,
             }}
           >← Back</button>
-          <span style={{ color: "#9393a8", fontSize: 13, fontWeight: 600 }}>Sewing pattern</span>
+          <span style={{ color: c.muted, fontSize: 13, fontWeight: 600 }}>Sewing pattern</span>
         </div>
         <iframe
           key={`${garment}:${size}:${lang}`}
@@ -107,7 +122,7 @@ export default function SewingPatternStudio({ open, onClose, garment = "kurta_sl
       aria-modal="true"
       style={{
         position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(0,0,0,.72)", backdropFilter: "blur(3px)",
+        background: c.backdrop, backdropFilter: "blur(3px)",
         display: "flex", padding: 0,
       }}
     >
@@ -120,15 +135,15 @@ export default function SewingPatternStudio({ open, onClose, garment = "kurta_sl
         style={{
           position: "fixed", top: 14, right: 18, zIndex: 1010,
           width: 34, height: 34, borderRadius: 9,
-          border: "1px solid #26262f", background: "#1b1b21",
-          color: "#9393a8", cursor: "pointer", fontSize: 15,
+          border: `1px solid ${c.border}`, background: c.btn,
+          color: c.muted, cursor: "pointer", fontSize: 15,
         }}
       >✕</button>
       <div style={{
         margin: "auto", width: "96vw", height: "92vh",
         borderRadius: 14, overflow: "hidden",
-        boxShadow: "0 24px 80px rgba(0,0,0,.6)",
-        position: "relative", background: "#0d0d0f",
+        boxShadow: `0 24px 80px ${c.shadow}`,
+        position: "relative", background: c.page,
       }}>
         <iframe
           key={`${garment}:${size}:${lang}`}

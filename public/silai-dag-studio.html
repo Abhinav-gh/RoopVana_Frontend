@@ -11,10 +11,12 @@
 (function(){
   var t='dark';
   try{
-    var own=localStorage.getItem('silai.theme');
-    var rv=localStorage.getItem('roopvana-theme');
+    // one setting shared with the RoopVana site; an older studio-only choice is moved over once
+    var rv=localStorage.getItem('roopvana-theme'), own=localStorage.getItem('silai.theme');
+    if(!rv && (own==='light'||own==='dark')){ rv=own; localStorage.setItem('roopvana-theme',own); }
+    if(own) localStorage.removeItem('silai.theme');
     if(rv==='system') rv=(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';
-    t=(own==='light'||own==='dark')?own:((rv==='light'||rv==='dark')?rv:'dark');
+    t=(rv==='light'||rv==='dark')?rv:'dark';
   }catch(e){}
   document.documentElement.setAttribute('data-theme',t);
 })();
@@ -1053,8 +1055,7 @@ async function startSpeaking(){
                   "Check again". Re-checks by itself when the phone comes
                   back online, returns from Settings, or gets a new voice. */
 const VOICE={ lang:null, state:'idle', voice:null, unlocked:false, seq:0, hideT:0, checking:null };
-const VOICE_TEXT=['Getting the voice ready…','Phone voice ready. It works without internet.',
-  'Online voice ready. It needs internet.','Tap Allow sound so the studio can read aloud.','Allow sound',
+const VOICE_TEXT=['Getting the voice ready…','Voice ready.','Tap Allow sound so the studio can read aloud.','Allow sound',
   'No voice is available for this language right now.','You are offline. Connect to the internet, or install the phone voice.',
   'To hear it, install the voice on this phone:','Open phone Settings and search for Text-to-speech.',
   'Choose Speech Services by Google, then Install voice data.','Download the voice for this language, then tap Check again.',
@@ -1119,8 +1120,8 @@ function setVoiceState(st, show=true){
     <li>${T('Download the voice for this language, then tap Check again.')}</li></ol>`;
   let cls='info', ico='', body='', acts='';
   if(st==='checking'){ ico='<span class="vspin"></span>'; body=`${name} · ${T('Getting the voice ready…')}`; }
-  else if(st==='device'){ cls='ok'; ico='✅'; body=`${name} · ${T('Phone voice ready. It works without internet.')}`; }
-  else if(st==='web'){ cls='ok'; ico='🌐'; body=`${name} · ${T('Online voice ready. It needs internet.')}`; }
+  else if(st==='device'){ cls='ok'; ico='✅'; body=`${name} · ${T('Voice ready.')}`; }
+  else if(st==='web'){ cls='ok'; ico='✅'; body=`${name} · ${T('Voice ready.')}`; }
   else if(st==='unlocked'){ cls='ok'; ico='🔊'; body=T('Sound is on.'); }
   else if(st==='needs-tap'){ ico='🔈'; body=`${name} · ${T('Tap Allow sound so the studio can read aloud.')}`;
     acts=`<button class="vb-btn" data-act="allow">🔊 ${T('Allow sound')}</button>`; }
@@ -1401,7 +1402,7 @@ const TOUR_STEPS=[
   {sel:'.sec-instr', t:'What to do', d:'Read what to draw and how to sew for this step here.'},
   {sel:'#listen-btn', t:'Listen', d:'Press Listen to hear this step read aloud. Tick Every step to hear each new step automatically.'},
   {sel:'#lang-wrap', t:'Language', d:'Change the language of the instructions and the voice here.'},
-  {sel:'#theme-btn', t:'Background', d:'Switch between a white and a dark background. Your choice is remembered on this phone or computer.'},
+  {sel:'#theme-btn', t:'Background', d:'Switch between a white and a dark background. The same choice is used on the RoopVana site and is remembered on this phone or computer.'},
   {sel:'#help-btn', t:'See this guide again', d:'Press this button any time to see this guide again. Happy sewing!'},
 ];
 const TOUR_KEY='silai.tour.seen';
@@ -1483,17 +1484,27 @@ function tourEnd(){
 addEventListener('resize',tourPlace); addEventListener('scroll',tourPlace,true);
 addEventListener('keydown',e=>{ if(tour.open && e.key==='Escape') tourEnd(); },true);
 document.getElementById('help-btn').onclick=()=>tourStart();
-// background switch: white <-> dark, remembered in localStorage['silai.theme']
+// background switch: white <-> dark. Saved in localStorage['roopvana-theme'],
+// the same setting the RoopVana site uses, so changing it here changes the
+// site and changing it on the site changes the studio (live, via 'storage').
 (function(){
   const btn=document.getElementById('theme-btn');
+  const mq=window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+  const resolve=v=> v==='light'||v==='dark' ? v : (v==='system' && mq ? (mq.matches?'light':'dark') : 'dark');
+  const read=()=>{ try{ return localStorage.getItem('roopvana-theme'); }catch(e){ return null; } };
   const paint=()=>{ const light=document.documentElement.getAttribute('data-theme')==='light';
     btn.textContent=light?'\u263E':'\u2600'; btn.setAttribute('aria-pressed',String(light)); };
+  const apply=v=>{ document.documentElement.setAttribute('data-theme',resolve(v)); paint(); };
   btn.onclick=()=>{
     const next=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';
-    document.documentElement.setAttribute('data-theme',next);
-    try{ localStorage.setItem('silai.theme',next); }catch(e){}
-    paint();
+    try{ localStorage.setItem('roopvana-theme',next); }catch(e){}
+    apply(next);
+    // tell the RoopVana page around the studio right away (storage events also reach it)
+    try{ if(window.parent!==window) window.parent.postMessage({type:'roopvana-theme',theme:next}, location.origin); }catch(e){}
   };
+  addEventListener('storage', e=>{ if(e.key==='roopvana-theme' || e.key===null) apply(read()); });
+  addEventListener('message', e=>{ if(e.origin===location.origin && e.data && e.data.type==='roopvana-theme') apply(e.data.theme); });
+  if(mq) mq.addEventListener('change', ()=>{ if(read()==='system') apply('system'); });
   paint();
 })();
 // translate the "?" tooltip too
